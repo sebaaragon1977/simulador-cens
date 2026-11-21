@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador de Cirugía Endoscópica Nasosinusal</title>
+<style>
+  :root{--bg:rgba(14,16,20,.86);--fg:#e9ecef;--mut:#9aa3ad;--acc:#4fd1a5;--warn:#ff5a5a;--line:rgba(255,255,255,.1)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;color:var(--fg);font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+  canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  #mask{position:fixed;inset:0;pointer-events:none}
+  #bleed{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(120,0,0,.35) 0,rgba(110,0,0,.85) 60%,rgba(60,0,0,.95) 100%)}
+  #flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:rgba(255,40,40,.35);transition:opacity .4s}
+  #cross{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;opacity:.55}
+  #cross:before,#cross:after{content:"";position:absolute;background:#9fffd0}
+  #cross:before{left:10px;top:0;width:2px;height:22px}#cross:after{top:10px;left:0;height:2px;width:22px}
+  #notchWrap{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none}
+  #notch{position:absolute;left:-7px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid #ddd;opacity:.8}
+  #labels{position:fixed;inset:0;pointer-events:none}
+  .lab{position:absolute;transform:translate(-50%,-100%);padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;white-space:nowrap}
+  .lab.d{border-color:#ff6b6b;color:#ffd0d0}
+  .lab:after{content:"";position:absolute;left:50%;top:100%;width:1px;height:8px;background:rgba(255,255,255,.5)}
+  #tipLab{position:fixed;pointer-events:none;font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#bfffe3;display:none;white-space:nowrap}
+  .panel{position:fixed;top:10px;bottom:10px;width:290px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow:auto;backdrop-filter:blur(6px)}
+  #panel{left:10px}#info{right:10px;width:260px}
+  .panel.hidden{display:none}
+  h1{font-size:15px;margin:0 0 2px}.sub{color:var(--mut);font-size:11.5px;margin-bottom:10px}
+  .grp{margin:10px 0}.grp>label{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+  .seg{display:flex;gap:4px;flex-wrap:wrap}
+  button{font:inherit;color:var(--fg);background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer}
+  button:hover{background:rgba(255,255,255,.14)}
+  button.on{background:var(--acc);color:#04120c;border-color:var(--acc);font-weight:600}
+  .checks label{display:flex;align-items:center;gap:7px;margin:4px 0;text-transform:none;letter-spacing:0;color:var(--fg);font-size:12.5px;cursor:pointer}
+  #tour{display:flex;flex-direction:column;gap:4px}
+  #tour button{text-align:left;font-size:12px;padding:5px 8px}
+  .row{display:flex;gap:6px;margin-top:10px}.row button{flex:1}
+  #btnVR{background:#3b5bdb;border-color:#3b5bdb}
+  .help{margin-top:12px;color:var(--mut);font-size:11.5px;border-top:1px solid var(--line);padding-top:8px}
+  .help b{color:var(--fg);font-weight:600}
+  kbd{background:rgba(255,255,255,.12);border-radius:3px;padding:0 4px;font:11px ui-monospace,monospace}
+  #infoName{font-size:15px;font-weight:600;margin-bottom:4px;color:#bfffe3}
+  #infoText{color:#d5dbe1;font-size:12.5px;min-height:60px}
+  #stepText{margin-top:8px;padding:8px;border-radius:8px;background:rgba(79,209,165,.1);border:1px solid rgba(79,209,165,.3);font-size:12.5px;display:none}
+  .maps{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .maps canvas{width:100%;border-radius:6px;background:rgba(0,0,0,.4);border:1px solid var(--line)}
+  .maps small{color:var(--mut)}
+  #dist{margin-top:8px;font-size:12px;display:grid;grid-template-columns:1fr auto;gap:2px 8px}
+  #dist span:nth-child(even){font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+  #log{margin-top:10px;font-size:12px}#log ul{margin:4px 0 0;padding-left:16px;color:#ffb3b3}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(620px,90vw);padding:10px 16px;border-radius:10px;background:rgba(20,20,24,.92);border:1px solid var(--line);opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
+  #toast.w{border-color:var(--warn);color:#ffd6d6;background:rgba(60,8,8,.92)}
+  #toggleP,#toggleI{position:fixed;top:12px;z-index:5;padding:4px 8px;display:none}
+  #toggleP{left:12px}#toggleI{right:12px}
+  .ctl{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:12px}.ctl span{flex:0 0 92px;color:var(--mut)}.ctl input[type=range]{flex:1}
+  select{font:inherit;color:var(--fg);background:#1c2026;border:1px solid var(--line);border-radius:6px;padding:4px}
+  .mut{color:var(--mut);font-size:11.5px;margin-top:6px}
+  #ctPanel canvas{width:100%;display:block;border-radius:6px;background:#000;border:1px solid var(--line);margin-top:4px;cursor:crosshair}
+  #ctPanel small{color:var(--mut)}
+  #lmList{font-size:12px;margin-top:6px}#lmList div{display:flex;justify-content:space-between;align-items:center;padding:2px 0}
+  #lmList button{padding:0 6px;font-size:11px}
+  button.mk{background:#7a3bd9;border-color:#7a3bd9}
+  @media (max-width:900px){.panel{width:240px}#info{width:220px}#toggleP,#toggleI{display:block}.panel{top:44px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="bleed"></div><div id="flash"></div>
+<div id="mask"></div>
+<div id="notchWrap"><div id="notch"></div></div>
+<div id="cross"></div>
+<div id="labels"></div>
+<div id="tipLab"></div>
+<button id="toggleP">☰ Controles</button><button id="toggleI">ℹ Info</button>
+
+<div id="panel" class="panel">
+  <h1>Simulador CENS</h1>
+  <div class="sub">Cirugía endoscópica nasosinusal — anatomía y márgenes de seguridad</div>
+  <div class="grp"><label>Fosa nasal</label>
+    <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
+  <div class="grp"><label>Modelo anatómico</label>
+    <div class="seg" id="model"><button data-v="generic" class="on">Genérico</button><button data-v="ct">TC del paciente</button></div>
+    <div id="ctBox" style="display:none">
+      <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
+      <input type="file" id="inFolder" webkitdirectory multiple hidden>
+      <input type="file" id="inFiles" multiple hidden>
+      <div class="ctl"><span>Umbral aire/tejido</span><input type="range" id="iso" min="-800" max="-200" step="10" value="-450"><b id="isoV">-450</b></div>
+      <div class="ctl"><span>Malla</span><select id="res"><option value="0.6">Alta (escritorio) · 0,6 mm</option><option value="0.8" selected>Media · 0,8 mm</option><option value="quest">Quest 2 (liviana)</option></select></div>
+      <div class="row"><button id="btnRebuild">Reconstruir</button></div>
+      <div id="ctStatus" class="mut">Sin estudio cargado. Todo se procesa en esta computadora: las imágenes no se suben a ningún lado.</div>
+    </div></div>
+  <div class="grp"><label>Óptica</label>
+    <div class="seg" id="optic"><button data-v="0" class="on">0°</button><button data-v="30">30°</button><button data-v="45">45°</button><button data-v="70">70°</button></div></div>
+  <div class="grp"><label>Instrumento</label>
+    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button></div></div>
+  <div class="grp checks">
+    <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
+    <label><input type="checkbox" id="chkXray"> Estructuras de riesgo (transparencia)</label>
+    <label><input type="checkbox" id="chkCollide" checked> Colisión del endoscopio</label>
+    <label><input type="checkbox" id="chkViewMove" checked> Avanzar hacia donde mira la óptica</label>
+  </div>
+  <div class="grp" id="tourGrp"><label>Recorrido guiado (secuencia CENS)</label><div id="tour"></div></div>
+  <div class="row"><button id="btnReset">Reiniciar tejido</button><button id="btnVR">Entrar en VR</button></div>
+  <div class="help">
+    <b>Apuntar y navegar</b>: en <i>Explorar</i>, clic sobre un punto = el endoscopio gira y viaja hasta ahí (arrastrar = orientar). Con pinza/drill: <kbd>Alt</kbd>+clic o <kbd>N</kbd> (punto bajo el mouse) · <kbd>T</kbd> = viajar al centro de la cruz · cualquier tecla cancela<br>
+    <b>Endoscopio</b>: <kbd>W</kbd>/<kbd>S</kbd> o rueda avanza/retrocede (hacia donde mira la óptica: con 70° mirando arriba, sube) · <kbd>A</kbd>/<kbd>D</kbd> lateral · <kbd>R</kbd>/<kbd>F</kbd> arriba/abajo · flechas o arrastre con botón derecho: orientar · <kbd>Z</kbd>/<kbd>X</kbd> rotar la óptica angulada · <kbd>O</kbd> cambiar óptica · <kbd>Shift</kbd> lento<br>
+    <b>Instrumento</b>: la punta sigue al mouse · clic izquierdo = cortar (pinza) o mantener = fresar (drill) · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> cambiar · <kbd>Espacio</kbd> aspirar sangre<br>
+    <b>Quest 2</b>: control izquierdo = endoscopio (gatillo mantenido = viajar al punto que marca la cruz · stick ↑↓ = avanzar/retroceder hacia donde mira · stick ←→ = rotar óptica, X = cambiar óptica, grip = mover maqueta, Y = ver/ocultar maqueta) · control derecho = instrumento (gatillo = cortar/fresar, A = cambiar instrumento, B = estructuras de riesgo).
+  </div>
+</div>
+
+<div id="info" class="panel">
+  <div id="infoName">—</div>
+  <div id="infoText">Apuntá el centro del endoscopio a una estructura para identificarla.</div>
+  <div id="stepText"></div>
+  <div id="dist">
+    <span id="lLam">Punta → lámina papirácea</span><span id="dLam">—</span>
+    <span id="lSkull">Punta → base de cráneo</span><span id="dSkull">—</span>
+    <span>Bajo la punta</span><span id="dUnder">—</span>
+  </div>
+  <div id="ctPanel" style="display:none">
+    <div class="row"><button id="btnWin">Ventana: hueso</button><button id="btnMark">Marcar estructura</button></div>
+    <div class="ctl"><span>Tipo de marca</span><select id="lmType"></select></div>
+    <small>Axial</small><canvas id="ctAx" width="480" height="400"></canvas>
+    <small>Coronal</small><canvas id="ctCo" width="480" height="400"></canvas>
+    <small>Sagital</small><canvas id="ctSa" width="480" height="400"></canvas>
+    <div class="mut">Clic en un corte: lleva el endoscopio a ese punto (tiene que ser aire). Con <b>Marcar estructura</b> activo, el clic agrega la marca elegida (arterias, carótida, óptico, base de cráneo…): queda como estructura de riesgo con alerta en la endoscopia.</div>
+    <div id="lmList"></div>
+  </div>
+  <div class="maps">
+    <small>Corte sagital (anterior ←)</small><canvas id="mapS" width="440" height="270"></canvas>
+    <small>Corte axial (medial ↑, lateral ↓)</small><canvas id="mapA" width="440" height="230"></canvas>
+  </div>
+  <div id="log"><b>Complicaciones: <span id="nComp">0</span></b> · cortes: <span id="nCuts">0</span><ul id="logList"></ul></div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================== BASE ============================== */
+const $ = s => document.querySelector(s);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const D2R = Math.PI / 180;
+const WORLD_LAYER = 3;          // objetos visibles sólo en la vista VR del quirófano
+const VR_S = 0.004;             // 1 mm de anatomía = 4 mm en VR (maqueta ampliada x4)
+
+const renderer = new THREE.WebGLRenderer({ canvas: $('#c'), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.xr.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const anatomy = new THREE.Group();
+scene.add(anatomy);
+
+const state = {
+  side: 1, S: 1, angle: 0, roll: 0, tool: 'pinza', labels: true, xray: false, collide: true,
+  bleed: 0, vr: false, comps: [], bites: 0, anim: null, maqueta: true, viewMove: true, model: 'generic', fly: null, vrFly: null, markerT: 0
+};
+const scope = { pos: V(4, 13, 3), q: new THREE.Quaternion() };
+
+/* ============================== TEXTURAS ============================== */
+function canvasTex(draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  draw(c.getContext('2d'), 512);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+const rnd = (() => { let s = 1234567; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+function wrapDraw(s, x, y, r, f) { for (const dx of [-s, 0, s]) for (const dy of [-s, 0, s]) if (x + dx > -r && x + dx < s + r && y + dy > -r && y + dy < s + r) f(x + dx, y + dy); }
+const mucoTex = canvasTex((g, s) => {
+  g.fillStyle = '#f4dcd6'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 1600; i++) {
+    const x = rnd() * s, y = rnd() * s, r = 3 + rnd() * 24, a = rnd() * 0.07;
+    g.fillStyle = `rgba(${200 + rnd() * 40 | 0},${110 + rnd() * 60 | 0},${105 + rnd() * 50 | 0},${a})`;
+    wrapDraw(s, x, y, r, (X, Y) => { g.beginPath(); g.arc(X, Y, r, 0, 7); g.fill(); });
+  }
+  g.lineCap = 'round';
+  const vessel = (x, y, ang, w, n) => {
+    for (let k = 0; k < n; k++) {
+      const nx = x + Math.cos(ang) * 6, ny = y + Math.sin(ang) * 6;
+      g.lineWidth = w;
+      wrapDraw(s, x, y, 10, (X, Y) => { g.beginPath(); g.moveTo(X, Y); g.lineTo(X + nx - x, Y + ny - y); g.stroke(); });
+      x = (nx + s) % s; y = (ny + s) % s; ang += (rnd() - 0.5) * 0.6; w *= 0.975;
+      if (rnd() < 0.05 && w > 0.8) vessel(x, y, ang + (rnd() > .5 ? 1 : -1) * (0.6 + rnd() * 0.6), w * 0.7, n - k);
+    }
+  };
+  for (let v = 0; v < 22; v++) { g.strokeStyle = `rgba(150,25,35,${0.18 + rnd() * 0.25})`; vessel(rnd() * s, rnd() * s, rnd() * 6.28, 1.4 + rnd() * 2, 45); }
+});
+const bumpTex = canvasTex((g, s) => {
+  g.fillStyle = '#808080'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 2600; i++) {
+    const x = rnd() * s, y = rnd() * s, r = 2 + rnd() * 14, v = rnd() > .5 ? 255 : 0;
+    g.fillStyle = `rgba(${v},${v},${v},${0.04 + rnd() * 0.06})`;
+    wrapDraw(s, x, y, r, (X, Y) => { g.beginPath(); g.arc(X, Y, r, 0, 7); g.fill(); });
+  }
+}, false);
+
+/* ============================== CORTES (volumen 3D de tejido resecado) ==============================
+   Cada mordida de pinza / pasada de drill "pinta" una esfera en un volumen de 0,5 mm.
+   El shader descarta los fragmentos de tejido resecable que caen dentro del volumen marcado. */
+const CV = { o: V(-9, -1, -91), vox: 0.5, nx: 102, ny: 146, nz: 200 };
+const GEN_CV = { o: CV.o.clone(), size: V(51, 73, 100), vox: 0.5 };
+let cutVol = new Uint8Array(CV.nx * CV.ny * CV.nz);
+let cutTex = new THREE.Data3DTexture(cutVol, CV.nx, CV.ny, CV.nz);
+cutTex.format = THREE.RedFormat; cutTex.type = THREE.UnsignedByteType;
+cutTex.minFilter = cutTex.magFilter = THREE.LinearFilter; cutTex.unpackAlignment = 1; cutTex.needsUpdate = true;
+const cutU = { uCutVol: { value: cutTex }, uCutO: { value: CV.o }, uCutSize: { value: V(CV.nx * CV.vox, CV.ny * CV.vox, CV.nz * CV.vox) } };
+let cutDirty = false, nCuts = 0;
+function setCutVolume(o, size, vox) {
+  CV.o.copy(o); CV.vox = vox;
+  CV.nx = Math.ceil(size.x / vox); CV.ny = Math.ceil(size.y / vox); CV.nz = Math.ceil(size.z / vox);
+  cutVol = new Uint8Array(CV.nx * CV.ny * CV.nz);
+  cutTex.dispose();
+  cutTex = new THREE.Data3DTexture(cutVol, CV.nx, CV.ny, CV.nz);
+  cutTex.format = THREE.RedFormat; cutTex.type = THREE.UnsignedByteType;
+  cutTex.minFilter = cutTex.magFilter = THREE.LinearFilter; cutTex.unpackAlignment = 1; cutTex.needsUpdate = true;
+  cutU.uCutVol.value = cutTex; cutU.uCutO.value = CV.o; cutU.uCutSize.value = V(CV.nx * vox, CV.ny * vox, CV.nz * vox);
+}
+
+function patchCut(m) {
+  m.userData.cut = true;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, cutU);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vLP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLP = position;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vLP;\nuniform highp sampler3D uCutVol;\nuniform vec3 uCutO;\nuniform vec3 uCutSize;')
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+        float cv = texture(uCutVol, (vLP - uCutO) / uCutSize).r;
+        if (cv > 0.5) discard;
+        float cutEdge = smoothstep(0.04, 0.5, cv);`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.03, 0.03), cutEdge * 0.85);`);
+  };
+  m.customProgramCacheKey = () => 'cutmat';
+  return m;
+}
+function addCut(p, r) {
+  const { o, vox, nx, ny, nz } = CV, R = r + 1.2;
+  const x0 = Math.max(0, Math.floor((p.x - R - o.x) / vox)), x1 = Math.min(nx - 1, Math.ceil((p.x + R - o.x) / vox));
+  const y0 = Math.max(0, Math.floor((p.y - R - o.y) / vox)), y1 = Math.min(ny - 1, Math.ceil((p.y + R - o.y) / vox));
+  const z0 = Math.max(0, Math.floor((p.z - R - o.z) / vox)), z1 = Math.min(nz - 1, Math.ceil((p.z + R - o.z) / vox));
+  let changed = false;
+  for (let k = z0; k <= z1; k++) for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
+    const cx = o.x + (i + 0.5) * vox, cy = o.y + (j + 0.5) * vox, cz = o.z + (k + 0.5) * vox;
+    const d = Math.hypot(cx - p.x, cy - p.y, cz - p.z);
+    const v = Math.round(THREE.MathUtils.clamp(0.5 + (r - d) / 1.2, 0, 1) * 255);
+    const idx = i + j * nx + k * nx * ny;
+    if (v > cutVol[idx]) { cutVol[idx] = v; changed = true; }
+  }
+  if (changed) { cutDirty = true; nCuts++; $('#nCuts').textContent = nCuts; }
+  return changed;
+}
+function resetCuts() { cutVol.fill(0); cutDirty = true; nCuts = 0; $('#nCuts').textContent = 0; state.comps = []; renderLog(); }
+function isCut(lp) {
+  const { o, vox, nx, ny, nz } = CV;
+  const i = Math.floor((lp.x - o.x) / vox), j = Math.floor((lp.y - o.y) / vox), k = Math.floor((lp.z - o.z) / vox);
+  if (i < 0 || j < 0 || k < 0 || i >= nx || j >= ny || k >= nz) return false;
+  return cutVol[i + j * nx + k * nx * ny] > 140;
+}
+
+/* ============================== MATERIALES ============================== */
+function mat(color, { cut = false, rough = 0.38, bump = 1.0, map = true } = {}) {
+  const m = new THREE.MeshStandardMaterial({
+    color, roughness: rough, metalness: 0, side: THREE.DoubleSide,
+    map: map ? mucoTex : null, bumpMap: bumpTex, bumpScale: bump
+  });
+  return cut ? patchCut(m) : m;
+}
+const M = {
+  muc: mat('#d27069'), mucC: mat('#d27069', { cut: true }), sept: mat('#d97c74'), floor: mat('#cd6c64'),
+  turb: mat('#c85a56'), turbC: mat('#c85a56', { cut: true }), cell: mat('#dc8c7e', { cut: true }), bulla: mat('#d47a70', { cut: true }),
+  unc: mat('#cf6a63', { cut: true }), bone: mat('#e4bea6', { cut: true }), lamina: mat('#e9cbb0', { cut: true }),
+  sinus: mat('#e2a496'), fat: mat('#f0cc4f', { rough: 0.45, map: false }), dura: mat('#a3a8c8', { map: false }),
+  artery: mat('#a4121b', { rough: 0.28 }), optic: mat('#efe5c6', { map: false }), carotid: mat('#c57487'),
+  sella: mat('#dbae9b'),
+  dark: patchCut(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })),
+  darkN: new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })
+};
+
+/* ============================== INFO ANATÓMICA ============================== */
+const INFO = {
+  septum: ['Tabique nasal (septum)', 'Límite medial de la fosa. Referencia constante durante toda la cirugía; una desviación puede limitar el acceso al meato medio.'],
+  floor: ['Piso de la fosa nasal', 'Paladar duro. Seguir el piso lleva directo a la coana.'],
+  vest: ['Vestíbulo', 'Entrada de la fosa nasal.'],
+  roofant: ['Techo nasal anterior', 'Región del dorso; por encima y detrás, el receso frontal.'],
+  latwall: ['Pared lateral nasal', 'Pared lateral de la fosa.'],
+  it: ['Cornete inferior', 'Debajo está el meato inferior con la válvula de Hasner (desembocadura del conducto nasolagrimal), alrededor de 1 cm por detrás de la cabeza del cornete.'],
+  mt: ['Cornete medio', 'Referencia clave: preservarlo y no fracturarlo. Su axila marca el agger nasi; su lamela basal separa etmoides anterior y posterior. Medial a él, la lámina cribosa.'],
+  mtatt: ['Inserción vertical del cornete medio', 'Se fija en la lamela lateral de la lámina cribosa: no traccionar ni torsionar (riesgo de fístula de LCR).'],
+  st: ['Cornete superior', 'El ostium esfenoidal está medial a su borde inferior, en el receso esfenoetmoidal (≈1–1,5 cm por encima de la coana).'],
+  unc: ['Apófisis unciforme', 'Lámina en media luna que oculta el ostium natural del seno maxilar. Primer paso de la CENS: uncinectomía. Su borde libre posterior limita el hiato semilunar.'],
+  maxost: ['Ostium natural del seno maxilar', 'Se ve tras la uncinectomía con óptica de 30°–45° rotada a lateral. Ampliar hacia posterior/inferior (fontanela); hacia anterior está el conducto nasolagrimal.'],
+  font: ['Fontanela (pared lateral)', 'Zona membranosa por encima del cornete inferior. Un ostium accesorio en la fontanela posterior puede generar recirculación si no se une al natural.'],
+  accost: ['Ostium accesorio (fontanela posterior)', 'Unirlo al ostium natural durante la antrostomía para evitar recirculación de moco.'],
+  maxsin: ['Seno maxilar (interior)', 'Techo = piso de la órbita, con el nervio infraorbitario.'],
+  bulla: ['Bulla etmoidal', 'La mayor celda etmoidal anterior. Detrás está la lamela basal del cornete medio; por encima, el receso suprabullar y la arteria etmoidal anterior.'],
+  basal: ['Lamela basal del cornete medio', 'Separa etmoides anterior y posterior. Abrirla en su porción inferomedial para entrar al etmoides posterior.'],
+  axila: ['Axila del cornete medio', 'Inserción anterosuperior del cornete medio en la pared lateral: su borde anterior se continúa hacia arriba y adelante con el relieve del agger nasi. Es la puerta de entrada al receso frontal (colgajo axilar).'],
+  agger: ['Agger nasi', 'Celda etmoidal más anterior, por delante y encima de la axila del cornete medio, con la que se continúa. Su techo forma el piso del receso frontal: abrirla permite ver el ostium frontal.'],
+  frontost: ['Receso / ostium frontal', 'Posterior y medial a la celda agger nasi. Requiere ópticas anguladas (45°–70°). La arteria etmoidal anterior está por detrás.'],
+  frontsin: ['Seno frontal (interior)', 'Drena por el receso frontal hacia el meato medio.'],
+  antcell: ['Celda etmoidal anterior', 'Drenan al meato medio. Lateral: lámina papirácea. Superior: base de cráneo.'],
+  postcell: ['Celda etmoidal posterior', 'Detrás de la lamela basal; drenan al meato superior. La base de cráneo es más baja y horizontal hacia posterior.'],
+  lamina: ['Lámina papirácea', 'Pared medial de la órbita: margen lateral de seguridad de toda la etmoidectomía. Su lesión expone grasa orbitaria (riesgo de hematoma y de lesión del recto medial).'],
+  orbit: ['Grasa orbitaria', '¡Atravesaste la lámina papirácea!'],
+  roof: ['Base de cráneo — fóvea etmoidal', 'Techo del etmoides; desciende de anterior a posterior. Medialmente la lámina cribosa está más baja (clasificación de Keros).'],
+  cribr: ['Lámina cribosa / lamela lateral', 'Zona de máximo riesgo de fístula de LCR, sobre todo con una lamela lateral larga (Keros III).'],
+  dura: ['Duramadre', 'Base de cráneo abierta: fístula de LCR.'],
+  aea: ['Arteria etmoidal anterior', 'Cruza el techo etmoidal de lateroposterior a medioanterior, detrás del receso frontal. Puede ir en un mesenterio, dehiscente. Si se secciona puede retraerse a la órbita → hematoma orbitario.'],
+  pea: ['Arteria etmoidal posterior', 'En el techo del etmoides posterior, poco antes de la cara anterior del esfenoides y del nervio óptico.'],
+  spa: ['Arteria esfenopalatina', 'Sale por el foramen esfenopalatino, detrás de la cola del cornete medio (cresta etmoidal). Causa principal de epistaxis posterior.'],
+  sphface: ['Cara anterior del seno esfenoidal', 'Ampliar desde el ostium natural hacia medial e inferior, lejos del nervio óptico y la carótida (superolaterales).'],
+  sphost: ['Ostium natural del esfenoides', 'En el receso esfenoetmoidal, medial al cornete superior. Punto de entrada seguro para la esfenoidotomía.'],
+  sphsin: ['Seno esfenoidal (interior)', 'Paredes con relaciones críticas: nervio óptico, carótida interna, silla turca, clivus y planum.'],
+  optic: ['Nervio óptico (prominencia)', 'Pared superolateral del esfenoides; puede estar dehiscente. ¡No fresar ni coagular aquí!'],
+  carotid: ['Carótida interna (prominencia)', 'Pared lateral del esfenoides; puede estar dehiscente. El tabique intersinusal puede insertarse sobre ella: cortarlo, nunca arrancarlo.'],
+  ocr: ['Receso opticocarotídeo lateral', 'Entre el nervio óptico (arriba) y la carótida (abajo). Referencia clave dentro del esfenoides.'],
+  sella: ['Silla turca', 'Pared posterosuperior (hipófisis). Debajo: clivus; delante y arriba: planum esfenoidal.'],
+  septsph: ['Tabique intersinusal', 'Suele ser asimétrico y desviado hacia la carótida. Cortar con instrumento cortante, no torsionar.'],
+  ethmuc: ['Mucosa del laberinto etmoidal', 'Cubre las celdas etmoidales por medial (receso suprabullar / meato superior). Al abrirla aparecen las celdas.'],
+  ct_soft: ['Mucosa / partes blandas (TC)', 'Superficie reconstruida a partir de la TC del paciente: por detrás hay partes blandas (mucosa engrosada, cornete, pólipo o contenido del seno).'],
+  ct_bone: ['Mucosa sobre hueso (TC)', 'Por detrás de la mucosa hay hueso: pared ósea de la fosa o de una celda. Mirá los cortes para ver qué estructura es.'],
+  ct_fat: ['Grasa por detrás — ¿órbita?', 'Densidad grasa detrás de la pared: probable lámina papirácea fina o dehiscente con la órbita detrás. ¡Precaución!'],
+  np: ['Rinofaringe', 'Por detrás de la coana.'],
+  torus: ['Torus tubario', 'Rodete del orificio faríngeo de la trompa de Eustaquio.'],
+  nld: ['Válvula de Hasner (conducto nasolagrimal)', 'El conducto corre en la pared lateral por delante del ostium maxilar: no extender la antrostomía hacia anterior.']
+};
+const DANGER_KEYS = new Set(['ct_fat', 'lamina', 'orbit', 'roof', 'dura', 'aea', 'pea', 'spa', 'optic', 'carotid', 'nld', 'cribr']);
+
+/* ============================== GEOMETRÍA ============================== */
+const meshes = [], overlays = [], map2d = [];
+function planarUV(g) {
+  const p = g.attributes.position, n = g.attributes.normal, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+    let u, v;
+    if (ax >= ay && ax >= az) { u = p.getZ(i); v = p.getY(i); } else if (ay >= az) { u = p.getX(i); v = p.getZ(i); } else { u = p.getX(i); v = p.getY(i); }
+    uv[i * 2] = u / 16; uv[i * 2 + 1] = v / 16;
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+function add(geom, material, key, opt = {}) {
+  if (!geom.attributes.normal) geom.computeVertexNormals();
+  planarUV(geom);
+  const m = new THREE.Mesh(geom, material);
+  m.userData = { key, cut: !!material.userData.cut };
+  anatomy.add(m); meshes.push(m);
+  if (opt.map) map2d.push(opt.map);
+  return m;
+}
+const noise3 = (x, y, z) => Math.sin(x * 0.45 + z * 0.31) * Math.cos(y * 0.52 - z * 0.17) + 0.5 * Math.sin(x * 1.1 + y * 0.9 + z * 0.7);
+function quad(p0, p1, p3, amp = 0.3) {
+  const a = V(...p0), u = V(...p1).sub(a), v = V(...p3).sub(a);
+  const nu = Math.max(2, Math.ceil(u.length() / 2.2)), nv = Math.max(2, Math.ceil(v.length() / 2.2));
+  const g = new THREE.PlaneGeometry(1, 1, nu, nv), pos = g.attributes.position;
+  const nrm = u.clone().cross(v).normalize();
+  for (let i = 0; i < pos.count; i++) {
+    const s = pos.getX(i) + 0.5, t = pos.getY(i) + 0.5;
+    const P = a.clone().addScaledVector(u, s).addScaledVector(v, t);
+    const w = Math.min(1, Math.min(s, 1 - s, t, 1 - t) * 6);
+    P.addScaledVector(nrm, noise3(P.x, P.y, P.z) * amp * w);
+    pos.setXYZ(i, P.x, P.y, P.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+function ellipsoid(c, r, seg = 40) {
+  const g = new THREE.SphereGeometry(1, seg, Math.round(seg * 0.7));
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const k = 1 + 0.04 * noise3(x * 9, y * 9, z * 9);
+    p.setXYZ(i, c[0] + x * r[0] * k, c[1] + y * r[1] * k, c[2] + z * r[2] * k);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+function sweep(pts, rf, seg = 48, rad = 20) {   // tubo con radio variable rf(u)
+  const curve = new THREE.CatmullRomCurve3(pts.map(p => V(...p)));
+  const fr = curve.computeFrenetFrames(seg, false), pos = [], idx = [];
+  for (let i = 0; i <= seg; i++) {
+    const u = i / seg, c = curve.getPointAt(u), r = rf(u);
+    for (let j = 0; j <= rad; j++) {
+      const a = j / rad * Math.PI * 2, k = 1 + 0.05 * noise3(c.x * 3, c.y * 3 + a, c.z * 3);
+      const d = fr.normals[i].clone().multiplyScalar(Math.cos(a)).addScaledVector(fr.binormals[i], Math.sin(a));
+      pos.push(c.x + d.x * r * k, c.y + d.y * r * k, c.z + d.z * r * k);
+    }
+  }
+  for (let i = 0; i < seg; i++) for (let j = 0; j < rad; j++) { const a = i * (rad + 1) + j, b = a + rad + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function tube(pts, r, seg = 40) { return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => V(...p))), seg, r, 12, false); }
+function openBox(x, y, z, skip, material, key) {
+  const [x0, x1] = x, [y0, y1] = y, [z0, z1] = z;
+  const F = {
+    x0: [[x0, y0, z0], [x0, y0, z1], [x0, y1, z0]], x1: [[x1, y0, z0], [x1, y0, z1], [x1, y1, z0]],
+    y0: [[x0, y0, z0], [x1, y0, z0], [x0, y0, z1]], y1: [[x0, y1, z0], [x1, y1, z0], [x0, y1, z1]],
+    z0: [[x0, y0, z0], [x1, y0, z0], [x0, y1, z0]], z1: [[x0, y0, z1], [x1, y0, z1], [x0, y1, z1]]
+  };
+  for (const k in F) if (k !== skip) add(quad(...F[k], 0.5), material, key);
+}
+function holedRect(x0, x1, zA, zB, hx, hz, hr, y) {
+  const s = new THREE.Shape();
+  s.moveTo(x0, -zA); s.lineTo(x1, -zA); s.lineTo(x1, -zB); s.lineTo(x0, -zB); s.lineTo(x0, -zA);
+  const h = new THREE.Path(); h.absarc(hx, -hz, hr, 0, Math.PI * 2, true); s.holes.push(h);
+  const g = new THREE.ShapeGeometry(s, 24); g.rotateX(-Math.PI / 2); g.translate(0, y, 0);
+  return g;
+}
+function disc(c, sx, sy, facing) { // facing: 'x-' (pared lateral vista desde medial) o 'z+'
+  const g = new THREE.CircleGeometry(1, 28); g.scale(sx, sy, 1);
+  if (facing === 'x-') g.rotateY(-Math.PI / 2);
+  g.translate(...c); return g;
+}
+function overlay(geom, color, op = 0.55) {
+  const m = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
+  m.renderOrder = 20; m.visible = false; anatomy.add(m); overlays.push(m); return m;
+}
+
+/* ============================== ANATOMÍA (fosa derecha, mm) ==============================
+   x = lateral (septum en x=0, lámina papirácea x=18.5) · y = cefálico (piso y=0) · z = anterior (+) / posterior (−)  */
+const yr = z => 46 + (z + 24) * 0.0952;     // altura del techo etmoidal (desciende hacia posterior)
+const AEA = [[18.8, 44.6, -31.5], [12, 44.85, -30], [5, 45.1, -28.5]];
+const PEA = [[18.8, 42.0, -56.5], [12, 42.2, -55.5], [6, 42.4, -54.5]];
+const SPA = [[17.6, 22, -61], [16, 20.5, -62], [14.5, 19, -63]];
+const OPTIC = [[18.3, 38.8, -67.5], [16.2, 39.3, -77], [12.5, 39.6, -87]];
+const CAROTID = [[18.6, 20, -86], [18.1, 26, -83], [17.9, 31, -78], [18.4, 34.5, -70]];
+const NLD = [[17.6, 3.5, -16], [18.2, 14, -15.5], [18.6, 28, -14.5]];
+
+function buildAnatomy() {
+  // Septum y piso
+  add(quad([0, 0, 6], [0, 0, -66], [0, 48, 6], 0.4), M.sept, 'septum');
+  add(quad([0, 0, -66], [0, 0, -71], [0, 14, -66]), M.sept, 'septum');
+  add(quad([0, 0, 6], [17, 0, 6], [0, 0, -70]), M.floor, 'floor');
+  add(quad([0, 0, 6], [17, 0, 6], [0, 22, 6]), M.muc, 'vest');
+  add(quad([0, 22, 6], [17, 22, 6], [0, 44, -14]), M.muc, 'roofant');
+  add(holedRect(0, 17, -14, -24, 11, -19, 4.5, 44), M.muc, 'roofant');
+  add(quad([0, 44, -24], [18.5, 44, -24], [0, 46.1, -24], 0.1), M.muc, 'roofant');
+  // Pared lateral
+  add(quad([17, 0, 6], [17, 0, -80], [17, 11, 6]), M.muc, 'latwall');
+  add(quad([17, 11, 6], [17, 11, -22], [17, 25, 6]), M.muc, 'latwall');
+  add(quad([17, 11, -22], [17, 11, -52], [17, 25, -22], 0.25), M.mucC, 'font');
+  add(quad([17, 11, -52], [17, 11, -80], [17, 25, -52]), M.muc, 'latwall');
+  add(quad([17, 25, 6], [17, 25, -18], [17, 46, 6]), M.muc, 'latwall');
+  add(quad([17, 25, -18], [17, 25, -66], [18.5, 25, -18], 0.1), M.muc, 'latwall');
+  add(quad([17, 25, -18], [18.5, 25, -18], [17, 46, -18], 0.1), M.muc, 'latwall');
+  // Lámina papirácea + órbita
+  add(quad([18.5, 25, -18], [18.5, 25, -66], [18.5, 47, -18], 0.15), M.lamina, 'lamina', { map: { t: 'lineX', x: 18.5, y: [25, 46], z: [-18, -66], c: '#e8c060' } });
+  add(quad([20.2, 26.5, -15], [20.2, 26.5, -69], [20.2, 49, -15], 0.4), M.fat, 'orbit');
+  // Base de cráneo
+  add(quad([0, yr(-24), -24], [18.5, yr(-24), -24], [0, yr(-66), -66], 0.12), M.bone, 'roof', { map: { t: 'roof', c: '#8fa0ff' } });
+  add(quad([0, yr(-24) + 1.7, -24], [18.5, yr(-24) + 1.7, -24], [0, yr(-66) + 1.7, -66], 0.2), M.dura, 'dura');
+  // Receso y seno frontal
+  add(new THREE.CylinderGeometry(4.5, 4.5, 4.4, 28, 2, true).translate(11, 46.2, -19), M.muc, 'frontost');
+  openBox([2, 24], [48, 70], [-26, -6], 'y0', M.sinus, 'frontsin');
+  add(holedRect(2, 24, -6, -26, 11, -19, 4.5, 48), M.sinus, 'frontsin');
+  map2d.push({ t: 'box', x: [2, 24], y: [48, 70], z: [-26, -6], c: '#b98' , n: 'Frontal'});
+  // Cornetes
+  add(ellipsoid([12, 10, -32], [5, 5.5, 26]), M.turb, 'it', { map: { t: 'e', c: [12, 10, -32], r: [5, 5.5, 26], col: '#e07a72', n: 'CI' } });
+  add(ellipsoid([6, 26, -42], [2, 8, 18]), M.turb, 'mt', { map: { t: 'e', c: [6, 26, -42], r: [2, 8, 18], col: '#e07a72', n: 'CM' } });
+  add(quad([6, 32, -27], [6, 32, -40], [6, 46.5, -27], 0.15), M.turb, 'mtatt');
+  add(ellipsoid([6.5, 37, -58], [1.8, 4, 7]), M.turb, 'st', { map: { t: 'e', c: [6.5, 37, -58], r: [1.8, 4, 7], col: '#e07a72', n: 'CS' } });
+  // Apófisis unciforme (lámina en media luna)
+  add(uncinateGeom(), M.unc, 'unc', { map: { t: 'unc', col: '#f0a090' } });
+  // Ostium maxilar, ostium accesorio y válvula de Hasner
+  add(disc([16.85, 20, -30], 3.2, 2.4, 'x-'), M.dark, 'maxost');
+  add(disc([16.85, 15, -44], 1.2, 1.0, 'x-'), M.dark, 'accost');
+  add(disc([16.85, 3.4, -16], 1.6, 1.0, 'x-'), M.darkN, 'nld');
+  // Seno maxilar
+  openBox([17.2, 40], [3, 26], [-54, -12], 'x0', M.sinus, 'maxsin');
+  add(tube([[23, 25.3, -12], [25, 25.2, -33], [27, 25.3, -54]], 1.1), M.sinus, 'maxsin');
+  map2d.push({ t: 'box', x: [17.2, 40], y: [3, 26], z: [-54, -12], c: '#b98', n: 'Maxilar' });
+  // Etmoides anterior
+  add(ellipsoid([12.5, 33, -18], [5, 5, 5]), M.cell, 'agger', { map: { t: 'e', c: [12.5, 33, -18], r: [5, 5, 5], col: '#f2c26b', n: 'AN' } });
+  // Axila del cornete medio: pliegue que continúa el borde anterosuperior del cornete medio hasta el agger nasi
+  const AX = [[6, 28, -28], [6.6, 30.6, -25.6], [7.8, 32.2, -23.6], [9.3, 32.9, -21.6], [10.6, 33.1, -20.4]];
+  add(sweep(AX, u => 1.3 + 2.4 * Math.pow(u, 1.3)), M.turbC, 'axila', { map: { t: 'poly', pts: AX, col: '#e07a72' } });
+  add(ellipsoid([13.5, 26, -40], [4.5, 4.5, 4.5]), M.bulla, 'bulla', { map: { t: 'e', c: [13.5, 26, -40], r: [4.5, 4.5, 4.5], col: '#f2c26b', n: 'B' } });
+  for (const [c, r] of [[[14, 35.5, -40], 4.3], [[13.5, 39, -30], 4], [[15, 32, -32], 3.5]])
+    add(ellipsoid(c, [r, r, r], 32), M.cell, 'antcell', { map: { t: 'e', c, r: [r, r, r], col: '#c9a070' } });
+  add(quad([8, 16, -48], [18.5, 16, -48], [8, 45, -48], 0.2), M.cell, 'basal', { map: { t: 'lineZ', z: -48, y: [16, 44], x: [8, 18.5], c: '#ffd36e' } });
+  // Mucosa que cubre el laberinto etmoidal (medial a las celdas)
+  add(quad([9.2, 30.5, -24], [9.2, 30.5, -48], [9.2, 46, -24], 0.25), M.mucC, 'ethmuc');
+  add(quad([8.8, 22, -48], [8.8, 22, -64], [8.8, 44, -48], 0.25), M.mucC, 'ethmuc');
+  // Etmoides posterior
+  for (const [c, r] of [[[13.5, 31, -54], 4.6], [[13.5, 38.3, -57], 4.2], [[14, 30, -61.5], 3.5], [[12.5, 38, -51], 3.4]])
+    add(ellipsoid(c, [r, r, r], 32), M.cell, 'postcell', { map: { t: 'e', c, r: [r, r, r], col: '#a58660' } });
+  // Esfenoides
+  add(quad([0, 14, -66], [18.5, 14, -66], [0, 46, -66], 0.25), M.mucC, 'sphface');
+  add(disc([3.2, 33, -65.85], 1.5, 2.1, 'z+'), M.dark, 'sphost');
+  openBox([-8, 18.5], [19, 42], [-90, -66.3], 'z1', M.sinus, 'sphsin');
+  map2d.push({ t: 'box', x: [-8, 18.5], y: [19, 42], z: [-90, -66.3], c: '#b98', n: 'Esfenoides' });
+  add(tube(OPTIC, 2.2), M.optic, 'optic', { map: { t: 'poly', pts: OPTIC, col: '#fff3b0' } });
+  add(tube(CAROTID, 3.0), M.carotid, 'carotid', { map: { t: 'poly', pts: CAROTID, col: '#ff5d7a' } });
+  add(ellipsoid([17.9, 36.4, -70.5], [1.3, 1.5, 1.5], 20), M.darkN, 'ocr');
+  add(ellipsoid([4, 31, -90.5], [7, 6.5, 5.5]), M.sella, 'sella');
+  add(quad([2, 19, -66.5], [13, 19, -85], [2, 42, -66.5], 0.2), M.bone, 'septsph');
+  // Arterias
+  add(tube(AEA, 0.9), M.artery, 'aea', { map: { t: 'poly', pts: AEA, col: '#ff3030' } });
+  add(tube(PEA, 0.75), M.artery, 'pea', { map: { t: 'poly', pts: PEA, col: '#ff3030' } });
+  add(tube(SPA, 0.8), M.artery, 'spa', { map: { t: 'poly', pts: SPA, col: '#ff3030' } });
+  // Rinofaringe
+  add(quad([-15, 0, -70], [17, 0, -70], [-15, 0, -96]), M.floor, 'np');
+  add(quad([-15, 0, -96], [17, 0, -96], [-15, 18.5, -96]), M.muc, 'np');
+  add(quad([-15, 18.5, -66], [17, 18.5, -66], [-15, 18.5, -96]), M.muc, 'np');
+  add(quad([17, 0, -80], [17, 0, -96], [17, 18.5, -80]), M.muc, 'np');
+  add(quad([-15, 0, -70], [-15, 0, -96], [-15, 18.5, -70]), M.muc, 'np');
+  add(quad([-15, 0, -70], [0, 0, -70], [-15, 18.5, -70]), M.muc, 'np');
+  add(ellipsoid([15.5, 10, -84], [2.5, 4, 3.5]), M.muc, 'torus');
+
+  // Superposición "rayos X" de estructuras de riesgo
+  overlay(tube(AEA, 0.9), 0xff2020); overlay(tube(PEA, 0.75), 0xff2020); overlay(tube(SPA, 0.8), 0xff2020);
+  overlay(tube(OPTIC, 2.2), 0xfff0a0); overlay(tube(CAROTID, 3.0), 0xff4060); overlay(tube(NLD, 1.6), 0x60c0ff);
+  overlay(quad([18.5, 25, -18], [18.5, 25, -66], [18.5, 46, -18], 0), 0xffd040, 0.12);
+  overlay(quad([0, yr(-24), -24], [18.5, yr(-24), -24], [0, yr(-66), -66], 0), 0x8090ff, 0.12);
+}
+function uncinateGeom() {
+  const n = 30, w = 7, pos = [], idx = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const y = (1 - t) ** 2 * 34 + 2 * (1 - t) * t * 22 + t * t * 13;
+    const z = (1 - t) ** 2 * -21 + 2 * (1 - t) * t * -21 + t * t * -35;
+    for (let j = 0; j <= w; j++) {
+      const s = j / w;
+      pos.push(16.9 + (11 - 16.9) * s, y, z + 3 - 4 * s + Math.sin(s * Math.PI) * 0.6);
+    }
+  }
+  for (let i = 0; i < n; i++) for (let j = 0; j < w; j++) {
+    const a = i * (w + 1) + j, b = a + w + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+buildAnatomy();
+
+/* ============================== ANCLAS DE ETIQUETAS ============================== */
+const ANCHORS = [
+  ['septum', [0.3, 18, -14]], ['it', [7.1, 10, -16]], ['mt', [4.1, 26, -32]], ['unc', [11.2, 26, -24]],
+  ['bulla', [9.1, 26, -40]], ['maxost', [16.8, 20, -30]], ['accost', [16.8, 15, -44]], ['agger', [7.6, 33, -18]],
+  ['frontost', [11, 45, -19]], ['axila', [7.9, 34.4, -23.5]], ['basal', [10, 22, -47.8]], ['postcell', [7.6, 31, -54]], ['st', [4.8, 37, -58]],
+  ['sphost', [3.2, 33, -65.7]], ['lamina', [18.4, 34, -42]], ['roof', [12, yr(-42) - 0.2, -42]],
+  ['aea', [12, 44, -30]], ['pea', [12, 41.5, -55.5]], ['spa', [15.8, 20.5, -62]], ['optic', [16, 37.2, -77]],
+  ['carotid', [15.2, 28, -80]], ['ocr', [16.7, 36.4, -70.5]], ['sella', [4, 31, -85.2]], ['nld', [16.7, 3.4, -16]],
+  ['torus', [13, 10, -84]], ['np', [4, 9, -78]], ['septsph', [6, 30, -73]]
+].map(([k, p]) => ({ key: k, p: V(...p), el: null }));
+
+/* ============================== RIESGOS ============================== */
+function distSeg(p, a, b) { const ab = b.clone().sub(a), t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1); return p.distanceTo(a.clone().addScaledVector(ab, t)); }
+function distPoly(p, pts) { let d = 1e9; for (let i = 0; i < pts.length - 1; i++) d = Math.min(d, distSeg(p, V(...pts[i]), V(...pts[i + 1]))); return d; }
+const DANGERS = [
+  { id: 'lamina', test: (p, r) => p.x + r * 0.5 > 18.5 && p.y > 25 && p.y < 47 && p.z < -18 && p.z > -66,
+    msg: 'Lámina papirácea perforada: grasa orbitaria expuesta. Riesgo de hematoma orbitario y lesión del recto medial.' },
+  { id: 'cribr', test: (p, r) => p.z < -24 && p.z > -66 && p.x <= 4.5 && p.y + r * 0.5 > yr(p.z) - 0.3,
+    msg: 'Lesión de lámina cribosa / lamela lateral: fístula de LCR.', bad: 2 },
+  { id: 'roof', test: (p, r) => p.z < -24 && p.z > -66 && p.x > 4.5 && p.x < 19 && p.y + r * 0.5 > yr(p.z),
+    msg: 'Lesión de la base de cráneo (fóvea etmoidal): fístula de LCR.', bad: 2 },
+  { id: 'aea', test: (p, r) => distPoly(p, AEA) < 0.9 + r * 0.6, msg: 'Sección de la arteria etmoidal anterior: sangrado, riesgo de retracción intraorbitaria y hematoma.', bleed: 0.8 },
+  { id: 'pea', test: (p, r) => distPoly(p, PEA) < 0.75 + r * 0.6, msg: 'Lesión de la arteria etmoidal posterior: sangrado.', bleed: 0.6 },
+  { id: 'spa', test: (p, r) => distPoly(p, SPA) < 0.8 + r * 0.6, msg: 'Lesión de la arteria esfenopalatina: sangrado arterial posterior.', bleed: 0.75 },
+  { id: 'optic', test: (p, r) => distPoly(p, OPTIC) < 2.2 + r * 0.6, msg: '¡Lesión del nervio óptico! Riesgo de amaurosis.', bad: 3 },
+  { id: 'carotid', test: (p, r) => distPoly(p, CAROTID) < 3.0 + r * 0.6, msg: '¡Lesión de la carótida interna! Hemorragia masiva: complicación catastrófica.', bleed: 1.0, bad: 3 },
+  { id: 'nld', test: (p, r) => p.x > 15.5 && p.z > -21 - r * 0.5 && p.z < -11 && p.y > 0 && p.y < 30,
+    msg: 'Lesión del conducto nasolagrimal: riesgo de epífora. No ampliar la antrostomía hacia anterior.' }
+];
+const lastDanger = {};
+function checkDanger(lp, r) {
+  const now = performance.now();
+  if (state.model === 'ct') { checkDangerCT(lp, r); return; }
+  for (const d of DANGERS) if (d.test(lp, r)) reportDanger(d);
+}
+function reportDanger(d) {
+  const now = performance.now();
+  if (lastDanger[d.id] && now - lastDanger[d.id] < 3000) { lastDanger[d.id] = now; return; }
+  lastDanger[d.id] = now;
+  state.comps.unshift(d.msg.split(':')[0].replace('¡', '').replace('!', ''));
+  renderLog();
+  toast('⚠ ' + d.msg, 5000, true);
+  $('#flash').style.opacity = 1; setTimeout(() => $('#flash').style.opacity = 0, 250);
+  if (d.bleed) state.bleed = Math.min(1, state.bleed + d.bleed);
+  haptic(1.0, 250);
+  hudWarn = d.msg; hudWarnT = 5;
+}
+function renderLog() {
+  $('#nComp').textContent = state.comps.length;
+  $('#logList').innerHTML = state.comps.slice(0, 8).map(s => `<li>${s}</li>`).join('');
+}
+
+/* ============================== CÁMARAS Y LUCES ============================== */
+const endoCam = new THREE.PerspectiveCamera(78, innerWidth / innerHeight, 0.3, 500);
+scene.add(endoCam);
+const worldCam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 50);
+worldCam.layers.enable(WORLD_LAYER);
+const ENDO_I = 260, ENDO_DECAY = 1.6;
+const endoLight = new THREE.PointLight(0xfff1e6, ENDO_I, 0, ENDO_DECAY);
+scene.add(endoLight);
+const amb = new THREE.AmbientLight(0xffffff, 0.035); scene.add(amb);
+const hemi = new THREE.HemisphereLight(0xdde6ff, 0x302820, 1.1); hemi.visible = false; scene.add(hemi);
+
+/* ============================== INSTRUMENTO ============================== */
+const steel = new THREE.MeshStandardMaterial({ color: 0xc9ced6, metalness: 0.55, roughness: 0.28 });
+const instr = new THREE.Group(); scene.add(instr);
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 1, 16).rotateX(Math.PI / 2).translate(0, 0, 0.5), steel);
+shaft.position.z = 4.5; shaft.scale.z = 140; instr.add(shaft);
+const pinza = new THREE.Group(); instr.add(pinza);
+const lowJaw = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 4.5).translate(0, -0.35, 2.25), steel); pinza.add(lowJaw);
+const upPivot = new THREE.Group(); upPivot.position.set(0, 0, 4.5); pinza.add(upPivot);
+const upJaw = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 4.5).translate(0, 0.35, -2.25), steel); upPivot.add(upJaw);
+const drill = new THREE.Group(); instr.add(drill);
+const burr = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshStandardMaterial({ color: 0xd9c27a, metalness: 0.6, roughness: 0.45, flatShading: true }));
+drill.add(burr);
+drill.add(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 4.5, 12).rotateX(Math.PI / 2).translate(0, 0, 2.25), steel));
+instr.traverse(o => o.layers.enable(WORLD_LAYER));
+let jawClose = 0, drilling = false, lastDrill = 0, lastDrillP = new THREE.Vector3(1e9, 0, 0);
+const tipWorld = new THREE.Vector3(); let tipHit = null;
+
+/* ============================== VR: QUIRÓFANO ============================== */
+const rt = new THREE.WebGLRenderTarget(1024, 768, { type: THREE.HalfFloatType, samples: 4 });
+const monMat = new THREE.ShaderMaterial({
+  uniforms: { map: { value: rt.texture }, bleed: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `uniform sampler2D map; uniform float bleed; varying vec2 vUv;
+    void main(){
+      vec2 p = (vUv - 0.5) * vec2(1.3333, 1.0); float d = length(p);
+      vec3 c = texture2D(map, vUv).rgb;
+      float m = 1.0 - smoothstep(0.47, 0.48, d);
+      c *= m * (1.0 - 0.35 * smoothstep(0.3, 0.47, d));
+      c = mix(c, vec3(0.35, 0.0, 0.0) * m, clamp(bleed * (0.25 + 0.6 * smoothstep(0.05, 0.47, d)), 0.0, 1.0));
+      vec2 a = abs(vUv - 0.5);
+      if ((a.x < 0.0016 && a.y < 0.022) || (a.y < 0.0021 && a.x < 0.0165)) c = vec3(0.5, 1.0, 0.7);
+      gl_FragColor = vec4(c, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`
+});
+const vrRoom = new THREE.Group(); scene.add(vrRoom);
+const monitor = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.75), monMat);
+monitor.position.set(0.05, 1.5, -1.05); vrRoom.add(monitor);
+const bezel = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.81, 0.03), new THREE.MeshStandardMaterial({ color: 0x15171b, roughness: 0.6 }));
+bezel.position.set(0.05, 1.5, -1.07); vrRoom.add(bezel);
+const hudCanvas = document.createElement('canvas'); hudCanvas.width = 1024; hudCanvas.height = 220;
+const hudTex = new THREE.CanvasTexture(hudCanvas); hudTex.colorSpace = THREE.SRGBColorSpace;
+const hud = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.215), new THREE.MeshBasicMaterial({ map: hudTex, transparent: true }));
+hud.position.set(0.05, 1.0, -1.04); vrRoom.add(hud);
+const floorM = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshStandardMaterial({ color: 0x2a3a3a, roughness: 0.9 }));
+floorM.rotation.x = -Math.PI / 2; vrRoom.add(floorM);
+const grid = new THREE.GridHelper(8, 32, 0x4a6a6a, 0x334545); grid.position.y = 0.002; vrRoom.add(grid);
+const table = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.9), new THREE.MeshStandardMaterial({ color: 0x3d6b7a, roughness: 0.7 }));
+table.position.set(0, 0.86, -0.55); vrRoom.add(table);
+const scopeModel = new THREE.Group(); vrRoom.add(scopeModel);
+const scopeShaftM = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 16).rotateX(Math.PI / 2).translate(0, 0, 0.06), steel);
+scopeModel.add(scopeShaftM);
+const lightPost = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.05, 10).translate(0, -0.025, 0), new THREE.MeshStandardMaterial({ color: 0x222222 }));
+lightPost.position.z = 0.115; scopeModel.add(lightPost);
+const camHead = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.06, 16).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x30343a }));
+camHead.position.z = 0.15; scopeModel.add(camHead);
+vrRoom.traverse(o => { o.layers.set(WORLD_LAYER); });
+vrRoom.visible = false;
+
+const ctrls = [0, 1].map(i => {
+  const c = renderer.xr.getController(i); scene.add(c);
+  c.userData = { hand: null, gp: null, prev: [] };
+  c.addEventListener('connected', e => { c.userData.hand = e.data.handedness; c.userData.gp = e.data.gamepad; });
+  c.addEventListener('disconnected', () => { c.userData.hand = null; c.userData.gp = null; });
+  c.addEventListener('selectstart', () => onTrigger(c, true));
+  c.addEventListener('selectend', () => onTrigger(c, false));
+  return c;
+});
+let grabOffset = null, hudWarn = '', hudWarnT = 0, hudKey = '';
+function haptic(i, ms) {
+  if (!state.vr) return;
+  for (const c of ctrls) { const h = c.userData.gp && c.userData.gp.hapticActuators && c.userData.gp.hapticActuators[0]; if (h) try { h.pulse(i, ms); } catch (e) { } }
+}
+function onTrigger(c, down) {
+  if (c.userData.hand === 'left') {
+    if (down) {
+      const h = pick(endoCam.position, viewDir(), 150 * state.S);
+      state.vrFly = h ? anatomy.worldToLocal(h.point.clone()) : null;
+      if (h) haptic(0.2, 20);
+    } else { if (state.vrFly) { marker.userData.last = anatomy.localToWorld(state.vrFly.clone()); state.markerT = 1; } state.vrFly = null; }
+    return;
+  }
+  if (c.userData.hand !== 'right') return;
+  if (state.tool === 'pinza' && down) doBite(tipWorld.clone(), 2.2);
+  if (state.tool === 'drill') drilling = down;
+}
+const S = () => state.S;
+function placeAnatomy() {
+  const s = state.S, sd = state.side, ct = state.model === 'ct';
+  anatomy.scale.set(ct ? s : -sd * s, s, s);
+  if (state.vr) {
+    const e = (ct ? CT.entry[sd] || V(0, 0, 0) : V(6, 14, 2)).clone().multiply(anatomy.scale);
+    anatomy.position.copy(V(0, 1.02, -0.28).sub(e));
+  } else anatomy.position.set(0, 0, 0);
+  anatomy.updateMatrixWorld(true);
+  instr.scale.setScalar(s);
+}
+renderer.xr.addEventListener('sessionstart', () => {
+  state.vr = true; state.S = VR_S; placeAnatomy(); vrRoom.visible = true; hemi.visible = true; amb.visible = false;
+  shaft.scale.z = 0.12 / VR_S - 4.5; endoCam.aspect = 4 / 3; endoCam.updateProjectionMatrix();
+  document.body.classList.add('invr'); hudKey = '';
+});
+renderer.xr.addEventListener('sessionend', () => {
+  state.vr = false; state.S = 1; placeAnatomy(); vrRoom.visible = false; hemi.visible = false; amb.visible = true;
+  shaft.scale.z = 140; onResize(); if (state.model === 'ct') placeScopeStart(); else goTo(TOUR[0]);
+});
+
+/* ============================== OBJETIVO DE NAVEGACIÓN ============================== */
+const marker = new THREE.Group(); scene.add(marker);
+const mkMat = new THREE.MeshBasicMaterial({ color: 0x5cffb0, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false });
+marker.add(new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 8), mkMat));
+const mkRing = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.6, 40), mkMat); marker.add(mkRing);
+marker.traverse(o => { o.renderOrder = 30; o.layers.enable(WORLD_LAYER); });
+marker.visible = false;
+function viewDir() { return V(0, 0, -1).applyQuaternion(camQuat(scope.q)); }
+function aimQuat(P, T) {
+  const L = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(P, T, V(0, 1, 0)));
+  const Rq = new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), state.roll).multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), state.angle * D2R));
+  return L.multiply(Rq.invert());
+}
+function startFly(worldP, h) {
+  state.anim = null;
+  state.fly = { T: worldP.clone(), stuck: 0 };
+  state.markerT = 99;
+  const k = keyOfHit(h);
+  toast('Navegando hacia: ' + (k && INFO[k] ? INFO[k][0] : 'objetivo') + '  (cualquier tecla cancela)');
+}
+function flyToCursor() {
+  ray.setFromCamera(mouseIn ? ndc : new THREE.Vector2(0, 0), endoCam);
+  const h = pick(endoCam.position, ray.ray.direction.clone(), 150);
+  if (h) startFly(h.point, h); else toast('No hay tejido en esa dirección.');
+}
+function flyToCenter() {
+  const h = pick(endoCam.position, viewDir(), 150 * state.S);
+  if (h) startFly(h.point, h); else toast('No hay tejido en esa dirección.');
+}
+function updateFly(dt) {
+  const f = state.fly; if (!f) return;
+  const qT = aimQuat(scope.pos, f.T);
+  scope.q.slerp(qT, 1 - Math.exp(-5 * dt));
+  const toT = f.T.clone().sub(scope.pos), dist = toT.length(), STOP = 4;
+  const align = viewDir().dot(toT.clone().normalize());
+  if (dist <= STOP + 0.05) { if (align > 0.995) { state.fly = null; state.markerT = 1.2; } return; }
+  const step = Math.min((keys.ShiftLeft || keys.ShiftRight ? 5 : 15) * dt * (align > 0.95 ? 1 : 0.25), dist - STOP);
+  const before = scope.pos.clone();
+  tryMove(toT.normalize().multiplyScalar(step));
+  if (scope.pos.distanceTo(before) < step * 0.3) {
+    f.stuck += dt;
+    if (f.stuck > 0.7) { state.fly = null; state.markerT = 1.5; toast('Hay tejido en el camino: cortalo, rodealo o desactivá la colisión.', 4000); }
+  } else f.stuck = 0;
+}
+function updateMarker(dt) {
+  state.markerT = Math.max(0, state.markerT - dt);
+  let T = null;
+  if (state.fly) T = state.fly.T; else if (state.vrFly) T = anatomy.localToWorld(state.vrFly.clone());
+  else if (state.markerT > 0 && marker.userData.last) T = marker.userData.last;
+  marker.visible = !!T;
+  if (!T) return;
+  marker.userData.last = T.clone();
+  marker.position.copy(T); marker.scale.setScalar(state.S * THREE.MathUtils.clamp(T.distanceTo(endoCam.position) / state.S * 0.045, 0.12, 1));
+  marker.quaternion.copy(endoCam.quaternion);
+  mkRing.scale.setScalar(1 + 0.15 * Math.sin(performance.now() / 150));
+  mkMat.opacity = state.fly || state.vrFly ? 0.9 : Math.min(0.9, state.markerT);
+}
+
+/* ============================== RAYCAST ============================== */
+const ray = new THREE.Raycaster();
+const _lp = new THREE.Vector3();
+function pick(origin, dir, far) {
+  if (state.model === 'ct') return CT.G ? pickCT(origin, dir, far) : null;
+  ray.set(origin, dir); ray.near = 0; ray.far = far;
+  const hits = ray.intersectObjects(meshes, false);
+  for (const h of hits) {
+    if (h.object.userData.cut) { _lp.copy(h.point); anatomy.worldToLocal(_lp); if (isCut(_lp)) continue; }
+    return h;
+  }
+  return null;
+}
+function keyOfHit(h) {
+  if (!h) return null;
+  if (state.model === 'ct') return h.ctKey || 'ct_soft';
+  let k = h.object.userData.key;
+  if (k === 'roof') { const lp = anatomy.worldToLocal(h.point.clone()); if (lp.x < 4.5) k = 'cribr'; }
+  return k;
+}
+
+/* ============================== CORTE ============================== */
+function doBite(worldP, r) {
+  if (state.tool === 'none') return;
+  const lp = anatomy.worldToLocal(worldP.clone());
+  if (state.tool === 'pinza') jawClose = 0.18;
+  if (addCut(lp, r)) { state.bites++; haptic(0.35, 30); }
+  checkDanger(lp, r);
+}
+
+/* ============================== CONTROL DEL ENDOSCOPIO ============================== */
+const qAngle = new THREE.Quaternion(), qRoll = new THREE.Quaternion();
+function camQuat(q) {
+  qRoll.setFromAxisAngle(V(0, 0, 1), state.roll);
+  qAngle.setFromAxisAngle(V(1, 0, 0), state.angle * D2R);
+  return q.clone().multiply(qRoll).multiply(qAngle);
+}
+function setAngle(a) {
+  state.angle = a;
+  document.querySelectorAll('#optic button').forEach(b => b.classList.toggle('on', +b.dataset.v === a));
+}
+function tryMove(delta) {
+  const len = delta.length(); if (len < 1e-6) return;
+  if (state.collide) {
+    const dir = delta.clone().normalize();
+    const h = pick(scope.pos, dir, len + 1.0);
+    if (h) {
+      const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
+      if (n.dot(dir) > 0) n.negate();
+      const slide = delta.clone().sub(n.multiplyScalar(delta.dot(n)));
+      if (slide.length() > 1e-4 && !pick(scope.pos, slide.clone().normalize(), slide.length() + 1.0)) scope.pos.add(slide);
+      return;
+    }
+  }
+  scope.pos.add(delta);
+}
+function goTo(p) {
+  const P = anatomy.localToWorld(V(...p.pos)), T = anatomy.localToWorld(V(...p.target));
+  setAngle(p.angle || 0);
+  const roll = (p.roll || 0) * D2R * -state.side;
+  const L = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(P, T, V(0, 1, 0)));
+  const R = new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), roll).multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), state.angle * D2R));
+  const qT = L.clone().multiply(R.invert());
+  state.fly = null;
+  state.anim = { t: 0, p0: scope.pos.clone(), p1: P, q0: scope.q.clone(), q1: qT, r0: state.roll, r1: roll };
+  if (p.text) { $('#stepText').style.display = 'block'; $('#stepText').innerHTML = `<b>${p.name}</b><br>${p.text}`; }
+}
+
+/* ============================== RECORRIDO GUIADO ============================== */
+const TOUR = [
+  { name: '1 · Entrada: septum y cornete inferior', pos: [4, 13, 3], target: [5, 12, -40], angle: 0,
+    text: 'Orientación inicial con óptica de 0°: septum a medial, cornete inferior a lateral, piso hacia la coana. Arriba se ve la cabeza del cornete medio.' },
+  { name: '2 · Cornete medio y meato medio', pos: [4.5, 20, -13], target: [11, 23, -32], angle: 0,
+    text: 'Medializar suavemente el cornete medio. En el meato medio aparece la apófisis unciforme (media luna) y, detrás, la bulla etmoidal.' },
+  { name: '3 · Uncinectomía', pos: [5.5, 21, -13], target: [12.5, 24, -28], angle: 0,
+    text: 'Cortá la apófisis unciforme con la pinza (clic sobre ella), de arriba hacia abajo. Detrás, en la pared lateral, queda el ostium maxilar.' },
+  { name: '4 · Ostium maxilar y fontanela (30°–45°)', pos: [9.5, 19, -23], target: [17, 19, -31], angle: 45, roll: -90,
+    text: 'Con óptica angulada rotada a lateral se ve el ostium natural. Ampliá hacia posterior/inferior por la fontanela, uniendo el ostium accesorio. No te extiendas hacia anterior (conducto nasolagrimal).' },
+  { name: '5 · Bulla etmoidal', pos: [8.6, 24, -28], target: [13.5, 26, -40], angle: 0,
+    text: 'Abrí la bulla por su cara medial e inferior. Sus restos laterales llegan a la lámina papirácea: cuidado.' },
+  { name: '6 · Lamela basal', pos: [9.5, 27, -35], target: [12, 28, -48], angle: 0,
+    text: 'Tras la bulla aparece la lamela basal del cornete medio (pared vertical). Abrila en su porción inferomedial para pasar al etmoides posterior.' },
+  { name: '7 · Agger nasi y receso frontal (45°–70°)', pos: [6.5, 27, -13], target: [11, 43, -20], angle: 70, roll: 0,
+    text: 'Con 70° mirando hacia arriba: el borde anterior del cornete medio sube como axila y se continúa con el relieve del agger nasi. Abrí su techo para exponer el receso y el ostium frontal (posterior y medial).' },
+  { name: '8 · Etmoides posterior', pos: [9.5, 30, -43], target: [12.5, 32, -57], angle: 0,
+    text: 'Celdas posteriores: lateral, la lámina papirácea; arriba, la base de cráneo más baja y horizontal. La arteria etmoidal posterior corre por el techo.' },
+  { name: '9 · Receso esfenoetmoidal: ostium esfenoidal', pos: [2.3, 31, -47], target: [3.2, 33, -66], angle: 0,
+    text: 'Entre septum y cornete medio/superior, medial al cornete superior, se encuentra el ostium natural del esfenoides. Amplialo hacia medial e inferior.' },
+  { name: '10 · Seno esfenoidal: relaciones críticas', pos: [4, 31, -63], target: [12, 33, -79], angle: 0,
+    text: 'Tras la esfenoidotomía: nervio óptico (superolateral), carótida interna (lateral), receso opticocarotídeo entre ambos, silla turca posterior. El tabique intersinusal apunta a la carótida.' },
+  { name: '11 · Base de cráneo y arteria etmoidal anterior', pos: [11, 36, -25], target: [12, 45, -31], angle: 45, roll: 0,
+    text: 'Con 45° hacia arriba, tras la etmoidectomía anterior: fóvea etmoidal y la AEA cruzando el techo detrás del receso frontal. Activá "Estructuras de riesgo" para verla a través del hueso.' },
+  { name: '12 · Coana y rinofaringe', pos: [4, 7, -50], target: [6, 9, -86], angle: 0,
+    text: 'Siguiendo el piso: coana, rinofaringe y torus tubario. El ostium esfenoidal está ≈1–1,5 cm por encima del borde superior de la coana.' },
+  { name: '13 · Meato inferior: válvula de Hasner', pos: [9, 2.5, -7], target: [16.9, 3.4, -16], angle: 30, roll: -90,
+    text: 'Debajo del cornete inferior, en la pared lateral, desemboca el conducto nasolagrimal. Es el límite anterior de la antrostomía maxilar.' }
+];
+const tourEl = $('#tour');
+TOUR.forEach((p, i) => { const b = document.createElement('button'); b.textContent = p.name; b.onclick = () => goTo(p); tourEl.appendChild(b); });
+
+/* ============================== UI ============================== */
+function seg(id, fn) {
+  document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => {
+    document.querySelectorAll(`#${id} button`).forEach(x => x.classList.remove('on')); b.classList.add('on'); fn(b.dataset.v);
+  });
+}
+seg('side', v => setSide(+v));
+seg('optic', v => setAngle(+v));
+seg('tool', v => setTool(v));
+function setTool(v) {
+  state.tool = v; drilling = false;
+  document.querySelectorAll('#tool button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  hudKey = '';
+}
+function setSide(sd) {
+  if (sd === state.side) return;
+  state.side = sd;
+  document.querySelectorAll('#side button').forEach(b => b.classList.toggle('on', +b.dataset.v === sd));
+  if (state.model === 'ct') { placeAnatomy(); placeScopeStart(); }
+  else { resetCuts(); placeAnatomy(); goTo(TOUR[0]); }
+  toast(sd > 0 ? 'Fosa nasal DERECHA: septum a la derecha de la imagen, pared lateral a la izquierda.' : 'Fosa nasal IZQUIERDA: septum a la izquierda de la imagen, pared lateral a la derecha.');
+}
+$('#chkLabels').onchange = e => { state.labels = e.target.checked; if (!state.labels) $('#labels').innerHTML = ''; };
+$('#chkXray').onchange = e => setXray(e.target.checked);
+function setXray(v) { state.xray = v; $('#chkXray').checked = v; overlays.forEach(o => o.visible = v && state.model === 'generic'); CT.landmarks.forEach(l => l.mesh.visible = v && state.model === 'ct'); }
+$('#chkCollide').onchange = e => state.collide = e.target.checked;
+$('#chkViewMove').onchange = e => state.viewMove = e.target.checked;
+$('#btnReset').onclick = () => { resetCuts(); toast('Tejido restaurado.'); };
+$('#toggleP').onclick = () => $('#panel').classList.toggle('hidden');
+$('#toggleI').onclick = () => $('#info').classList.toggle('hidden');
+$('#btnVR').onclick = async () => {
+  if (!navigator.xr) { toast('Este navegador no tiene WebXR. Abrí el simulador desde el navegador del Meta Quest (ver instrucciones).', 7000, true); return; }
+  try {
+    const ok = await navigator.xr.isSessionSupported('immersive-vr');
+    if (!ok) throw new Error('VR inmersiva no soportada en este dispositivo');
+    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] });
+    renderer.xr.setReferenceSpaceType('local-floor');
+    await renderer.xr.setSession(session);
+  } catch (e) {
+    toast('No se pudo iniciar VR acá (' + e.message + '). En el Quest, abrí la versión alojada del simulador en su navegador.', 8000, true);
+  }
+};
+let toastT = 0;
+function toast(msg, ms = 3000, warn = false) {
+  const t = $('#toast'); t.textContent = msg; t.className = warn ? 'w' : ''; t.style.opacity = 1;
+  clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, ms);
+}
+
+/* ============================== ENTRADA (escritorio) ============================== */
+const keys = {};
+const ndc = new THREE.Vector2(0, -0.25);
+let mouseIn = false, looking = false, lastMX = 0, lastMY = 0;
+const cv = renderer.domElement;
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  keys[e.code] = true;
+  if (e.code === 'Digit1') setTool('none'); if (e.code === 'Digit2') setTool('pinza'); if (e.code === 'Digit3') setTool('drill');
+  if (e.code === 'KeyO') { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
+  if (e.code === 'KeyL') { $('#chkLabels').checked = !state.labels; $('#chkLabels').onchange({ target: $('#chkLabels') }); }
+  if (e.code === 'KeyG') setXray(!state.xray);
+  if (e.code === 'KeyC') { state.collide = !state.collide; $('#chkCollide').checked = state.collide; }
+  if (e.code === 'KeyN') { flyToCursor(); return; }
+  if (e.code === 'KeyT' || e.code === 'Enter') { flyToCenter(); return; }
+  if (state.fly && !['ShiftLeft', 'ShiftRight', 'Space'].includes(e.code)) { state.fly = null; state.markerT = 0.8; }
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', e => keys[e.code] = false);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointermove', e => {
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); mouseIn = true;
+  if (dragLook && !looking && Math.hypot(e.clientX - downX, e.clientY - downY) > 5) looking = true;
+  if (looking) {
+    const dx = e.clientX - lastMX, dy = e.clientY - lastMY;
+    rotScope(-dx * 0.004, -dy * 0.004);
+    lastMX = e.clientX; lastMY = e.clientY;
+  }
+  const tl = $('#tipLab'); tl.style.left = (e.clientX + 14) + 'px'; tl.style.top = (e.clientY + 12) + 'px';
+});
+cv.addEventListener('pointerleave', () => { mouseIn = false; $('#tipLab').style.display = 'none'; });
+let dragLook = false, downX = 0, downY = 0;
+cv.addEventListener('pointerdown', e => {
+  if (e.button === 2 || e.button === 1) { looking = true; lastMX = e.clientX; lastMY = e.clientY; return; }
+  if (e.button === 0 && (state.tool === 'none' || e.altKey)) {
+    dragLook = true; downX = lastMX = e.clientX; downY = lastMY = e.clientY; return;
+  }
+  if (e.button === 0) {
+    if (state.tool === 'pinza' && tipHit && tipHit.distance < 60) doBite(tipHit.point.clone().addScaledVector(ray.ray.direction, 0.8), 2.2);
+    if (state.tool === 'drill') drilling = true;
+  }
+});
+addEventListener('pointerup', e => {
+  if (e.button === 2 || e.button === 1) looking = false;
+  if (e.button === 0) {
+    drilling = false;
+    if (dragLook) {
+      if (!looking && e.target === cv) { ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); flyToCursor(); }
+      dragLook = false; looking = false;
+    }
+  }
+});
+cv.addEventListener('wheel', e => { e.preventDefault(); state.fly = null; const f = state.viewMove ? viewDir() : V(0, 0, -1).applyQuaternion(scope.q); tryMove(f.multiplyScalar(-e.deltaY * 0.012)); state.anim = null; }, { passive: false });
+function rotScope(yaw, pitch) {
+  state.anim = null; state.fly = null;
+  const qy = new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), yaw);
+  const qp = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), pitch);
+  scope.q.premultiply(qy).multiply(qp).normalize();
+}
+
+function updateDesktop(dt) {
+  if (state.anim) {
+    const a = state.anim; a.t = Math.min(1, a.t + dt / 1.1); const k = a.t * a.t * (3 - 2 * a.t);
+    scope.pos.lerpVectors(a.p0, a.p1, k); scope.q.slerpQuaternions(a.q0, a.q1, k); state.roll = a.r0 + (a.r1 - a.r0) * k;
+    if (a.t >= 1) state.anim = null;
+  }
+  updateFly(dt);
+  const sp = (keys.ShiftLeft || keys.ShiftRight ? 4 : 13) * dt;
+  const mq = state.viewMove ? camQuat(scope.q) : scope.q;
+  const f = V(0, 0, -1).applyQuaternion(mq), r = V(1, 0, 0).applyQuaternion(mq), u = V(0, 1, 0).applyQuaternion(mq);
+  const d = new THREE.Vector3();
+  if (keys.KeyW) d.addScaledVector(f, sp); if (keys.KeyS) d.addScaledVector(f, -sp);
+  if (keys.KeyD) d.addScaledVector(r, sp); if (keys.KeyA) d.addScaledVector(r, -sp);
+  if (keys.KeyR || keys.KeyE) d.addScaledVector(u, sp); if (keys.KeyF || keys.KeyQ) d.addScaledVector(u, -sp);
+  if (d.lengthSq() > 0) { state.anim = null; state.fly = null; tryMove(d); }
+  const rs = (keys.ShiftLeft || keys.ShiftRight ? 0.35 : 0.9) * dt;
+  if (keys.ArrowLeft) rotScope(rs, 0); if (keys.ArrowRight) rotScope(-rs, 0);
+  if (keys.ArrowUp) rotScope(0, rs); if (keys.ArrowDown) rotScope(0, -rs);
+  if (keys.KeyZ) state.roll += 1.6 * dt; if (keys.KeyX) state.roll -= 1.6 * dt;
+}
+
+/* ============================== VR UPDATE ============================== */
+function btn(c, i) { const g = c.userData.gp; return !!(g && g.buttons[i] && g.buttons[i].pressed); }
+function edge(c, i) { const now = btn(c, i), was = !!c.userData.prev[i]; c.userData.prev[i] = now; return now && !was; }
+const _q = new THREE.Quaternion(), _p = new THREE.Vector3();
+function viewDirFrom(q) { return V(0, 0, -1).applyQuaternion(camQuat(q)); }
+let lastBlockHaptic = 0;
+function vrAdvance(dir, step) {   // en VR se desplaza la maqueta: el endoscopio "avanza" dentro de la fosa
+  if (Math.abs(step) < 1e-7) return;
+  const mv = dir.clone().multiplyScalar(step);
+  if (state.collide && pick(scope.pos, mv.clone().normalize(), Math.abs(step) + 0.8 * state.S)) {
+    const now = performance.now(); if (now - lastBlockHaptic > 300) { lastBlockHaptic = now; haptic(0.5, 40); }
+    return;
+  }
+  anatomy.position.sub(mv); anatomy.updateMatrixWorld(true);
+}
+function updateVR(dt) {
+  for (const c of ctrls) {
+    const hand = c.userData.hand; if (!hand) continue;
+    c.getWorldQuaternion(_q); c.getWorldPosition(_p);
+    const fwd = V(0, 0, -1).applyQuaternion(_q);
+    const gp = c.userData.gp;
+    if (hand === 'left') {
+      scope.pos.copy(_p).addScaledVector(fwd, 0.12); scope.q.copy(_q);
+      scopeModel.position.copy(scope.pos); scopeModel.quaternion.copy(_q);
+      if (gp && gp.axes.length >= 4) {
+        const ax = gp.axes[2]; if (Math.abs(ax) > 0.15) state.roll -= ax * 2.2 * dt;
+        const ay = gp.axes[3];
+        if (Math.abs(ay) > 0.15) vrAdvance(viewDirFrom(_q), -ay * 15 * state.S * dt);
+      }
+      if (edge(c, 4)) { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
+      if (edge(c, 5)) { state.maqueta = !state.maqueta; if (state.maqueta) worldCam.layers.enable(0); else worldCam.layers.disable(0); }
+      if (btn(c, 1)) { if (!grabOffset) grabOffset = anatomy.position.clone().sub(_p); anatomy.position.copy(_p).add(grabOffset); }
+      else grabOffset = null;
+    } else {
+      tipWorld.copy(_p).addScaledVector(fwd, 0.12);
+      instr.position.copy(tipWorld); instr.quaternion.copy(_q);
+      if (edge(c, 4)) { const T = ['pinza', 'drill', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % 3]); }
+      if (edge(c, 5)) setXray(!state.xray);
+    }
+  }
+  if (state.vrFly) {
+    const Tw = anatomy.localToWorld(state.vrFly.clone());
+    const d = Tw.sub(scope.pos), dist = d.length(), STOP = 4 * state.S;
+    if (dist > STOP) vrAdvance(d.normalize(), Math.min(18 * state.S * dt, dist - STOP));
+  }
+  if (drilling) { const now = performance.now(); if (now - lastDrill > 90) { lastDrill = now; doBite(tipWorld.clone(), 1.6); } }
+}
+
+/* ============================== POR CUADRO ============================== */
+function updateEndoCam() {
+  endoCam.position.copy(scope.pos);
+  endoCam.quaternion.copy(camQuat(scope.q));
+  const s = state.S;
+  endoCam.near = 0.3 * s; endoCam.far = 500 * s; endoCam.updateProjectionMatrix();
+  endoCam.updateMatrixWorld(true);
+  endoLight.position.copy(scope.pos);
+  endoLight.intensity = ENDO_I * Math.pow(s, ENDO_DECAY);
+}
+function updateInstrumentDesktop(dt) {
+  instr.visible = state.tool !== 'none' && mouseIn;
+  if (!instr.visible) { tipHit = null; return; }
+  ray.setFromCamera(ndc, endoCam);
+  const dir = ray.ray.direction.clone();
+  tipHit = pick(endoCam.position, dir, 80);
+  if (tipHit && tipHit.distance < 60) tipWorld.copy(tipHit.point).addScaledVector(dir, -0.15);
+  else tipWorld.copy(endoCam.position).addScaledVector(dir, 22);
+  const f = V(0, 0, -1).applyQuaternion(scope.q), r = V(1, 0, 0).applyQuaternion(scope.q), u = V(0, 1, 0).applyQuaternion(scope.q);
+  const entry = scope.pos.clone().addScaledVector(r, 3.6).addScaledVector(u, -2.8).addScaledVector(f, -14);
+  instr.position.copy(tipWorld); instr.lookAt(entry);
+  if (drilling && tipHit && tipHit.distance < 60) {
+    const now = performance.now();
+    if (now - lastDrill > 85 || tipWorld.distanceTo(lastDrillP) > 0.7) {
+      lastDrill = now; lastDrillP.copy(tipWorld);
+      doBite(tipHit.point.clone().addScaledVector(dir, 0.5), 1.6);
+    }
+  }
+}
+function updateInstrumentCommon(dt) {
+  pinza.visible = state.tool === 'pinza'; drill.visible = state.tool === 'drill';
+  if (state.vr) instr.visible = state.tool !== 'none';
+  jawClose = Math.max(0, jawClose - dt);
+  upPivot.rotation.x = jawClose > 0 ? 0 : -0.45;
+  if (state.tool === 'drill') burr.rotation.z += dt * (drilling ? 60 : 4);
+}
+function updateEffects(dt) {
+  const aspir = keys.Space;
+  state.bleed = Math.max(0, state.bleed - dt * (aspir ? 0.45 : 0.035));
+  $('#bleed').style.opacity = state.bleed * 0.85;
+  monMat.uniforms.bleed.value = state.bleed;
+  hudWarnT = Math.max(0, hudWarnT - dt);
+}
+
+/* ============================== IDENTIFICACIÓN / ETIQUETAS / MAPAS ============================== */
+let lookKey = null;
+function identify() {
+  const dir = V(0, 0, -1).applyQuaternion(endoCam.quaternion);
+  const h = pick(endoCam.position, dir, 150 * state.S);
+  const k = keyOfHit(h);
+  if (k !== lookKey) {
+    lookKey = k;
+    const inf = k && INFO[k];
+    $('#infoName').textContent = inf ? inf[0] : '—';
+    $('#infoName').style.color = k && DANGER_KEYS.has(k) ? '#ff9b9b' : '#bfffe3';
+    $('#infoText').textContent = inf ? inf[1] : 'Apuntá el centro del endoscopio a una estructura para identificarla.';
+  }
+  // distancias desde la punta del instrumento
+  const tl = $('#tipLab');
+  if (state.tool !== 'none' && (state.vr || tipHit)) {
+    const lp = anatomy.worldToLocal(tipWorld.clone());
+    const fmt = (v, ok) => `<span style="color:${v < 2 ? '#ff6b6b' : v < 4 ? '#ffd166' : '#8ce99a'}">${ok ? v.toFixed(1) + ' mm' : '—'}</span>`;
+    if (state.model === 'ct') {
+      const dO = ctFatDist(lp), dS = ctLmDist(lp, 'skull');
+      $('#dLam').innerHTML = fmt(dO, dO < 12); $('#dSkull').innerHTML = fmt(dS, dS < 40);
+    } else {
+      const dl = 18.5 - lp.x, ds = yr(THREE.MathUtils.clamp(lp.z, -66, -24)) - lp.y;
+      $('#dLam').innerHTML = fmt(dl, lp.z < -18 && lp.z > -66 && lp.y > 22);
+      $('#dSkull').innerHTML = fmt(ds, lp.z < -20 && lp.z > -68);
+    }
+    const uk = state.vr ? null : keyOfHit(tipHit);
+    $('#dUnder').textContent = uk && INFO[uk] ? INFO[uk][0] : '—';
+    if (!state.vr && uk && INFO[uk] && mouseIn) { tl.style.display = 'block'; tl.textContent = INFO[uk][0]; tl.style.color = DANGER_KEYS.has(uk) ? '#ffb0b0' : '#bfffe3'; }
+    else tl.style.display = 'none';
+  } else { tl.style.display = 'none'; $('#dLam').textContent = '—'; $('#dSkull').textContent = '—'; $('#dUnder').textContent = '—'; }
+}
+const labelsEl = $('#labels');
+function updateLabels() {
+  if (!state.labels || state.vr) return;
+  const R = Math.min(innerWidth, innerHeight) * 0.47, cx = innerWidth / 2, cy = innerHeight / 2;
+  const list = state.model === 'ct' ? CT.landmarks : ANCHORS;
+  if (state.model === 'ct') ANCHORS.forEach(a => a.el && a.el.remove()); else CT.landmarks.forEach(a => a.el && a.el.remove());
+  for (const a of list) {
+    const w = anatomy.localToWorld(a.p.clone());
+    const dist = w.distanceTo(endoCam.position);
+    let show = false, sx = 0, sy = 0;
+    if (dist < 55) {
+      const pr = w.clone().project(endoCam);
+      sx = (pr.x + 1) / 2 * innerWidth; sy = (1 - pr.y) / 2 * innerHeight;
+      if (pr.z < 1 && pr.z > -1 && Math.hypot(sx - cx, sy - cy) < R - 30) {
+        const dir = w.clone().sub(endoCam.position).normalize();
+        const h = pick(endoCam.position, dir, dist + 2);
+        show = !h || h.distance > dist - 1.6 || (a.key && keyOfHit(h) === a.key) || (a.key === 'roof' && keyOfHit(h) === 'cribr') || (!a.key && state.xray);
+      }
+    }
+    if (show) {
+      if (!a.el) { a.el = document.createElement('div'); a.el.className = 'lab' + ((a.key ? DANGER_KEYS.has(a.key) : a.danger) ? ' d' : ''); a.el.textContent = a.key ? INFO[a.key][0].split(' (')[0].split(' —')[0] : a.name; }
+      if (!a.el.parentNode) labelsEl.appendChild(a.el);
+      a.el.style.left = sx + 'px'; a.el.style.top = (sy - 8) + 'px';
+      a.el.style.opacity = THREE.MathUtils.clamp(1.3 - dist / 45, 0.35, 1);
+    } else if (a.el && a.el.parentNode) a.el.remove();
+  }
+}
+const mapS = $('#mapS').getContext('2d'), mapA = $('#mapA').getContext('2d');
+function drawMaps() {
+  const lp = anatomy.worldToLocal(scope.pos.clone());
+  const vd = V(0, 0, -1).applyQuaternion(endoCam.quaternion);
+  const lpd = anatomy.worldToLocal(scope.pos.clone().addScaledVector(vd, 14 * state.S));
+  const tp = (state.tool !== 'none' && (tipHit || state.vr)) ? anatomy.worldToLocal(tipWorld.clone()) : null;
+  drawMap(mapS, 440, 270, p => [(12 - p.z) * 4.0, (74 - p.y) * 3.55], 'yz', lp, lpd, tp);
+  drawMap(mapA, 440, 230, p => [(12 - p.z) * 4.0, (p.x + 16) * 3.8], 'xz', lp, lpd, tp);
+}
+function drawMap(g, W, H, P, plane, lp, lpd, tp) {
+  g.clearRect(0, 0, W, H);
+  g.lineWidth = 1.5; g.font = '15px system-ui';
+  const line = (a, b, c) => { g.strokeStyle = c; g.beginPath(); g.moveTo(...P(a)); g.lineTo(...P(b)); g.stroke(); };
+  // contorno de la fosa
+  g.strokeStyle = 'rgba(255,255,255,.25)';
+  if (plane === 'yz') {
+    g.beginPath(); [[6, 0], [-70, 0], [-70, 14], [-66, 14], [-66, 46], [-24, 46], [-14, 44], [6, 22], [6, 0]].forEach(([z, y], i) => { const q = P(V(0, y, z)); i ? g.lineTo(...q) : g.moveTo(...q); }); g.stroke();
+  } else {
+    g.beginPath(); [[6, 0], [-66, 0], [-66, 18.5], [-18, 18.5], [-18, 17], [6, 17], [6, 0]].forEach(([z, x], i) => { const q = P(V(x, 0, z)); i ? g.lineTo(...q) : g.moveTo(...q); }); g.stroke();
+    line(V(0, 0, 6), V(0, 0, -66), 'rgba(255,255,255,.5)');
+  }
+  for (const m of map2d) {
+    g.strokeStyle = m.col || m.c; g.fillStyle = m.col || m.c;
+    if (m.t === 'e') {
+      const c = V(...m.c); const [cx, cy] = P(c);
+      const ex = plane === 'yz' ? m.r[2] * 4.0 : m.r[2] * 4.0, ey = plane === 'yz' ? m.r[1] * 3.55 : m.r[0] * 3.8;
+      g.globalAlpha = 0.25; g.beginPath(); g.ellipse(cx, cy, ex, ey, 0, 0, 7); g.fill(); g.globalAlpha = 0.9; g.stroke(); g.globalAlpha = 1;
+      if (m.n) { g.fillStyle = '#fff'; g.fillText(m.n, cx - 7, cy + 5); }
+    } else if (m.t === 'box') {
+      const a = P(V(m.x[0], m.y[0], m.z[0])), b = P(V(m.x[1], m.y[1], m.z[1]));
+      g.globalAlpha = 0.5; g.setLineDash([4, 3]); g.strokeRect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])); g.setLineDash([]); g.globalAlpha = 1;
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.fillText(m.n, Math.min(a[0], b[0]) + 3, Math.min(a[1], b[1]) + 15);
+    } else if (m.t === 'poly') {
+      g.lineWidth = 3; g.beginPath(); m.pts.forEach((p, i) => { const q = P(V(...p)); i ? g.lineTo(...q) : g.moveTo(...q); }); g.stroke(); g.lineWidth = 1.5;
+    } else if (m.t === 'lineX' && plane === 'xz') { g.lineWidth = 3; line(V(18.5, 0, -18), V(18.5, 0, -66), m.c); g.lineWidth = 1.5; }
+    else if (m.t === 'lineX' && plane === 'yz') { /* lámina: no se proyecta en sagital */ }
+    else if (m.t === 'roof' && plane === 'yz') { g.lineWidth = 3; line(V(0, yr(-24), -24), V(0, yr(-66), -66), m.c); g.lineWidth = 1.5; }
+    else if (m.t === 'lineZ') { if (plane === 'yz') line(V(0, m.y[0], m.z), V(0, m.y[1], m.z), m.c); else line(V(m.x[0], 0, m.z), V(m.x[1], 0, m.z), m.c); }
+    else if (m.t === 'unc') {
+      g.beginPath();
+      for (let i = 0; i <= 20; i++) { const t = i / 20, y = (1 - t) ** 2 * 34 + 2 * (1 - t) * t * 22 + t * t * 13, z = (1 - t) ** 2 * -21 + 2 * (1 - t) * t * -21 + t * t * -35; const q = P(V(11, y, z)); i ? g.lineTo(...q) : g.moveTo(...q); }
+      g.lineWidth = 2.5; g.stroke(); g.lineWidth = 1.5;
+    }
+  }
+  // endoscopio
+  const a = P(lp), b = P(lpd);
+  const back = P(lp.clone().add(lp.clone().sub(lpd).setLength(60)));
+  g.strokeStyle = '#7fe0ff'; g.lineWidth = 3; g.beginPath(); g.moveTo(...back); g.lineTo(...a); g.stroke();
+  g.strokeStyle = '#9fffd0'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#9fffd0'; g.beginPath(); g.arc(a[0], a[1], 5, 0, 7); g.fill();
+  if (tp) { const t = P(tp); g.fillStyle = state.tool === 'drill' ? '#ffd166' : '#ffffff'; g.beginPath(); g.arc(t[0], t[1], 4.5, 0, 7); g.fill(); }
+  if (plane === 'yz') { g.fillStyle = 'rgba(255,255,255,.45)'; g.fillText('techo / base de cráneo', 150, 22); }
+}
+function drawHUD() {
+  const k = [state.side, state.angle, state.tool, lookKey, hudWarnT > 0 ? hudWarn : ''].join('|');
+  if (k === hudKey) return; hudKey = k;
+  const g = hudCanvas.getContext('2d');
+  g.clearRect(0, 0, 1024, 220); g.fillStyle = 'rgba(10,12,16,.85)'; g.fillRect(0, 0, 1024, 220);
+  g.fillStyle = '#9fffd0'; g.font = 'bold 34px system-ui';
+  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill' }[state.tool];
+  g.fillText(`Fosa ${state.side > 0 ? 'DERECHA' : 'IZQUIERDA'} · Óptica ${state.angle}° · ${toolN}`, 24, 50);
+  g.fillStyle = '#fff'; g.font = '32px system-ui';
+  g.fillText('Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
+  if (hudWarnT > 0) { g.fillStyle = '#ff7070'; g.font = 'bold 26px system-ui'; wrapText(g, '⚠ ' + hudWarn, 24, 152, 980, 32); }
+}
+function wrapText(g, t, x, y, w, lh) { let line = ''; for (const word of t.split(' ')) { const test = line + word + ' '; if (g.measureText(test).width > w && line) { g.fillText(line, x, y); line = word + ' '; y += lh; } else line = test; } g.fillText(line, x, y); }
+
+
+/* ============================== MODO TC DEL PACIENTE ==============================
+   Coordenadas: la TC se lee en LPS (x = izquierda del paciente, y = posterior, z = superior).
+   Escena (mm): X = L, Y = S, Z = −P  → mirando hacia posterior, la izquierda del paciente queda a la derecha de la imagen,
+   que es lo que se ve con el endoscopio en la fosa derecha (septum a la derecha). */
+const ctGroup = new THREE.Group(); anatomy.add(ctGroup);
+const genericObjs = anatomy.children.filter(o => o !== ctGroup);
+const CT = { C: null, cd: null, cs: null, cO: null, G: null, gd: null, gs: 1, gO: null, tipP: 0, tipS: 0, cx: 0,
+  iso: -450, mesh: null, landmarks: [], entry: { 1: null, '-1': null }, win: 'bone', mark: false, cv: null, tris: 0 };
+const LM_TYPES = {
+  aea: ['A. etmoidal anterior', 1.2, 0xff3030, 'Sección de la arteria etmoidal anterior: sangrado, riesgo de retracción intraorbitaria y hematoma.', 0.8],
+  pea: ['A. etmoidal posterior', 1.0, 0xff3030, 'Lesión de la arteria etmoidal posterior: sangrado.', 0.6],
+  spa: ['A. esfenopalatina', 1.0, 0xff3030, 'Lesión de la arteria esfenopalatina: sangrado arterial posterior.', 0.75],
+  carotid: ['Carótida interna', 3.0, 0xff4060, '¡Lesión de la carótida interna! Hemorragia masiva.', 1.0],
+  optic: ['Nervio óptico', 2.2, 0xfff0a0, '¡Lesión del nervio óptico! Riesgo de amaurosis.', 0],
+  skull: ['Base de cráneo', 2.5, 0x8090ff, 'Lesión de la base de cráneo: fístula de LCR.', 0],
+  lamina: ['Lámina papirácea', 2.0, 0xffd040, 'Lámina papirácea perforada: riesgo de hematoma orbitario y lesión del recto medial.', 0],
+  nld: ['Conducto nasolagrimal', 1.6, 0x60c0ff, 'Lesión del conducto nasolagrimal: riesgo de epífora.', 0],
+  maxost: ['Ostium maxilar', 0, 0x5cffb0, '', 0], frontost: ['Ostium frontal', 0, 0x5cffb0, '', 0],
+  sphost: ['Ostium esfenoidal', 0, 0x5cffb0, '', 0], other: ['Marca docente', 0, 0xffffff, '', 0]
+};
+$('#lmType').innerHTML = Object.entries(LM_TYPES).map(([k, v]) => `<option value="${k}">${v[0]}${v[1] ? ' (riesgo)' : ''}</option>`).join('');
+const ctMat = patchCut(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.38, metalness: 0, side: THREE.DoubleSide, map: mucoTex, bumpMap: bumpTex, bumpScale: 1.0 }));
+{ const prev = ctMat.onBeforeCompile; ctMat.onBeforeCompile = sh => { prev(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n if (!gl_FrontFacing) diffuseColor.rgb = vec3(0.78, 0.6, 0.52);'); }; ctMat.customProgramCacheKey = () => 'ctmat'; }
+
+const ctStatus = (t) => { $('#ctStatus').innerHTML = t; };
+const tick = () => new Promise(r => setTimeout(r, 0));
+const median = a => { const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
+const OK_TS = ['1.2.840.10008.1.2', '1.2.840.10008.1.2.1'];
+
+async function readInputs(files) {
+  const bufs = [];
+  let n = 0;
+  for (const f of files) {
+    const nm = f.name.toLowerCase();
+    if (nm.endsWith('.zip')) {
+      ctStatus('Descomprimiendo ' + f.name + '…'); await tick();
+      const z = await JSZip.loadAsync(f);
+      for (const e of Object.values(z.files)) if (!e.dir) { bufs.push(await e.async('uint8array')); if (++n % 40 === 0) { ctStatus(`Leyendo… ${n} archivos`); await tick(); } }
+    } else if (!/\.(txt|xml|jpg|jpeg|png|pdf|html|exe|inf|ini|dll)$/.test(nm) && nm !== 'dicomdir') {
+      bufs.push(new Uint8Array(await f.arrayBuffer())); if (++n % 40 === 0) { ctStatus(`Leyendo… ${n} archivos`); await tick(); }
+    }
+  }
+  return bufs;
+}
+function parseSlices(bufs) {
+  const out = []; let compressed = 0;
+  for (const b of bufs) {
+    let ds;
+    try { ds = dicomParser.parseDicom(b); } catch (e) { try { ds = dicomParser.parseDicom(b, { TransferSyntaxUID: '1.2.840.10008.1.2' }); } catch (e2) { continue; } }
+    const pe = ds.elements.x7fe00010; if (!pe) continue;
+    const ts = (ds.string('x00020010') || '1.2.840.10008.1.2').trim();
+    if (!OK_TS.includes(ts)) { compressed++; continue; }
+    const rows = ds.uint16('x00280010'), cols = ds.uint16('x00280011');
+    const ipp = (ds.string('x00200032') || '').split('\\').map(Number), iop = (ds.string('x00200037') || '').split('\\').map(Number);
+    const ps = (ds.string('x00280030') || '1\\1').split('\\').map(Number);
+    if (ipp.length < 3 || iop.length < 6 || !rows || (ds.uint16('x00280100') || 16) !== 16) continue;
+    const slope = parseFloat(ds.string('x00281053') || '1') || 1, inter = parseFloat(ds.string('x00281052') || '0') || 0;
+    const raw = b.slice(pe.dataOffset, pe.dataOffset + rows * cols * 2);
+    const arr = ds.uint16('x00280103') ? new Int16Array(raw.buffer) : new Uint16Array(raw.buffer);
+    out.push({ key: (ds.string('x0020000e') || '') + '|' + rows + 'x' + cols + '|' + iop.map(v => v.toFixed(1)).join(','), rows, cols, ipp, iop, ps, slope, inter, arr });
+  }
+  return { slices: out, compressed };
+}
+function buildVolume(sl) {
+  const groups = {}; for (const x of sl) (groups[x.key] = groups[x.key] || []).push(x);
+  const g = Object.values(groups).sort((a, b) => b.length - a.length)[0];
+  if (!g || g.length < 20) throw new Error('no encontré una serie de TC con suficientes cortes (mínimo 20)');
+  const r = V(...g[0].iop.slice(0, 3)), c = V(...g[0].iop.slice(3, 6)), n = r.clone().cross(c);
+  g.sort((a, b) => V(...a.ipp).dot(n) - V(...b.ipp).dot(n));
+  const uniq = [g[0]]; for (let i = 1; i < g.length; i++) if (V(...g[i].ipp).dot(n) - V(...uniq[uniq.length - 1].ipp).dot(n) > 0.05) uniq.push(g[i]);
+  const pos = uniq.map(x => V(...x.ipp).dot(n)); const dk = median(pos.slice(1).map((p, i) => p - pos[i]));
+  const rows = uniq[0].rows, cols = uniq[0].cols, sRow = uniq[0].ps[0], sCol = uniq[0].ps[1];
+  const f = Math.min(sRow, sCol) < 0.42 ? 2 : 1;
+  const src = [{ v: r, n: Math.floor(cols / f), s: sCol * f }, { v: c, n: Math.floor(rows / f), s: sRow * f }, { v: n, n: uniq.length, s: dk }];
+  let oblique = false; const used = new Set();
+  for (const a of src) {
+    const comps = [a.v.x, a.v.y, a.v.z].map(Math.abs); const ax = comps.indexOf(Math.max(...comps));
+    if (comps[ax] < 0.9) oblique = true;
+    if (used.has(ax)) throw new Error('orientación de la serie no soportada'); used.add(ax);
+    a.ax = ax; a.sign = Math.sign([a.v.x, a.v.y, a.v.z][ax]);
+  }
+  const dd = [0, 0, 0], dsp = [0, 0, 0]; for (const a of src) { dd[a.ax] = a.n; dsp[a.ax] = a.s; }
+  const D = new Int16Array(dd[0] * dd[1] * dd[2]);
+  const st = [1, dd[0], dd[0] * dd[1]];
+  for (let k = 0; k < src[2].n; k++) {
+    const sl = uniq[k], A = sl.arr;
+    for (let j = 0; j < src[1].n; j++) for (let i = 0; i < src[0].n; i++) {
+      let sum = 0; for (let b = 0; b < f; b++) for (let a = 0; a < f; a++) sum += A[(j * f + b) * cols + i * f + a];
+      let hu = (sum / (f * f)) * sl.slope + sl.inter; hu = hu < -1024 ? -1024 : hu > 3071 ? 3071 : hu;
+      const id = [i, j, k]; let idx = 0;
+      for (let t = 0; t < 3; t++) { const s2 = src[t]; idx += (s2.sign > 0 ? id[t] : s2.n - 1 - id[t]) * st[s2.ax]; }
+      D[idx] = hu;
+    }
+  }
+  const O = V(...uniq[0].ipp).addScaledVector(r, (f - 1) / 2 * sCol).addScaledVector(c, (f - 1) / 2 * sRow);
+  for (const a of src) if (a.sign < 0) O.addScaledVector(a.v, (a.n - 1) * a.s);
+  return { D, dd, dsp, O, oblique, nSlices: uniq.length };
+}
+function cropHead(vol) {
+  const { D, dd, dsp, O } = vol, [nx, ny, nz] = dd;
+  let minL = 1e9, maxL = -1e9;
+  for (let k = 0; k < nz; k += 2) for (let j = 0; j < ny; j += 2) for (let i = 0; i < nx; i += 2) if (D[i + j * nx + k * nx * ny] > -300) { minL = Math.min(minL, i); maxL = Math.max(maxL, i); }
+  if (minL > maxL) throw new Error('no encontré la cabeza en el estudio');
+  const ci = (minL + maxL) / 2, w = Math.round(12 / dsp[0]);
+  let tip = null;
+  for (let j = 0; j < ny && !tip; j++) for (let k = 0; k < nz && !tip; k++) for (let i = Math.max(0, Math.floor(ci - w)); i <= Math.min(nx - 1, ci + w); i++)
+    if (D[i + j * nx + k * nx * ny] > -300 && D[i + Math.min(ny - 1, j + 2) * nx + k * nx * ny] > -300) { tip = [i, j, k]; break; }
+  const cxL = O.x + ci * dsp[0], tipP = O.y + tip[1] * dsp[1], tipS = O.z + tip[2] * dsp[2];
+  const rng = (o, s, n, a, b) => [Math.max(0, Math.floor((a - o) / s)), Math.min(n - 1, Math.ceil((b - o) / s))];
+  const [i0, i1] = rng(O.x, dsp[0], nx, cxL - 50, cxL + 50), [j0, j1] = rng(O.y, dsp[1], ny, tipP - 3, tipP + 112), [k0, k1] = rng(O.z, dsp[2], nz, tipS - 50, tipS + 82);
+  const cd = [i1 - i0 + 1, j1 - j0 + 1, k1 - k0 + 1], C = new Int16Array(cd[0] * cd[1] * cd[2]);
+  for (let k = 0; k < cd[2]; k++) for (let j = 0; j < cd[1]; j++) {
+    const so = (i0) + (j + j0) * nx + (k + k0) * nx * ny, to = j * cd[0] + k * cd[0] * cd[1];
+    C.set(D.subarray(so, so + cd[0]), to);
+  }
+  return { C, cd, cs: dsp.slice(), cO: V(O.x + i0 * dsp[0], O.y + j0 * dsp[1], O.z + k0 * dsp[2]), cx: cxL, tipP, tipS };
+}
+function sampleC(L, P, S) {
+  const i = Math.round((L - CT.cO.x) / CT.cs[0]), j = Math.round((P - CT.cO.y) / CT.cs[1]), k = Math.round((S - CT.cO.z) / CT.cs[2]);
+  if (i < 0 || j < 0 || k < 0 || i >= CT.cd[0] || j >= CT.cd[1] || k >= CT.cd[2]) return -1000;
+  return CT.C[i + j * CT.cd[0] + k * CT.cd[0] * CT.cd[1]];
+}
+function sampleCtri(L, P, S) {
+  const x = (L - CT.cO.x) / CT.cs[0], y = (P - CT.cO.y) / CT.cs[1], z = (S - CT.cO.z) / CT.cs[2];
+  const [nx, ny, nz] = CT.cd;
+  if (x < 0 || y < 0 || z < 0 || x > nx - 1 || y > ny - 1 || z > nz - 1) return 300;
+  const i = Math.min(nx - 2, x | 0), j = Math.min(ny - 2, y | 0), k = Math.min(nz - 2, z | 0), fx = x - i, fy = y - j, fz = z - k;
+  const C = CT.C, sx = 1, sy = nx, sz = nx * ny, b = i + j * sy + k * sz;
+  const c00 = C[b] * (1 - fx) + C[b + sx] * fx, c10 = C[b + sy] * (1 - fx) + C[b + sy + sx] * fx;
+  const c01 = C[b + sz] * (1 - fx) + C[b + sz + sx] * fx, c11 = C[b + sz + sy] * (1 - fx) + C[b + sz + sy + sx] * fx;
+  return (c00 * (1 - fy) + c10 * fy) * (1 - fz) + (c01 * (1 - fy) + c11 * fy) * fz;
+}
+async function makeGrid(g) {
+  const ext = [CT.cd[0] * CT.cs[0], CT.cd[1] * CT.cs[1], CT.cd[2] * CT.cs[2]];
+  const gd = ext.map(e => Math.floor(e / g) + 1), [nx, ny, nz] = gd, G = new Float32Array(nx * ny * nz);
+  for (let k = 0; k < nz; k++) {
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) G[i + j * nx + k * nx * ny] = sampleCtri(CT.cO.x + i * g, CT.cO.y + j * g, CT.cO.z + k * g);
+    if (k % 20 === 0) { ctStatus(`Remuestreando volumen… ${Math.round(k / nz * 100)}%`); await tick(); }
+  }
+  // suavizado separable [1 2 1]/4 y bordes cerrados (tejido)
+  const tmp = new Float32Array(G.length), st = [1, nx, nx * ny];
+  for (let a = 0; a < 3; a++) {
+    const src = a % 2 ? tmp : G, dst = a % 2 ? G : tmp, s = st[a], n = gd[a];
+    for (let idx = 0; idx < G.length; idx++) {
+      const c = Math.floor(idx / s) % n;
+      dst[idx] = 0.5 * src[idx] + 0.25 * (c > 0 ? src[idx - s] : src[idx]) + 0.25 * (c < n - 1 ? src[idx + s] : src[idx]);
+    }
+  }
+  // tras 3 pasadas el resultado quedó en tmp
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++)
+    if (i === 0 || j === 0 || k === 0 || i === nx - 1 || j === ny - 1 || k === nz - 1) tmp[i + j * nx + k * nx * ny] = 200;
+  return { G: tmp, gd, gs: g, gO: CT.cO.clone() };
+}
+async function surfaceNets(G, gd, gs, gO, iso) {
+  const [nx, ny, nz] = gd, sy = nx, sz = nx * ny;
+  const cnx = nx - 1, cny = ny - 1, cnz = nz - 1;
+  const cell = new Int32Array(cnx * cny * cnz).fill(-1);
+  const pos = [], nrm = [];
+  const E = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  const co = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
+  const v = new Float32Array(8);
+  for (let k = 0; k < cnz; k++) {
+    for (let j = 0; j < cny; j++) for (let i = 0; i < cnx; i++) {
+      const b = i + j * sy + k * sz;
+      v[0] = G[b]; v[1] = G[b + 1]; v[2] = G[b + sy]; v[3] = G[b + sy + 1]; v[4] = G[b + sz]; v[5] = G[b + sz + 1]; v[6] = G[b + sz + sy]; v[7] = G[b + sz + sy + 1];
+      let m = 0; for (let q = 0; q < 8; q++) if (v[q] > iso) m |= 1 << q;
+      if (m === 0 || m === 255) continue;
+      let ax = 0, ay = 0, az = 0, cnt = 0;
+      for (const [a, c2] of E) {
+        const ia = (m >> a) & 1, ic = (m >> c2) & 1; if (ia === ic) continue;
+        const t = (iso - v[a]) / (v[c2] - v[a]);
+        ax += co[a][0] + (co[c2][0] - co[a][0]) * t; ay += co[a][1] + (co[c2][1] - co[a][1]) * t; az += co[a][2] + (co[c2][2] - co[a][2]) * t; cnt++;
+      }
+      const gx = i + ax / cnt, gy = j + ay / cnt, gz = k + az / cnt;
+      cell[i + j * cnx + k * cnx * cny] = pos.length / 3;
+      const L = gO.x + gx * gs, P = gO.y + gy * gs, S = gO.z + gz * gs;
+      pos.push(L, S, -P);
+      // normal = −gradiente (apunta al aire)
+      const dx = (v[1] + v[3] + v[5] + v[7]) - (v[0] + v[2] + v[4] + v[6]), dy = (v[2] + v[3] + v[6] + v[7]) - (v[0] + v[1] + v[4] + v[5]), dz = (v[4] + v[5] + v[6] + v[7]) - (v[0] + v[1] + v[2] + v[3]);
+      const nl = Math.hypot(dx, dy, dz) || 1;
+      nrm.push(-dx / nl, -dz / nl, dy / nl);
+    }
+    if (k % 15 === 0) { ctStatus(`Reconstruyendo superficie… ${Math.round(k / cnz * 100)}%`); await tick(); }
+  }
+  const idx = [];
+  const C = (i, j, k) => (i < 0 || j < 0 || k < 0 || i >= cnx || j >= cny || k >= cnz) ? -1 : cell[i + j * cnx + k * cnx * cny];
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const b = i + j * sy + k * sz, inA = G[b] > iso;
+    for (let d = 0; d < 3; d++) {
+      const p1 = [i, j, k]; p1[d]++;
+      if (p1[d] >= gd[d]) continue;
+      const inB = G[p1[0] + p1[1] * sy + p1[2] * sz] > iso; if (inA === inB) continue;
+      const u = (d + 1) % 3, w = (d + 2) % 3;
+      const pc = [i, j, k];
+      const q = [[0, 0], [1, 0], [1, 1], [0, 1]].map(([du, dw]) => { const c = pc.slice(); c[u] -= 1 - du; c[w] -= 1 - dw; return C(c[0], c[1], c[2]); });
+      if (q.some(x => x < 0)) continue;
+      if (inA) idx.push(q[0], q[1], q[2], q[0], q[2], q[3]); else idx.push(q[0], q[2], q[1], q[0], q[3], q[2]);
+    }
+  }
+  return { pos: new Float32Array(pos), nrm: new Float32Array(nrm), idx: pos.length / 3 > 65535 ? new Uint32Array(idx) : new Uint16Array(idx) };
+}
+async function buildMesh() {
+  const resSel = $('#res').value;
+  const tries = resSel === 'quest' ? [1.0, 1.25, 1.5] : [parseFloat(resSel)];
+  let geo = null, grid = null;
+  for (const g of tries) {
+    grid = await makeGrid(g);
+    const sn = await surfaceNets(grid.G, grid.gd, grid.gs, grid.gO, CT.iso);
+    CT.tris = sn.idx.length / 3;
+    geo = sn;
+    if (resSel !== 'quest' || CT.tris <= 380000) break;
+  }
+  Object.assign(CT, { G: grid.G, gd: grid.gd, gs: grid.gs, gO: grid.gO });
+  // color por tejido subyacente (hueso más pálido)
+  const col = new Float32Array(geo.pos.length);
+  for (let v = 0; v < geo.pos.length; v += 3) {
+    const X = geo.pos[v] - geo.nrm[v] * 1.1, Y = geo.pos[v + 1] - geo.nrm[v + 1] * 1.1, Z = geo.pos[v + 2] - geo.nrm[v + 2] * 1.1;
+    const hu = sampleC(X, -Z, Y), t = THREE.MathUtils.clamp((hu - 150) / 450, 0, 1), fat = hu > -200 && hu < -40 ? 1 : 0;
+    col[v] = 0.86 + 0.05 * t; col[v + 1] = 0.46 + 0.16 * t + 0.25 * fat; col[v + 2] = 0.43 + 0.13 * t - 0.15 * fat;
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(geo.pos, 3));
+  geom.setAttribute('normal', new THREE.BufferAttribute(geo.nrm, 3));
+  geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geom.setIndex(new THREE.BufferAttribute(geo.idx, 1));
+  planarUV(geom);
+  if (CT.mesh) { ctGroup.remove(CT.mesh); CT.mesh.geometry.dispose(); }
+  CT.mesh = new THREE.Mesh(geom, ctMat); CT.mesh.userData = { key: 'ct_soft', cut: true };
+  ctGroup.add(CT.mesh);
+  // volumen de corte que cubre la reconstrucción
+  const ext = V(CT.cd[0] * CT.cs[0], CT.cd[2] * CT.cs[2], CT.cd[1] * CT.cs[1]);
+  const vox = Math.max(0.5, Math.cbrt(ext.x * ext.y * ext.z / 7e6));
+  CT.cv = { o: V(CT.cO.x, CT.cO.z, -(CT.cO.y + ext.z)), size: ext, vox };
+}
+function findEntry(sd) {   // punto de aire en el vestíbulo/fosa del lado pedido
+  for (const dP of [18, 24, 30, 14, 36]) {
+    let best = null, bd = 1e9; const P = CT.tipP + dP;
+    for (let o = 3; o <= 13; o += 0.5) for (let dS = -32; dS <= 25; dS += 0.5) {
+      const L = CT.cx - sd * o, S = CT.tipS + dS;
+      if (sampleGL(L, P, S) > CT.iso - 150) continue;
+      let clear = 0; for (const [a, b, c] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]]) if (sampleGL(L + a * 1.5, P, S + c * 1.5) < CT.iso) clear++;
+      if (clear < 4) continue;
+      const dd = Math.abs(o - 7) + Math.abs(dS + 8) * 0.6; if (dd < bd) { bd = dd; best = V(L, S, -P); }
+    }
+    if (best) return best;
+  }
+  return V(CT.cx - sd * 7, CT.tipS - 8, -(CT.tipP + 20));
+}
+function sampleGL(L, P, S) {   // volumen suavizado, coordenadas LPS
+  const x = (L - CT.gO.x) / CT.gs, y = (P - CT.gO.y) / CT.gs, z = (S - CT.gO.z) / CT.gs;
+  const [nx, ny, nz] = CT.gd;
+  if (x < 0 || y < 0 || z < 0 || x > nx - 1 || y > ny - 1 || z > nz - 1) return 300;
+  const i = Math.min(nx - 2, x | 0), j = Math.min(ny - 2, y | 0), k = Math.min(nz - 2, z | 0), fx = x - i, fy = y - j, fz = z - k;
+  const G = CT.G, sy = nx, sz = nx * ny, b = i + j * sy + k * sz;
+  const c00 = G[b] * (1 - fx) + G[b + 1] * fx, c10 = G[b + sy] * (1 - fx) + G[b + sy + 1] * fx;
+  const c01 = G[b + sz] * (1 - fx) + G[b + sz + 1] * fx, c11 = G[b + sz + sy] * (1 - fx) + G[b + sz + sy + 1] * fx;
+  return (c00 * (1 - fy) + c10 * fy) * (1 - fz) + (c01 * (1 - fy) + c11 * fy) * fz;
+}
+const sampleScene = p => sampleGL(p.x, -p.z, p.y);
+const _cp = new THREE.Vector3();
+function solidAt(p) { return sampleScene(p) > CT.iso && !isCut(p); }
+function pickCT(origin, dir, far) {
+  const lo = anatomy.worldToLocal(origin.clone()), le = anatomy.worldToLocal(origin.clone().addScaledVector(dir, far));
+  const ld = le.clone().sub(lo), lfar = ld.length(); ld.normalize();
+  const scale = far / lfar, step = CT.gs * 0.4;
+  let t = 0, started = !solidAt(lo);
+  while (t < lfar) {
+    t += step; _cp.copy(lo).addScaledVector(ld, t);
+    const sol = solidAt(_cp);
+    if (!started) { if (!sol) started = true; continue; }
+    if (sol) {
+      let a = t - step, b = t;
+      for (let q = 0; q < 6; q++) { const m = (a + b) / 2; _cp.copy(lo).addScaledVector(ld, m); if (solidAt(_cp)) b = m; else a = m; }
+      const hp = lo.clone().addScaledVector(ld, b), e = 0.5;
+      const n = V(sampleScene(V(hp.x + e, hp.y, hp.z)) - sampleScene(V(hp.x - e, hp.y, hp.z)),
+                  sampleScene(V(hp.x, hp.y + e, hp.z)) - sampleScene(V(hp.x, hp.y - e, hp.z)),
+                  sampleScene(V(hp.x, hp.y, hp.z + e)) - sampleScene(V(hp.x, hp.y, hp.z - e))).negate().normalize();
+      const deep = hp.clone().addScaledVector(ld, 1.3), hu = sampleC(deep.x, -deep.z, deep.y);
+      const ctKey = hu > -200 && hu < -40 ? 'ct_fat' : hu > 300 ? 'ct_bone' : 'ct_soft';
+      return { point: anatomy.localToWorld(hp), distance: b * scale, object: CT.mesh, face: { normal: n }, ctKey };
+    }
+  }
+  return null;
+}
+function isOrbitFat(L, P, S) { const hu = sampleC(L, P, S); return hu > -190 && hu < -30 && P - CT.tipP > 22; }
+function checkDangerCT(lp, r) {
+  const L = lp.x, P = -lp.z, S = lp.y, R2 = r + 1, st = 0.6;
+  let fat = 0;
+  for (let a = -R2; a <= R2; a += st) for (let b = -R2; b <= R2; b += st) for (let c = -R2; c <= R2; c += st)
+    if (a * a + b * b + c * c <= R2 * R2 && isOrbitFat(L + a, P + b, S + c)) fat++;
+  if (fat > 3) reportDanger({ id: 'ctorbit', msg: 'Contacto con grasa orbitaria: atravesaste la lámina papirácea / periórbita. Riesgo de hematoma orbitario y lesión del recto medial.' });
+  for (const lm of CT.landmarks) {
+    const T = LM_TYPES[lm.type]; if (!T[1]) continue;
+    if (lp.distanceTo(lm.p) < T[1] + r * 0.6) reportDanger({ id: 'lm' + lm.id, msg: T[3], bleed: T[4] });
+  }
+}
+function ctFatDist(lp) {
+  const L = lp.x, P = -lp.z, S = lp.y; let best = 99;
+  for (let a = -12; a <= 12; a += 1) for (let b = -12; b <= 12; b += 1) for (let c = -12; c <= 12; c += 1) {
+    const d = Math.hypot(a, b, c); if (d >= best) continue;
+    if (isOrbitFat(L + a, P + b, S + c)) best = d;
+  }
+  return best;
+}
+function ctLmDist(lp, type) { let d = 99; for (const lm of CT.landmarks) if (lm.type === type) d = Math.min(d, lp.distanceTo(lm.p)); return d; }
+
+/* ---------- cortes de TC sincronizados ---------- */
+const views = { ax: { cv: $('#ctAx') }, co: { cv: $('#ctCo') }, sa: { cv: $('#ctSa') } };
+let sliceKey = '';
+function tipLPS() { const lp = anatomy.worldToLocal(scope.pos.clone()); return [lp.x, -lp.z, lp.y]; }
+function drawSlices(force) {
+  if (!CT.C) return;
+  const [L, P, S] = tipLPS(), cd = CT.cd, cs = CT.cs, O = CT.cO;
+  const ci = THREE.MathUtils.clamp(Math.round((L - O.x) / cs[0]), 0, cd[0] - 1), cj = THREE.MathUtils.clamp(Math.round((P - O.y) / cs[1]), 0, cd[1] - 1), ck = THREE.MathUtils.clamp(Math.round((S - O.z) / cs[2]), 0, cd[2] - 1);
+  const vd = viewDir(), key = [ci, cj, ck, CT.win, CT.landmarks.length, vd.x.toFixed(2), vd.y.toFixed(2), vd.z.toFixed(2)].join(',');
+  if (key === sliceKey && !force) return; sliceKey = key;
+  const [wl, ww] = CT.win === 'bone' ? [400, 2200] : [40, 420], lo = wl - ww / 2;
+  const nx = cd[0], ny = cd[1], C = CT.C;
+  const spec = {
+    ax: { w: cd[0], h: cd[1], sx: cs[0], sy: cs[1], f: (x, y) => C[x + y * nx + ck * nx * ny], px: ci, py: cj, map: (l, p, s) => [(l - O.x) / cs[0], (p - O.y) / cs[1]], depth: (l, p, s) => Math.abs(s - S), title: 'Axial' },
+    co: { w: cd[0], h: cd[2], sx: cs[0], sy: cs[2], f: (x, y) => C[x + cj * nx + (cd[2] - 1 - y) * nx * ny], px: ci, py: cd[2] - 1 - ck, map: (l, p, s) => [(l - O.x) / cs[0], cd[2] - 1 - (s - O.z) / cs[2]], depth: (l, p, s) => Math.abs(p - P), title: 'Coronal' },
+    sa: { w: cd[1], h: cd[2], sx: cs[1], sy: cs[2], f: (x, y) => C[ci + x * nx + (cd[2] - 1 - y) * nx * ny], px: cj, py: cd[2] - 1 - ck, map: (l, p, s) => [(p - O.y) / cs[1], cd[2] - 1 - (s - O.z) / cs[2]], depth: (l, p, s) => Math.abs(l - L), title: 'Sagital' }
+  };
+  for (const k in views) {
+    const vw = views[k], sp = spec[k], g = vw.cv.getContext('2d'), W = vw.cv.width, H = vw.cv.height;
+    if (!vw.img || vw.img.width !== sp.w || vw.img.height !== sp.h) { vw.off = document.createElement('canvas'); vw.off.width = sp.w; vw.off.height = sp.h; vw.img = vw.off.getContext('2d').createImageData(sp.w, sp.h); }
+    const d = vw.img.data;
+    for (let y = 0; y < sp.h; y++) for (let x = 0; x < sp.w; x++) {
+      const v = THREE.MathUtils.clamp((sp.f(x, y) - lo) / ww * 255, 0, 255), o = (x + y * sp.w) * 4;
+      d[o] = d[o + 1] = d[o + 2] = v; d[o + 3] = 255;
+    }
+    vw.off.getContext('2d').putImageData(vw.img, 0, 0);
+    const sc = Math.min(W / (sp.w * sp.sx), H / (sp.h * sp.sy)), dw = sp.w * sp.sx * sc, dh = sp.h * sp.sy * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
+    vw.tf = { ox, oy, kx: dw / sp.w, ky: dh / sp.h, k };
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.imageSmoothingEnabled = true; g.drawImage(vw.off, ox, oy, dw, dh);
+    const P2 = (l, p, s) => { const [a, b] = sp.map(l, p, s); return [ox + a * vw.tf.kx, oy + b * vw.tf.ky]; };
+    const [tx, ty] = P2(L, P, S);
+    g.strokeStyle = 'rgba(80,220,255,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(tx, oy); g.lineTo(tx, oy + dh); g.moveTo(ox, ty); g.lineTo(ox + dw, ty); g.stroke();
+    const e = P2(L + vd.x * 15, P - vd.z * 15, S + vd.y * 15);
+    g.strokeStyle = '#9fffd0'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(tx, ty); g.lineTo(e[0], e[1]); g.stroke();
+    g.fillStyle = '#9fffd0'; g.beginPath(); g.arc(tx, ty, 4, 0, 7); g.fill();
+    for (const lm of CT.landmarks) {
+      const l = lm.p.x, p = -lm.p.z, s2 = lm.p.y; if (sp.depth(l, p, s2) > 3) continue;
+      const [x, y] = P2(l, p, s2); g.fillStyle = '#' + LM_TYPES[lm.type][2].toString(16).padStart(6, '0'); g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill();
+    }
+    if (state.tool !== 'none' && tipHit) { const tp = anatomy.worldToLocal(tipWorld.clone()); const [x, y] = P2(tp.x, -tp.z, tp.y); g.fillStyle = '#ffd166'; g.fillRect(x - 3, y - 3, 6, 6); }
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '15px system-ui'; g.fillText(sp.title, 8, 20);
+    g.fillText(k === 'sa' ? 'A' : 'D', 8, H / 2); g.fillText(k === 'sa' ? 'P' : 'I', W - 18, H / 2);
+  }
+}
+function sliceClick(k, ev) {
+  const vw = views[k]; if (!vw.tf || !CT.C) return;
+  const rc = vw.cv.getBoundingClientRect(), x = (ev.clientX - rc.left) * vw.cv.width / rc.width, y = (ev.clientY - rc.top) * vw.cv.height / rc.height;
+  const a = (x - vw.tf.ox) / vw.tf.kx, b = (y - vw.tf.oy) / vw.tf.ky;
+  let [L, P, S] = tipLPS(); const O = CT.cO, cs = CT.cs, cd = CT.cd;
+  if (k === 'ax') { L = O.x + a * cs[0]; P = O.y + b * cs[1]; }
+  if (k === 'co') { L = O.x + a * cs[0]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
+  if (k === 'sa') { P = O.y + a * cs[1]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
+  const p = V(L, S, -P);
+  if (CT.mark) { addLandmark($('#lmType').value, p); return; }
+  if (sampleGL(L, P, S) > CT.iso) { toast('Ese punto es tejido: elegí un punto con aire (negro) para ubicar el endoscopio.'); return; }
+  state.fly = null; scope.pos.copy(anatomy.localToWorld(p)); sliceKey = '';
+}
+for (const k in views) views[k].cv.addEventListener('click', e => sliceClick(k, e));
+let lmId = 0;
+function addLandmark(type, p) {
+  const T = LM_TYPES[type];
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(Math.max(T[1], 1.2), 16, 12), new THREE.MeshBasicMaterial({ color: T[2], transparent: true, opacity: 0.55, depthTest: false, depthWrite: false }));
+  mesh.position.copy(p); mesh.renderOrder = 25; mesh.visible = state.xray; ctGroup.add(mesh);
+  CT.landmarks.push({ id: ++lmId, type, p: p.clone(), mesh, name: T[0], danger: T[1] > 0, el: null });
+  renderLmList(); sliceKey = '';
+  toast('Marca agregada: ' + T[0] + (T[1] ? ' — queda como estructura de riesgo.' : ''));
+}
+function renderLmList() {
+  $('#lmList').innerHTML = CT.landmarks.map(l => `<div><span style="color:#${LM_TYPES[l.type][2].toString(16).padStart(6, '0')}">●</span> ${l.name}<button data-id="${l.id}">✕</button></div>`).join('') || '<span class="mut">Sin marcas todavía.</span>';
+  $('#lmList').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const i = CT.landmarks.findIndex(l => l.id === +b.dataset.id); const l = CT.landmarks[i];
+    ctGroup.remove(l.mesh); l.el && l.el.remove(); CT.landmarks.splice(i, 1); renderLmList(); sliceKey = '';
+  });
+}
+$('#btnWin').onclick = () => { CT.win = CT.win === 'bone' ? 'soft' : 'bone'; $('#btnWin').textContent = 'Ventana: ' + (CT.win === 'bone' ? 'hueso' : 'partes blandas'); drawSlices(true); };
+$('#btnMark').onclick = () => { CT.mark = !CT.mark; $('#btnMark').classList.toggle('mk', CT.mark); $('#btnMark').textContent = CT.mark ? 'Marcando… (clic en un corte)' : 'Marcar estructura'; };
+
+/* ---------- carga y cambio de modelo ---------- */
+async function loadCT(files) {
+  try {
+    if (!files || !files.length) return;
+    $('#btnRebuild').disabled = true; state.busy = true;
+    const bufs = await readInputs(files);
+    ctStatus(`Interpretando ${bufs.length} archivos DICOM…`); await tick();
+    const { slices, compressed } = parseSlices(bufs);
+    if (!slices.length) throw new Error(compressed ? `las imágenes están comprimidas (${compressed} archivos). Exportá la serie como DICOM sin compresión (Explicit/Implicit VR Little Endian) desde Horos, RadiAnt o el PACS.` : 'no encontré imágenes DICOM válidas');
+    ctStatus('Armando el volumen…'); await tick();
+    const vol = buildVolume(slices);
+    const cr = cropHead(vol);
+    Object.assign(CT, cr);
+    CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = []; renderLmList();
+    await rebuildCT();
+    ctStatus(`✔ ${vol.nSlices} cortes · vóxel ${vol.dsp.map(v => v.toFixed(2)).join(' × ')} mm${vol.oblique ? ' · ⚠ serie oblicua (aproximada)' : ''}<br>${CT.status}`);
+    setModel('ct');
+  } catch (e) {
+    console.error(e); ctStatus('⚠ No se pudo cargar: ' + e.message);
+  } finally { $('#btnRebuild').disabled = false; state.busy = false; last = performance.now(); }
+}
+async function rebuildCT() {
+  if (!CT.C) return;
+  await buildMesh();
+  CT.entry[1] = findEntry(1); CT.entry[-1] = findEntry(-1);
+  const q = CT.tris <= 380000;
+  CT.status = `Malla: ${CT.tris.toLocaleString('es-AR')} triángulos (${CT.gs.toFixed(2)} mm) — ${q ? 'apta para Quest 2' : 'pesada para Quest 2: elegí "Quest 2 (liviana)"'}`;
+  ctStatus(CT.status);
+  if (state.model === 'ct') { setCutVolume(CT.cv.o, CT.cv.size, CT.cv.vox); resetCuts(); placeAnatomy(); placeScopeStart(); }
+}
+function placeScopeStart() {
+  if (state.model !== 'ct' || !CT.entry[state.side]) return;
+  state.anim = null; state.fly = null; state.roll = 0; setAngle(0);
+  scope.pos.copy(anatomy.localToWorld(CT.entry[state.side].clone())); scope.q.identity(); sliceKey = '';
+}
+function setModel(m) {
+  if (m === 'ct' && !CT.mesh) { $('#ctBox').style.display = 'block'; segOn('model', 'ct'); toast('Cargá la TC con los botones de carpeta o archivos.'); return; }
+  state.model = m; segOn('model', m);
+  $('#ctBox').style.display = m === 'ct' || !CT.mesh ? ($('#ctBox').style.display) : 'none';
+  if (m === 'ct') $('#ctBox').style.display = 'block';
+  genericObjs.forEach(o => o.visible = m === 'generic' && (!overlays.includes(o) || state.xray));
+  ctGroup.visible = m === 'ct';
+  $('#ctPanel').style.display = m === 'ct' ? 'block' : 'none';
+  document.querySelector('.maps').style.display = m === 'ct' ? 'none' : 'flex';
+  $('#tourGrp').style.display = m === 'ct' ? 'none' : 'block';
+  $('#stepText').style.display = 'none';
+  $('#lLam').textContent = m === 'ct' ? 'Punta → grasa orbitaria' : 'Punta → lámina papirácea';
+  $('#lSkull').textContent = m === 'ct' ? 'Punta → base de cráneo (marcas)' : 'Punta → base de cráneo';
+  if (m === 'ct') setCutVolume(CT.cv.o, CT.cv.size, CT.cv.vox); else setCutVolume(GEN_CV.o, GEN_CV.size, GEN_CV.vox);
+  resetCuts(); setXray(state.xray); placeAnatomy(); lookKey = '__';
+  if (m === 'ct') placeScopeStart(); else goTo(TOUR[0]);
+}
+function segOn(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
+  if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
+  else setModel('generic');
+});
+$('#btnFolder').onclick = () => $('#inFolder').click();
+$('#btnFiles').onclick = () => $('#inFiles').click();
+$('#inFolder').onchange = e => loadCT([...e.target.files]);
+$('#inFiles').onchange = e => loadCT([...e.target.files]);
+$('#iso').oninput = e => { $('#isoV').textContent = e.target.value; };
+$('#iso').onchange = e => { CT.iso = +e.target.value; };
+$('#btnRebuild').onclick = async () => { if (!CT.C) { toast('Primero cargá una TC.'); return; } $('#btnRebuild').disabled = true; state.busy = true; CT.iso = +$('#iso').value; try { await rebuildCT(); } finally { state.busy = false; $('#btnRebuild').disabled = false; } };
+renderLmList();
+
+/* ============================== MÁSCARA Y RESIZE ============================== */
+function onResize() {
+  renderer.setSize(innerWidth, innerHeight);
+  if (!state.vr) { endoCam.aspect = innerWidth / innerHeight; endoCam.updateProjectionMatrix(); }
+  const R = Math.min(innerWidth, innerHeight) * 0.47;
+  $('#mask').style.background = `radial-gradient(circle at 50% 50%, transparent 0, transparent ${R * 0.82}px, rgba(0,0,0,.55) ${R - 2}px, #000 ${R}px)`;
+  $('#notch').style.top = (-R + 2) + 'px';
+}
+addEventListener('resize', onResize); onResize();
+
+/* ============================== LOOP ============================== */
+let last = performance.now(), frameN = 0;
+placeAnatomy();
+goTo(TOUR[0]); state.anim.t = 1;
+renderer.setAnimationLoop(() => {
+  if (state.busy && !state.vr) return;   // durante la carga de la TC se pausa el render para acelerar
+  const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (state.vr) updateVR(dt); else updateDesktop(dt);
+  updateEndoCam();
+  if (!state.vr) updateInstrumentDesktop(dt);
+  updateInstrumentCommon(dt);
+  updateEffects(dt);
+  updateMarker(dt);
+  if (cutDirty) { cutTex.needsUpdate = true; cutDirty = false; }
+  $('#notchWrap').style.transform = `rotate(${-state.roll / D2R + (state.side < 0 ? 0 : 0)}deg)`;
+  frameN++;
+  if (frameN % 5 === 0) { identify(); updateLabels(); if (state.model === 'ct') drawSlices(); else drawMaps(); if (state.vr) drawHUD(); }
+  if (state.vr) {
+    hemi.visible = false;
+    const old = renderer.getRenderTarget();
+    renderer.xr.enabled = false;
+    renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene, endoCam);
+    renderer.setRenderTarget(old);
+    renderer.xr.enabled = true;
+    hemi.visible = true;
+    renderer.render(scene, worldCam);
+  } else {
+    renderer.render(scene, endoCam);
+  }
+});
+window.__sim = { CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+</script>
+</body>
+</html>

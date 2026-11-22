@@ -13,7 +13,7 @@ Abrí `index.html` en un navegador moderno (Chrome, Edge o el navegador del Meta
 
 ### Modelos
 - **Genérico (bilateral):** anatomía esquemática de ambas fosas con recorrido guiado de 19 pasos: secuencia CENS, **Draf I, IIa, IIb y III** (septectomía superior y tabique intersinusal frontal fresables) y **esfenoidotomía ampliada y bilateral** (septectomía posterior, tabique intersinusal esfenoidal, arteria septal posterior). Incluye **abordaje a la silla turca** (piso selar, duramadre, hipófisis, carótida por segmentos, seno cavernoso con pares III, IV, V1, V2 y VI), **fosa pterigopalatina** (maxilar interna y ramas, ganglio, V2, agujero redondo, conducto vidiano) y **fosa infratemporal** (pterigoideos, agujero oval, V3), además de **septoplastia y colgajos** (monopolar en corte, elevación con Freer, colgajo de Hadad y cierre de perforación).
-- **Casos guardados:** biblioteca compartida (carpeta `casos/`), "Mis casos" guardados en el dispositivo y 18 TC reales del dataset CT-SCOPE (CC BY-NC-ND 4.0) que se descargan de su repositorio original. El botón **Guardar caso** exporta un caso anonimizado (sin encabezados DICOM y sin piel de la cara).
+- **Casos guardados:** biblioteca compartida (carpeta `casos/`), "Mis casos" guardados en el dispositivo y 37 TC reales del dataset CT-SCOPE (CC BY-NC-ND 4.0) que se descargan de su repositorio original. El botón **Guardar caso** exporta un caso anonimizado (sin encabezados DICOM y sin piel de la cara).
 - **TC del paciente:** cargá una carpeta DICOM o un `.zip` con la serie. Todo se procesa localmente en el navegador; las imágenes no se suben a ningún lado. Usar siempre estudios **anonimizados**. En `ejemplo/tc_fantoma.zip` hay una TC sintética de prueba.
 
 ### Controles (computadora)

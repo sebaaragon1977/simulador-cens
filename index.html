@@ -2167,7 +2167,8 @@ $('#btnCaseLoad').onclick = async () => {
     state.busy = true; $('#ctBox').style.display = 'block';
     const worker = async () => { while (i0 < c.files.length) { const i = i0++; try { const r = await fetch(E.base + encodeURI(c.dir + c.files[i])); if (!r.ok) throw 0; bufs[i] = new Uint8Array(await r.arrayBuffer()); } catch (e) { fail++; } if (++done % 10 === 0) ctStatus(`Descargando ${c.id} desde el repositorio de CT-SCOPE… ${done}/${c.files.length}`); } };
     try { await Promise.all(Array.from({ length: 8 }, worker)); } finally { state.busy = false; }
-    if (fail > c.files.length * 0.1) { ctStatus(`⚠ No se pudieron descargar ${fail} cortes de ${c.id}. Revisá la conexión.`); return; }
+    if (fail > c.files.length * 0.1) { ctStatus(fail === c.files.length ? `⚠ No se pudo conectar con el repositorio de CT-SCOPE. Si estás en la vista previa dentro de Claude, abrí el simulador desde el link de GitHub (sebaaragon1977.github.io/simulador-cens).` : `⚠ No se pudieron descargar ${fail} cortes de ${c.id}. Revisá la conexión.`); return; }
+    $('#caseDesc').value = '';
     CT.src = { label: 'CT-SCOPE ' + c.id + ' (' + c.grupo + ')', cita: E.cita, lic: E.licencia };
     await loadCT(null, bufs.filter(Boolean));
   }

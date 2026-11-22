@@ -21,6 +21,7 @@
   .lab{position:absolute;transform:translate(-50%,-100%);padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;white-space:nowrap}
   .lab.d{border-color:#ff6b6b;color:#ffd0d0}
   .lab:after{content:"";position:absolute;left:50%;top:100%;width:1px;height:8px;background:rgba(255,255,255,.5)}
+  #bleedInfo{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:4px 12px;border-radius:14px;background:rgba(110,0,0,.85);border:1px solid #ff6b6b;color:#ffe0e0;font-size:12.5px;display:none;pointer-events:none;z-index:3}
   #tipLab{position:fixed;pointer-events:none;font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#bfffe3;display:none;white-space:nowrap}
   .panel{position:fixed;top:10px;bottom:10px;width:290px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow:auto;backdrop-filter:blur(6px)}
   #panel{left:10px}#info{right:10px;width:260px}
@@ -72,6 +73,7 @@
 <div id="mask"></div>
 <div id="notchWrap"><div id="notch"></div></div>
 <div id="cross"></div>
+<div id="bleedInfo"></div>
 <div id="labels"></div>
 <div id="tipLab"></div>
 <button id="toggleP">☰ Controles</button><button id="toggleI">ℹ Info</button>
@@ -95,7 +97,7 @@
   <div class="grp"><label>Óptica</label>
     <div class="seg" id="optic"><button data-v="0" class="on">0°</button><button data-v="30">30°</button><button data-v="45">45°</button><button data-v="70">70°</button></div></div>
   <div class="grp"><label>Instrumento</label>
-    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button></div></div>
+    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button></div></div>
   <div class="grp checks">
     <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
     <label><input type="checkbox" id="chkXray"> Estructuras de riesgo (transparencia)</label>
@@ -107,7 +109,7 @@
   <div class="help">
     <b>Apuntar y navegar</b>: en <i>Explorar</i>, clic sobre un punto = el endoscopio gira y viaja hasta ahí (arrastrar = orientar). Con pinza/drill: <kbd>Alt</kbd>+clic o <kbd>N</kbd> (punto bajo el mouse) · <kbd>T</kbd> = viajar al centro de la cruz · cualquier tecla cancela<br>
     <b>Endoscopio</b>: <kbd>W</kbd>/<kbd>S</kbd> o rueda avanza/retrocede (hacia donde mira la óptica: con 70° mirando arriba, sube) · <kbd>A</kbd>/<kbd>D</kbd> lateral · <kbd>R</kbd>/<kbd>F</kbd> arriba/abajo · flechas o arrastre con botón derecho: orientar · <kbd>Z</kbd>/<kbd>X</kbd> rotar la óptica angulada · <kbd>O</kbd> cambiar óptica · <kbd>Shift</kbd> lento<br>
-    <b>Instrumento</b>: la punta sigue al mouse · clic izquierdo = cortar (pinza) o mantener = fresar (drill) · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> cambiar · <kbd>Espacio</kbd> aspirar sangre<br>
+    <b>Instrumento</b>: la punta sigue al mouse · <kbd>1</kbd>–<kbd>7</kbd> cambiar · pinza: clic = cortar · drill: mantener = fresar · bipolar/monopolar: mantener sobre el punto que sangra = coagular · aspirador: mantener = aspirar sangre · Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados = medializar/lateralizar · <kbd>Espacio</kbd> lavado-aspiración general<br>
     <b>Quest 2</b>: control izquierdo = endoscopio (gatillo mantenido = viajar al punto que marca la cruz · stick ↑↓ = avanzar/retroceder hacia donde mira · stick ←→ = rotar óptica, X = cambiar óptica, grip = mover maqueta, Y = ver/ocultar maqueta) · control derecho = instrumento (gatillo = cortar/fresar, A = cambiar instrumento, B = estructuras de riesgo).
   </div>
 </div>
@@ -229,25 +231,51 @@ function setCutVolume(o, size, vox) {
   cutU.uCutVol.value = cutTex; cutU.uCutO.value = CV.o; cutU.uCutSize.value = V(CV.nx * vox, CV.ny * vox, CV.nz * vox);
 }
 
-function patchCut(m) {
-  m.userData.cut = true;
+/* Sangre (fuentes que crecen y escurren hacia abajo) y quemaduras de cauterio: uniformes compartidos por todos los tejidos */
+const FX_MAXB = 8, FX_MAXBURN = 64;
+const fxU = {
+  uBlood: { value: Array.from({ length: FX_MAXB }, () => new THREE.Vector4()) }, uBloodN: { value: 0 },
+  uBurn: { value: Array.from({ length: FX_MAXBURN }, () => new THREE.Vector4()) }, uBurnN: { value: 0 }
+};
+function patchSurf(m, cut) {
+  if (cut) m.userData.cut = true;
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, cutU);
+    Object.assign(sh.uniforms, cutU, fxU);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vLP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLP = position;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vLP;\nuniform highp sampler3D uCutVol;\nuniform vec3 uCutO;\nuniform vec3 uCutSize;')
+      .replace('#include <common>', `#include <common>
+        varying vec3 vLP;
+        uniform highp sampler3D uCutVol; uniform vec3 uCutO; uniform vec3 uCutSize;
+        uniform vec4 uBlood[${FX_MAXB}]; uniform int uBloodN; uniform vec4 uBurn[${FX_MAXBURN}]; uniform int uBurnN;`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-        float cv = texture(uCutVol, (vLP - uCutO) / uCutSize).r;
+        ${cut ? `float cv = texture(uCutVol, (vLP - uCutO) / uCutSize).r;
         if (cv > 0.5) discard;
-        float cutEdge = smoothstep(0.04, 0.5, cv);`)
+        float cutEdge = smoothstep(0.04, 0.5, cv);` : 'float cutEdge = 0.0;'}
+        float bl = 0.0;
+        for (int i = 0; i < ${FX_MAXB}; i++) {
+          if (i >= uBloodN) break;
+          vec4 b = uBlood[i]; vec3 d = vLP - b.xyz; d.y *= d.y > 0.0 ? 2.2 : 0.4;
+          bl = max(bl, 1.0 - smoothstep(b.w * 0.55, b.w, length(d)));
+        }
+        float bn = 0.0;
+        for (int i = 0; i < ${FX_MAXBURN}; i++) {
+          if (i >= uBurnN) break;
+          vec4 c = uBurn[i]; bn = max(bn, 1.0 - smoothstep(c.w * 0.45, c.w, length(vLP - c.xyz)));
+        }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.03, 0.03), cutEdge * 0.85);`);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.03, 0.03), cutEdge * 0.85);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.92, 0.86, 0.78), bn * 0.75);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.15, 0.1), bn * bn * bn * 0.7);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.0, 0.004), bl * 0.97);`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, 0.16, bl);`);
   };
-  m.customProgramCacheKey = () => 'cutmat';
+  m.customProgramCacheKey = () => cut ? 'surfC' : 'surf';
   return m;
 }
+const patchCut = m => patchSurf(m, true);
 function addCut(p, r) {
   const { o, vox, nx, ny, nz } = CV, R = r + 1.2;
   const x0 = Math.max(0, Math.floor((p.x - R - o.x) / vox)), x1 = Math.min(nx - 1, Math.ceil((p.x + R - o.x) / vox));
@@ -264,7 +292,7 @@ function addCut(p, r) {
   if (changed) { cutDirty = true; nCuts++; $('#nCuts').textContent = nCuts; }
   return changed;
 }
-function resetCuts() { cutVol.fill(0); cutDirty = true; nCuts = 0; $('#nCuts').textContent = 0; state.comps = []; renderLog(); }
+function resetCuts() { cutVol.fill(0); cutDirty = true; nCuts = 0; $('#nCuts').textContent = 0; state.comps = []; renderLog(); if (typeof resetFx === 'function') resetFx(); }
 function isCut(lp) {
   const { o, vox, nx, ny, nz } = CV;
   const i = Math.floor((lp.x - o.x) / vox), j = Math.floor((lp.y - o.y) / vox), k = Math.floor((lp.z - o.z) / vox);
@@ -278,7 +306,7 @@ function mat(color, { cut = false, rough = 0.38, bump = 1.0, map = true } = {}) 
     color, roughness: rough, metalness: 0, side: THREE.DoubleSide,
     map: map ? mucoTex : null, bumpMap: bumpTex, bumpScale: bump
   });
-  return cut ? patchCut(m) : m;
+  return patchSurf(m, cut);
 }
 const M = {
   muc: mat('#d27069'), mucC: mat('#d27069', { cut: true }), sept: mat('#d97c74'), floor: mat('#cd6c64'),
@@ -288,7 +316,7 @@ const M = {
   artery: mat('#a4121b', { rough: 0.28 }), optic: mat('#efe5c6', { map: false }), carotid: mat('#c57487'),
   sella: mat('#dbae9b'),
   dark: patchCut(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })),
-  darkN: new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })
+  darkN: patchSurf(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide }), false)
 };
 
 /* ============================== INFO ANATÓMICA ============================== */
@@ -570,11 +598,11 @@ const DANGERS = [
     msg: 'Lesión de lámina cribosa / lamela lateral: fístula de LCR.', bad: 2 },
   { id: 'roof', test: (p, r) => p.z < -24 && p.z > -66 && p.x > 4.5 && p.x < 19 && p.y + r * 0.5 > yr(p.z),
     msg: 'Lesión de la base de cráneo (fóvea etmoidal): fístula de LCR.', bad: 2 },
-  { id: 'aea', test: (p, r) => distPoly(p, AEA) < 0.9 + r * 0.6, msg: 'Sección de la arteria etmoidal anterior: sangrado, riesgo de retracción intraorbitaria y hematoma.', bleed: 0.8 },
-  { id: 'pea', test: (p, r) => distPoly(p, PEA) < 0.75 + r * 0.6, msg: 'Lesión de la arteria etmoidal posterior: sangrado.', bleed: 0.6 },
-  { id: 'spa', test: (p, r) => distPoly(p, SPA) < 0.8 + r * 0.6, msg: 'Lesión de la arteria esfenopalatina: sangrado arterial posterior.', bleed: 0.75 },
+  { id: 'aea', test: (p, r) => distPoly(p, AEA) < 0.9 + r * 0.6, msg: 'Sección de la arteria etmoidal anterior: sangrado, riesgo de retracción intraorbitaria y hematoma.', art: AEA, name: 'A. etmoidal anterior', rate: 2.6, max: 16 },
+  { id: 'pea', test: (p, r) => distPoly(p, PEA) < 0.75 + r * 0.6, msg: 'Lesión de la arteria etmoidal posterior: sangrado.', art: PEA, name: 'A. etmoidal posterior', rate: 2.0, max: 14 },
+  { id: 'spa', test: (p, r) => distPoly(p, SPA) < 0.8 + r * 0.6, msg: 'Lesión de la arteria esfenopalatina: sangrado arterial posterior.', art: SPA, name: 'A. esfenopalatina', rate: 3.0, max: 18 },
   { id: 'optic', test: (p, r) => distPoly(p, OPTIC) < 2.2 + r * 0.6, msg: '¡Lesión del nervio óptico! Riesgo de amaurosis.', bad: 3 },
-  { id: 'carotid', test: (p, r) => distPoly(p, CAROTID) < 3.0 + r * 0.6, msg: '¡Lesión de la carótida interna! Hemorragia masiva: complicación catastrófica.', bleed: 1.0, bad: 3 },
+  { id: 'carotid', test: (p, r) => distPoly(p, CAROTID) < 3.0 + r * 0.6, msg: '¡Lesión de la carótida interna! Hemorragia masiva: complicación catastrófica.', art: CAROTID, name: 'Carótida interna', rate: 9, max: 34, bad: 3 },
   { id: 'nld', test: (p, r) => p.x > 15.5 && p.z > -21 - r * 0.5 && p.z < -11 && p.y > 0 && p.y < 30,
     msg: 'Lesión del conducto nasolagrimal: riesgo de epífora. No ampliar la antrostomía hacia anterior.' }
 ];
@@ -582,7 +610,7 @@ const lastDanger = {};
 function checkDanger(lp, r) {
   const now = performance.now();
   if (state.model === 'ct') { checkDangerCT(lp, r); return; }
-  for (const d of DANGERS) if (d.test(lp, r)) reportDanger(d);
+  for (const d of DANGERS) if (d.test(lp, r)) { reportDanger(d); if (d.art) addBleed(d.id, d.name, closestOnPoly(lp, d.art), d.rate, d.max); }
 }
 function reportDanger(d) {
   const now = performance.now();
@@ -592,7 +620,6 @@ function reportDanger(d) {
   renderLog();
   toast('⚠ ' + d.msg, 5000, true);
   $('#flash').style.opacity = 1; setTimeout(() => $('#flash').style.opacity = 0, 250);
-  if (d.bleed) state.bleed = Math.min(1, state.bleed + d.bleed);
   haptic(1.0, 250);
   hudWarn = d.msg; hudWarnT = 5;
 }
@@ -625,7 +652,26 @@ const drill = new THREE.Group(); instr.add(drill);
 const burr = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshStandardMaterial({ color: 0xd9c27a, metalness: 0.6, roughness: 0.45, flatShading: true }));
 drill.add(burr);
 drill.add(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 4.5, 12).rotateX(Math.PI / 2).translate(0, 0, 2.25), steel));
+const shaftSteel = new THREE.MeshStandardMaterial({ color: 0x737a82, metalness: 0.6, roughness: 0.5 });
+const insBlue = new THREE.MeshStandardMaterial({ color: 0x1d3f86, roughness: 0.6 });
+const insYellow = new THREE.MeshStandardMaterial({ color: 0x9c7a1c, roughness: 0.6 });
+const bip = new THREE.Group(); instr.add(bip);
+for (const sx of [-0.55, 0.55]) {
+  const tine = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 4.6, 10).rotateX(Math.PI / 2).translate(0, 0, 2.3), steel);
+  tine.position.x = sx; tine.rotation.y = -sx * 0.06; bip.add(tine);
+}
+const mono = new THREE.Group(); instr.add(mono);
+mono.add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.55, 4.5, 10).rotateX(Math.PI / 2).translate(0, 0, 2.25), steel));
+mono.add(new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), steel));
+const asp = new THREE.Group(); instr.add(asp);
+asp.add(new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 4.5, 16, 1, true).rotateX(Math.PI / 2).translate(0, 0, 2.25), new THREE.MeshStandardMaterial({ color: 0xc9ced6, metalness: 0.55, roughness: 0.3, side: THREE.DoubleSide })));
+const aspHole = new THREE.Mesh(new THREE.CircleGeometry(0.75, 16), new THREE.MeshBasicMaterial({ color: 0x050505 })); aspHole.position.z = 0.4; asp.add(aspHole);
+const freerM = new THREE.Group(); instr.add(freerM);
+freerM.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.28, 5.2).translate(0, 0, 3.0), steel));
+freerM.add(new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.28, 20).translate(0, 0, 0.45), steel));
 instr.traverse(o => o.layers.enable(WORLD_LAYER));
+let using = false, freerGrab = null, lastFx = 0, suctionOn = false;
+const suctionTipL = new THREE.Vector3();
 let jawClose = 0, drilling = false, lastDrill = 0, lastDrillP = new THREE.Vector3(1e9, 0, 0);
 const tipWorld = new THREE.Vector3(); let tipHit = null;
 
@@ -697,6 +743,8 @@ function onTrigger(c, down) {
   }
   if (c.userData.hand !== 'right') return;
   if (state.tool === 'pinza' && down) doBite(tipWorld.clone(), 2.2);
+  if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = down;
+  if (state.tool === 'freer') { if (down) startFreerVR(); else if (freerGrab) endFreer(); }
   if (state.tool === 'drill') drilling = down;
 }
 const S = () => state.S;
@@ -888,7 +936,7 @@ seg('side', v => setSide(+v));
 seg('optic', v => setAngle(+v));
 seg('tool', v => setTool(v));
 function setTool(v) {
-  state.tool = v; drilling = false;
+  state.tool = v; drilling = false; using = false; freerGrab = null;
   document.querySelectorAll('#tool button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   hudKey = '';
 }
@@ -934,7 +982,7 @@ const cv = renderer.domElement;
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   keys[e.code] = true;
-  if (e.code === 'Digit1') setTool('none'); if (e.code === 'Digit2') setTool('pinza'); if (e.code === 'Digit3') setTool('drill');
+  { const TK = { Digit1: 'none', Digit2: 'pinza', Digit3: 'drill', Digit4: 'bipolar', Digit5: 'monopolar', Digit6: 'aspirador', Digit7: 'freer' }; if (TK[e.code]) setTool(TK[e.code]); }
   if (e.code === 'KeyO') { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
   if (e.code === 'KeyL') { $('#chkLabels').checked = !state.labels; $('#chkLabels').onchange({ target: $('#chkLabels') }); }
   if (e.code === 'KeyG') setXray(!state.xray);
@@ -955,6 +1003,7 @@ cv.addEventListener('pointermove', e => {
     lastMX = e.clientX; lastMY = e.clientY;
   }
   const tl = $('#tipLab'); tl.style.left = (e.clientX + 14) + 'px'; tl.style.top = (e.clientY + 12) + 'px';
+  if (freerGrab && !state.vr) moveFreerDesktop(e);
 });
 cv.addEventListener('pointerleave', () => { mouseIn = false; $('#tipLab').style.display = 'none'; });
 let dragLook = false, downX = 0, downY = 0;
@@ -966,12 +1015,15 @@ cv.addEventListener('pointerdown', e => {
   if (e.button === 0) {
     if (state.tool === 'pinza' && tipHit && tipHit.distance < 60) doBite(tipHit.point.clone().addScaledVector(ray.ray.direction, 0.8), 2.2);
     if (state.tool === 'drill') drilling = true;
+    if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = true;
+    if (state.tool === 'freer') startFreerDesktop(e);
   }
 });
 addEventListener('pointerup', e => {
   if (e.button === 2 || e.button === 1) looking = false;
   if (e.button === 0) {
-    drilling = false;
+    drilling = false; using = false;
+    if (freerGrab) endFreer();
     if (dragLook) {
       if (!looking && e.target === cv) { ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); flyToCursor(); }
       dragLook = false; looking = false;
@@ -1010,7 +1062,7 @@ function updateDesktop(dt) {
 /* ============================== VR UPDATE ============================== */
 function btn(c, i) { const g = c.userData.gp; return !!(g && g.buttons[i] && g.buttons[i].pressed); }
 function edge(c, i) { const now = btn(c, i), was = !!c.userData.prev[i]; c.userData.prev[i] = now; return now && !was; }
-const _q = new THREE.Quaternion(), _p = new THREE.Vector3();
+const _q = new THREE.Quaternion(), _p = new THREE.Vector3(), vrFwd = new THREE.Vector3(0, 0, -1);
 function viewDirFrom(q) { return V(0, 0, -1).applyQuaternion(camQuat(q)); }
 let lastBlockHaptic = 0;
 function vrAdvance(dir, step) {   // en VR se desplaza la maqueta: el endoscopio "avanza" dentro de la fosa
@@ -1043,7 +1095,8 @@ function updateVR(dt) {
     } else {
       tipWorld.copy(_p).addScaledVector(fwd, 0.12);
       instr.position.copy(tipWorld); instr.quaternion.copy(_q);
-      if (edge(c, 4)) { const T = ['pinza', 'drill', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % 3]); }
+      if (edge(c, 4)) { const T = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % T.length]); }
+      vrFwd.copy(fwd);
       if (edge(c, 5)) setXray(!state.xray);
     }
   }
@@ -1053,6 +1106,7 @@ function updateVR(dt) {
     if (dist > STOP) vrAdvance(d.normalize(), Math.min(18 * state.S * dt, dist - STOP));
   }
   if (drilling) { const now = performance.now(); if (now - lastDrill > 90) { lastDrill = now; doBite(tipWorld.clone(), 1.6); } }
+  updateFreerVR();
 }
 
 /* ============================== POR CUADRO ============================== */
@@ -1074,7 +1128,7 @@ function updateInstrumentDesktop(dt) {
   if (tipHit && tipHit.distance < 60) tipWorld.copy(tipHit.point).addScaledVector(dir, -0.15);
   else tipWorld.copy(endoCam.position).addScaledVector(dir, 22);
   const f = V(0, 0, -1).applyQuaternion(scope.q), r = V(1, 0, 0).applyQuaternion(scope.q), u = V(0, 1, 0).applyQuaternion(scope.q);
-  const entry = scope.pos.clone().addScaledVector(r, 3.6).addScaledVector(u, -2.8).addScaledVector(f, -14);
+  const entry = scope.pos.clone().addScaledVector(r, 5.5).addScaledVector(u, -4.2).addScaledVector(f, -14);
   instr.position.copy(tipWorld); instr.lookAt(entry);
   if (drilling && tipHit && tipHit.distance < 60) {
     const now = performance.now();
@@ -1086,14 +1140,17 @@ function updateInstrumentDesktop(dt) {
 }
 function updateInstrumentCommon(dt) {
   pinza.visible = state.tool === 'pinza'; drill.visible = state.tool === 'drill';
+  bip.visible = state.tool === 'bipolar'; mono.visible = state.tool === 'monopolar'; asp.visible = state.tool === 'aspirador'; freerM.visible = state.tool === 'freer';
+  shaft.material = state.tool === 'bipolar' ? insBlue : state.tool === 'monopolar' ? insYellow : shaftSteel;
+  if (state.tool === 'bipolar') { const k = using ? 0.35 : 1; bip.children[0].position.x = -0.55 * k - 0.2; bip.children[1].position.x = 0.55 * k + 0.2; }
+  updateToolAction(dt);
   if (state.vr) instr.visible = state.tool !== 'none';
   jawClose = Math.max(0, jawClose - dt);
   upPivot.rotation.x = jawClose > 0 ? 0 : -0.45;
   if (state.tool === 'drill') burr.rotation.z += dt * (drilling ? 60 : 4);
 }
 function updateEffects(dt) {
-  const aspir = keys.Space;
-  state.bleed = Math.max(0, state.bleed - dt * (aspir ? 0.45 : 0.035));
+  updateBleeds(dt);
   $('#bleed').style.opacity = state.bleed * 0.85;
   monMat.uniforms.bleed.value = state.bleed;
   hudWarnT = Math.max(0, hudWarnT - dt);
@@ -1127,7 +1184,8 @@ function identify() {
     }
     const uk = state.vr ? null : keyOfHit(tipHit);
     $('#dUnder').textContent = uk && INFO[uk] ? INFO[uk][0] : '—';
-    if (!state.vr && uk && INFO[uk] && mouseIn) { tl.style.display = 'block'; tl.textContent = INFO[uk][0]; tl.style.color = DANGER_KEYS.has(uk) ? '#ffb0b0' : '#bfffe3'; }
+    if (freerGrab) { /* etiqueta de Freer */ }
+    else if (!state.vr && uk && INFO[uk] && mouseIn) { tl.style.display = 'block'; tl.textContent = INFO[uk][0]; tl.style.color = DANGER_KEYS.has(uk) ? '#ffb0b0' : '#bfffe3'; }
     else tl.style.display = 'none';
   } else { tl.style.display = 'none'; $('#dLam').textContent = '—'; $('#dSkull').textContent = '—'; $('#dUnder').textContent = '—'; }
 }
@@ -1217,7 +1275,7 @@ function drawHUD() {
   const g = hudCanvas.getContext('2d');
   g.clearRect(0, 0, 1024, 220); g.fillStyle = 'rgba(10,12,16,.85)'; g.fillRect(0, 0, 1024, 220);
   g.fillStyle = '#9fffd0'; g.font = 'bold 34px system-ui';
-  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill' }[state.tool];
+  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill', bipolar: 'Bipolar', monopolar: 'Monopolar', aspirador: 'Aspirador', freer: 'Espátula de Freer' }[state.tool];
   g.fillText(`Fosa ${state.side > 0 ? 'DERECHA' : 'IZQUIERDA'} · Óptica ${state.angle}° · ${toolN}`, 24, 50);
   g.fillStyle = '#fff'; g.font = '32px system-ui';
   g.fillText('Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
@@ -1519,7 +1577,7 @@ function checkDangerCT(lp, r) {
   if (fat > 3) reportDanger({ id: 'ctorbit', msg: 'Contacto con grasa orbitaria: atravesaste la lámina papirácea / periórbita. Riesgo de hematoma orbitario y lesión del recto medial.' });
   for (const lm of CT.landmarks) {
     const T = LM_TYPES[lm.type]; if (!T[1]) continue;
-    if (lp.distanceTo(lm.p) < T[1] + r * 0.6) reportDanger({ id: 'lm' + lm.id, msg: T[3], bleed: T[4] });
+    if (lp.distanceTo(lm.p) < T[1] + r * 0.6) { reportDanger({ id: 'lm' + lm.id, msg: T[3] }); if (T[4] > 0) addBleed('lm' + lm.id, T[0], lm.p, 1.5 + T[4] * 2.5, T[4] >= 1 ? 34 : 16); }
   }
 }
 function ctFatDist(lp) {
@@ -1675,6 +1733,191 @@ $('#iso').onchange = e => { CT.iso = +e.target.value; };
 $('#btnRebuild').onclick = async () => { if (!CT.C) { toast('Primero cargá una TC.'); return; } $('#btnRebuild').disabled = true; state.busy = true; CT.iso = +$('#iso').value; try { await rebuildCT(); } finally { state.busy = false; $('#btnRebuild').disabled = false; } };
 renderLmList();
 
+
+/* ============================== SANGRADO, CAUTERIO, ASPIRACIÓN Y FREER ============================== */
+const bleeds = [];      // fuentes de sangrado activas o ya coaguladas (sangre remanente)
+let burnIdx = 0, burnN = 0;
+function closestOnPoly(p, pts) {
+  let best = null, bd = 1e9;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = V(...pts[i]), ab = V(...pts[i + 1]).sub(a), t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1);
+    const q = a.addScaledVector(ab, t), d = q.distanceTo(p); if (d < bd) { bd = d; best = q; }
+  }
+  return best;
+}
+function addBleed(id, name, p, rate, max) {
+  if (bleeds.find(b => b.id === id && b.active)) return;
+  if (bleeds.length >= FX_MAXB) bleeds.shift();
+  bleeds.push({ id, name, p: p.clone(), r: 1.5, rate, max, active: true, coag: 0 });
+}
+function addBurn(p, r) {
+  fxU.uBurn.value[burnIdx].set(p.x, p.y, p.z, r);
+  burnIdx = (burnIdx + 1) % FX_MAXBURN; burnN = Math.min(FX_MAXBURN, burnN + 1); fxU.uBurnN.value = burnN;
+}
+function resetFx() {
+  bleeds.length = 0; burnN = 0; burnIdx = 0; fxU.uBurnN.value = 0; fxU.uBloodN.value = 0; state.bleed = 0;
+  drops.forEach(d => d.life = 0); smokes.forEach(d => d.life = 0);
+  turbDisp.mt = 0; turbDisp.it = 0; applyTurb('mt'); applyTurb('it');
+}
+// partículas: gotas de sangre (chorro pulsátil) y humo de cauterio, en coordenadas de la anatomía
+const fxGroup = new THREE.Group(); anatomy.add(fxGroup);
+const NDROP = 160, NSMOKE = 60;
+const dropMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshStandardMaterial({ color: 0x5a0006, roughness: 0.15 }), NDROP);
+const smokeMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.7, 8, 6), new THREE.MeshBasicMaterial({ color: 0xd9d4cc, transparent: true, opacity: 0.16, depthWrite: false }), NSMOKE);
+dropMesh.frustumCulled = smokeMesh.frustumCulled = false;
+fxGroup.add(dropMesh, smokeMesh);
+const drops = Array.from({ length: NDROP }, () => ({ p: V(0, 0, 0), v: V(0, 0, 0), life: 0 }));
+const smokes = Array.from({ length: NSMOKE }, () => ({ p: V(0, 0, 0), life: 0 }));
+let dropI = 0, smokeI = 0;
+const _m4 = new THREE.Matrix4(), _s3 = new THREE.Vector3();
+function spawnDrop(b, camL) {
+  const d = drops[dropI = (dropI + 1) % NDROP];
+  d.p.copy(b.p);
+  const toCam = camL.clone().sub(b.p).normalize();
+  d.v.set(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).multiplyScalar(9).addScaledVector(toCam, 4 + Math.random() * 6);
+  d.life = 0.7 + Math.random() * 0.5;
+}
+function spawnSmoke(p) {
+  for (let k = 0; k < 2; k++) { const s2 = smokes[smokeI = (smokeI + 1) % NSMOKE]; s2.p.copy(p).add(V(Math.random() - 0.5, Math.random() * 0.5, Math.random() - 0.5)); s2.life = 1.2; }
+}
+function updateBleeds(dt) {
+  const camL = anatomy.worldToLocal(endoCam.position.clone());
+  const beat = Math.pow(Math.max(0, Math.sin(performance.now() / 1000 * Math.PI * 2 * 1.2)), 6);
+  let ov = 0, activeNames = [];
+  for (let i = bleeds.length - 1; i >= 0; i--) {
+    const b = bleeds[i];
+    if (b.active) b.r = Math.min(b.max, b.r + b.rate * dt * (0.5 + 1.2 * beat));
+    if (keys.Space) b.r -= 2.5 * dt;
+    if (suctionOn && suctionTipL.distanceTo(b.p) < b.r + 4) b.r -= 11 * dt;
+    b.r = Math.max(b.active ? 0.8 : 0, b.r);
+    if (!b.active && b.r < 0.3) { bleeds.splice(i, 1); continue; }
+    const dc = camL.distanceTo(b.p);
+    ov += THREE.MathUtils.clamp((b.r + 6 - dc) / (b.r + 6), 0, 1) * (b.r / b.max) * (b.active ? 1 : 0.5);
+    if (b.active) { ov += 0.15 * b.r / b.max; activeNames.push(b.name); if (Math.random() < (0.4 + beat * 3) * dt * 20) spawnDrop(b, camL); }
+  }
+  bleeds.forEach((b, i) => fxU.uBlood.value[i].set(b.p.x, b.p.y, b.p.z, b.r));
+  fxU.uBloodN.value = bleeds.length;
+  state.bleed += (THREE.MathUtils.clamp(ov, 0, 0.9) - state.bleed) * Math.min(1, dt * 3);
+  // partículas
+  let n = 0;
+  for (const d of drops) {
+    if (d.life <= 0) continue;
+    d.life -= dt; d.v.y -= 45 * dt; d.p.addScaledVector(d.v, dt);
+    if (d.p.distanceTo(camL) < 3) { d.life = 0; continue; }
+    _m4.makeScale(1, 1, 1).setPosition(d.p); dropMesh.setMatrixAt(n++, _m4);
+  }
+  dropMesh.count = n; dropMesh.instanceMatrix.needsUpdate = true;
+  n = 0;
+  for (const s2 of smokes) {
+    if (s2.life <= 0) continue;
+    s2.life -= dt; s2.p.y += 7 * dt;
+    const k = 1 + (1.2 - s2.life) * 2.5; _m4.makeScale(k, k, k).setPosition(s2.p); smokeMesh.setMatrixAt(n++, _m4);
+  }
+  smokeMesh.count = n; smokeMesh.instanceMatrix.needsUpdate = true;
+  const bi = $('#bleedInfo');
+  if (activeNames.length) { bi.style.display = 'block'; bi.textContent = '🩸 Sangrado activo: ' + [...new Set(activeNames)].join(', ') + ' — coagulá con bipolar y aspirá'; }
+  else bi.style.display = 'none';
+  if (activeNames.length && state.vr && beat > 0.9) haptic(0.15, 20);
+}
+function toolContactLocal() {   // punto de contacto de la punta con el tejido (coordenadas de la anatomía)
+  if (state.vr) {
+    const from = tipWorld.clone().addScaledVector(vrFwd, -2 * state.S);
+    const h = pick(from, vrFwd, 4.5 * state.S);
+    if (h) return anatomy.worldToLocal(h.point.clone());
+    return state.tool === 'aspirador' ? anatomy.worldToLocal(tipWorld.clone()) : null;
+  }
+  if (tipHit && tipHit.distance < 60) return anatomy.worldToLocal(tipHit.point.clone());
+  return null;
+}
+function updateToolAction(dt) {
+  suctionOn = false;
+  if (!using) return;
+  const lp = toolContactLocal(); if (!lp) return;
+  if (state.tool === 'aspirador') { suctionOn = true; suctionTipL.copy(lp); return; }
+  if (state.tool === 'bipolar' || state.tool === 'monopolar') {
+    const isMono = state.tool === 'monopolar', now = performance.now();
+    if (now - lastFx > 110) { lastFx = now; addBurn(lp, isMono ? 1.9 : 1.0); spawnSmoke(lp); thermalDanger(lp, isMono); haptic(0.12, 15); }
+    for (const b of bleeds) if (b.active && lp.distanceTo(b.p) < (isMono ? 4.5 : 3.6)) {
+      b.coag += dt;
+      if (b.coag > (isMono ? 0.35 : 0.7)) { b.active = false; toast('✔ Hemostasia: ' + b.name + ' coagulada. Aspirá la sangre que quedó.', 4000); haptic(0.4, 80); }
+    }
+  }
+}
+function thermalDanger(lp, isMono) {
+  if (state.model === 'ct') {
+    if (isMono && ctFatDist(lp) < 3) reportDanger({ id: 'th_orb', msg: 'Monopolar junto a la órbita: riesgo de lesión térmica orbitaria. Preferí el bipolar.' });
+    for (const lm of CT.landmarks) {
+      const lim = isMono ? 4.5 : 2.2;
+      if (['skull', 'optic', 'carotid'].includes(lm.type) && lp.distanceTo(lm.p) < lim)
+        reportDanger({ id: 'th_' + lm.id, msg: (isMono ? 'Monopolar' : 'Bipolar') + ' junto a ' + LM_TYPES[lm.type][0].toLowerCase() + ': riesgo de lesión térmica.' });
+    }
+    return;
+  }
+  if (isMono && lp.x > 15.5 && lp.y > 24 && lp.z < -18 && lp.z > -66)
+    reportDanger({ id: 'th_lam', msg: 'Monopolar junto a la lámina papirácea: riesgo de lesión térmica orbitaria. Preferí el bipolar.' });
+  if (isMono && lp.z < -24 && lp.z > -66 && yr(lp.z) - lp.y < 3)
+    reportDanger({ id: 'th_skull', msg: 'Monopolar junto a la base de cráneo: riesgo de lesión térmica y fístula de LCR. Usá bipolar.' });
+  if (distPoly(lp, OPTIC) < (isMono ? 5 : 2.6)) reportDanger({ id: 'th_optic', msg: '¡Calor junto al nervio óptico! Riesgo de lesión térmica y amaurosis.' });
+  if (distPoly(lp, CAROTID) < (isMono ? 5 : 2.6)) reportDanger({ id: 'th_car', msg: '¡Calor junto a la carótida interna! Riesgo de lesión vascular grave.' });
+}
+
+/* ---------- espátula de Freer: medializar / lateralizar cornetes ---------- */
+const TURB = { mt: [], it: [], axila: [] };
+for (const m of meshes) { const k = m.userData.key; if (TURB[k]) { TURB[k].push(m); m.userData.base = m.geometry.attributes.position.array.slice(); } }
+const turbDisp = { mt: 0, it: 0 };
+const TURB_LIM = { mt: [-3.2, 3.0], it: [-2.0, 4.0] };
+function weightTurb(k, x, y, z) {
+  if (k === 'it') return THREE.MathUtils.clamp((16.5 - x) / 9, 0, 1);
+  return THREE.MathUtils.clamp((33.5 - y) / 14, 0, 1) * THREE.MathUtils.clamp((z + 63) / 14, 0, 1);
+}
+function applyTurb(k) {
+  for (const kk of (k === 'mt' ? ['mt', 'axila'] : ['it'])) for (const m of TURB[kk]) {
+    const b = m.userData.base, pa = m.geometry.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      const x = b[i * 3], y = b[i * 3 + 1], z = b[i * 3 + 2];
+      let nx = x + turbDisp[k] * weightTurb(k, x, y, z);
+      nx = k === 'it' ? Math.min(nx, 16.8) : Math.max(nx, 0.6);
+      pa.array[i * 3] = nx;
+    }
+    pa.needsUpdate = true; m.geometry.computeVertexNormals(); m.geometry.computeBoundingSphere();
+  }
+}
+function turbKeyOf(key) { return ['mt', 'mtatt', 'axila', 'st'].includes(key) ? 'mt' : key === 'it' ? 'it' : null; }
+const TURB_NAME = { mt: 'Cornete medio', it: 'Cornete inferior' };
+function freerLabel(k) {
+  const v = turbDisp[k], dir = v < -0.1 ? 'medializado' : v > 0.1 ? 'lateralizado' : 'en posición';
+  return `${TURB_NAME[k]} ${dir}${Math.abs(v) > 0.1 ? ' ' + Math.abs(v).toFixed(1) + ' mm' : ''}`;
+}
+function startFreerDesktop(e) {
+  if (state.model === 'ct') { toast('La espátula de Freer mueve cornetes sólo en el modelo genérico.'); return; }
+  const k = tipHit ? turbKeyOf(keyOfHit(tipHit)) : null;
+  if (!k) { toast('Apoyá la espátula sobre el cornete medio o el inferior y arrastrá a los lados.'); return; }
+  freerGrab = { k, x0: e.clientX, base: turbDisp[k] };
+}
+function moveFreerDesktop(e) {
+  const g = freerGrab, camR = V(1, 0, 0).applyQuaternion(endoCam.quaternion);
+  const sgn = camR.x * Math.sign(anatomy.scale.x);
+  turbDisp[g.k] = THREE.MathUtils.clamp(g.base + (e.clientX - g.x0) * 0.03 * sgn, ...TURB_LIM[g.k]);
+  applyTurb(g.k);
+  const tl = $('#tipLab'); tl.style.display = 'block'; tl.textContent = freerLabel(g.k);
+}
+function startFreerVR() {
+  if (state.model === 'ct') return;
+  const lp = anatomy.worldToLocal(tipWorld.clone());
+  const em = (c, r) => Math.hypot((lp.x - c[0]) / r[0], (lp.y - c[1]) / r[1], (lp.z - c[2]) / r[2]);
+  const dMT = em([6 + turbDisp.mt * 0.6, 26, -42], [2, 8, 18]), dIT = em([12 + turbDisp.it * 0.6, 10, -32], [5, 5.5, 26]);
+  const k = dMT < 1.6 && dMT <= dIT ? 'mt' : dIT < 1.4 ? 'it' : null;
+  if (!k) { haptic(0.1, 20); return; }
+  freerGrab = { k, lx0: lp.x, base: turbDisp[k], vr: true }; haptic(0.3, 40);
+}
+function updateFreerVR() {
+  if (!freerGrab || !freerGrab.vr) return;
+  const lp = anatomy.worldToLocal(tipWorld.clone());
+  turbDisp[freerGrab.k] = THREE.MathUtils.clamp(freerGrab.base + (lp.x - freerGrab.lx0), ...TURB_LIM[freerGrab.k]);
+  applyTurb(freerGrab.k); hudWarn = freerLabel(freerGrab.k); hudWarnT = 1.5;
+}
+function endFreer() { const k = freerGrab.k; freerGrab = null; toast(freerLabel(k) + '.'); }
+
 /* ============================== MÁSCARA Y RESIZE ============================== */
 function onResize() {
   renderer.setSize(innerWidth, innerHeight);
@@ -1715,7 +1958,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

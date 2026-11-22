@@ -22,6 +22,13 @@
   .lab.d{border-color:#ff6b6b;color:#ffd0d0}
   .lab:after{content:"";position:absolute;left:50%;top:100%;width:1px;height:8px;background:rgba(255,255,255,.5)}
   #bleedInfo{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:4px 12px;border-radius:14px;background:rgba(110,0,0,.85);border:1px solid #ff6b6b;color:#ffe0e0;font-size:12.5px;display:none;pointer-events:none;z-index:3}
+  #gcard{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(560px,52vw);background:rgba(10,20,16,.9);border:1px solid rgba(79,209,165,.55);border-radius:12px;padding:10px 14px;display:none;z-index:4}
+  #gProc{font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.06em}
+  #gStep{font-size:15px;font-weight:650;margin:2px 0 4px}
+  #gText{font-size:12.5px;color:#d5dbe1}
+  #gcard.ok{border-color:#8ce99a;background:rgba(12,40,22,.92)}
+  .gbar{height:5px;border-radius:3px;background:rgba(255,255,255,.12);margin:8px 0 2px;overflow:hidden}#gFill{height:100%;background:var(--acc);width:0}
+  #gcard .row{margin-top:8px}#gcard .row button{flex:0 0 auto}
   #tipLab{position:fixed;pointer-events:none;font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#bfffe3;display:none;white-space:nowrap}
   .panel{position:fixed;top:10px;bottom:10px;width:290px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow:auto;backdrop-filter:blur(6px)}
   #panel{left:10px}#info{right:10px;width:260px}
@@ -49,7 +56,7 @@
   #dist{margin-top:8px;font-size:12px;display:grid;grid-template-columns:1fr auto;gap:2px 8px}
   #dist span:nth-child(even){font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
   #log{margin-top:10px;font-size:12px}#log ul{margin:4px 0 0;padding-left:16px;color:#ffb3b3}
-  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(620px,90vw);padding:10px 16px;border-radius:10px;background:rgba(20,20,24,.92);border:1px solid var(--line);opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
+  #toast{position:fixed;left:50%;top:50px;transform:translateX(-50%);max-width:min(620px,90vw);padding:10px 16px;border-radius:10px;background:rgba(20,20,24,.92);border:1px solid var(--line);opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
   #toast.w{border-color:var(--warn);color:#ffd6d6;background:rgba(60,8,8,.92)}
   #toggleP,#toggleI{position:fixed;top:12px;z-index:5;padding:4px 8px;display:none}
   #toggleP{left:12px}#toggleI{right:12px}
@@ -74,6 +81,8 @@
 <div id="notchWrap"><div id="notch"></div></div>
 <div id="cross"></div>
 <div id="bleedInfo"></div>
+<div id="gcard"><div id="gProc"></div><div id="gStep"></div><div id="gText"></div><div class="gbar"><div id="gFill"></div></div>
+  <div class="row"><button id="gView">Ir a la vista</button><button id="gSkip">Saltar paso</button><button id="gExit">Salir</button></div></div>
 <div id="labels"></div>
 <div id="tipLab"></div>
 <button id="toggleP">☰ Controles</button><button id="toggleI">ℹ Info</button>
@@ -81,6 +90,9 @@
 <div id="panel" class="panel">
   <h1>Simulador CENS</h1>
   <div class="sub">Cirugía endoscópica nasosinusal — anatomía y márgenes de seguridad</div>
+  <div class="grp"><label>Modo de práctica</label>
+    <div class="seg" id="pmode"><button data-v="free" class="on">Libre</button><button data-v="guided">Cirugía guiada</button></div>
+    <div id="gsel" style="display:none;margin-top:6px"><select id="procSel" style="width:100%"></select><div class="row"><button id="btnStart">Comenzar procedimiento</button></div></div></div>
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
@@ -97,7 +109,12 @@
   <div class="grp"><label>Óptica</label>
     <div class="seg" id="optic"><button data-v="0" class="on">0°</button><button data-v="30">30°</button><button data-v="45">45°</button><button data-v="70">70°</button></div></div>
   <div class="grp"><label>Instrumento</label>
-    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button></div></div>
+    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button></div>
+    <div class="seg" id="monoMode" style="display:none;margin-top:6px"><button data-v="coag" class="on">Monopolar: coagular</button><button data-v="cut">Monopolar: cortar</button></div></div>
+  <div class="grp" id="flapGrp"><label>Septum y colgajos</label>
+    <div class="seg"><button id="btnGHadad">Guía Hadad</button><button id="btnGKillian">Guía Killian</button><button id="btnPerf">Crear perforación</button></div>
+    <div class="seg" style="margin-top:4px"><button id="btnRotSkull">Rotar colgajo a base de cráneo</button><button id="btnRotPerf">Rotar a la perforación</button></div>
+    <div class="mut">Monopolar en <b>cortar</b> (tecla <kbd>M</kbd>): dibujá las incisiones manteniendo el clic. <b>Freer</b> apoyada adentro del área delimitada: eleva el colgajo y deja ver el cartílago.</div></div>
   <div class="grp checks">
     <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
     <label><input type="checkbox" id="chkXray"> Estructuras de riesgo (transparencia)</label>
@@ -165,7 +182,7 @@ scene.add(anatomy);
 
 const state = {
   side: 1, S: 1, angle: 0, roll: 0, tool: 'pinza', labels: true, xray: false, collide: true,
-  bleed: 0, vr: false, comps: [], bites: 0, anim: null, maqueta: true, viewMove: true, model: 'generic', fly: null, vrFly: null, markerT: 0
+  bleed: 0, monoMode: 'coag', vr: false, comps: [], bites: 0, anim: null, maqueta: true, viewMove: true, model: 'generic', fly: null, vrFly: null, markerT: 0
 };
 const scope = { pos: V(4, 13, 3), q: new THREE.Quaternion() };
 
@@ -212,8 +229,8 @@ const bumpTex = canvasTex((g, s) => {
 /* ============================== CORTES (volumen 3D de tejido resecado) ==============================
    Cada mordida de pinza / pasada de drill "pinta" una esfera en un volumen de 0,5 mm.
    El shader descarta los fragmentos de tejido resecable que caen dentro del volumen marcado. */
-const CV = { o: V(-42, -1, -97), vox: 0.5, nx: 168, ny: 148, nz: 212 };
-const GEN_CV = { o: CV.o.clone(), size: V(84, 74, 106), vox: 0.5 };
+const CV = { o: V(-48, -1, -110), vox: 0.5, nx: 192, ny: 148, nz: 238 };
+const GEN_CV = { o: CV.o.clone(), size: V(96, 74, 119), vox: 0.5 };
 let cutVol = new Uint8Array(CV.nx * CV.ny * CV.nz);
 let cutTex = new THREE.Data3DTexture(cutVol, CV.nx, CV.ny, CV.nz);
 cutTex.format = THREE.RedFormat; cutTex.type = THREE.UnsignedByteType;
@@ -309,12 +326,15 @@ function mat(color, { cut = false, rough = 0.38, bump = 1.0, map = true } = {}) 
   return patchSurf(m, cut);
 }
 const M = {
-  muc: mat('#d27069'), mucC: mat('#d27069', { cut: true }), sept: mat('#d97c74'), floor: mat('#cd6c64'),
+  muc: mat('#d27069'), mucC: mat('#d27069', { cut: true }), sept: mat('#d97c74'), floor: mat('#cd6c64', { cut: true }),
+  cart: mat('#dfe5ea', { cut: true, map: false, rough: 0.5 }), septbone: mat('#e6d2ae', { cut: true, map: false }), flap: mat('#d6786f'),
   turb: mat('#c85a56'), turbC: mat('#c85a56', { cut: true }), cell: mat('#dc8c7e', { cut: true }), bulla: mat('#d47a70', { cut: true }),
   unc: mat('#cf6a63', { cut: true }), bone: mat('#e4bea6', { cut: true }), lamina: mat('#e9cbb0', { cut: true }),
   sinus: mat('#e2a496'), sinusC: mat('#e2a496', { cut: true }), septC: mat('#d97c74', { cut: true }), fat: mat('#f0cc4f', { rough: 0.45, map: false }), dura: mat('#a3a8c8', { map: false }),
   artery: mat('#a4121b', { rough: 0.28 }), optic: mat('#efe5c6', { map: false }), carotid: mat('#c57487'),
-  sella: mat('#dbae9b'),
+  sella: mat('#dbae9b'), sellaC: mat('#e0c0a8', { cut: true }), duraC: mat('#a3a8c8', { cut: true, map: false }),
+  gland: mat('#e7a96f', { rough: 0.45 }), nerve: mat('#f2e9c4', { map: false, rough: 0.5 }), cs: mat('#4b2b5e', { rough: 0.3 }),
+  fatC: mat('#efc94e', { cut: true, map: false, rough: 0.45 }), muscle: mat('#a9463d'),
   dark: patchCut(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })),
   darkN: patchSurf(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide }), false)
 };
@@ -322,6 +342,9 @@ const M = {
 /* ============================== INFO ANATÓMICA ============================== */
 const INFO = {
   septum: ['Tabique nasal (septum)', 'Límite medial de la fosa. Se puede fresar: septectomía superior (Draf III) o posterior (esfenoidotomía bilateral). Arriba, el contacto con la lámina cribosa es zona de riesgo.'],
+  septcart: ['Cartílago cuadrangular', 'Se expone al elevar el colgajo mucopericóndrico. En la septoplastia se reseca la parte desviada conservando una L de ~1 cm dorsal y caudal.'],
+  septbone: ['Lámina perpendicular del etmoides / vómer', 'Porción ósea posterior del septum, debajo del colgajo mucoperióstico.'],
+  flap: ['Colgajo mucopericóndrico', 'Colgajo elevado. Rotalo con los botones de "Septum y colgajos".'],
   beak: ['Pico frontal / piso del receso frontal', 'Hueso que se fresa para ampliar el ostium frontal: hacia lateral en el Draf IIa, hasta el septum en el IIb y bilateral en el III. Límite anterior: tabla externa y piel.'],
   frontfloor: ['Piso del seno frontal', 'Se reseca en el Draf II: IIa entre lámina papirácea y cornete medio; IIb entre lámina papirácea y septum.'],
   frontsept: ['Tabique intersinusal frontal', 'Se reseca en el Draf III para unir ambos senos frontales en una cavidad común.'],
@@ -359,9 +382,45 @@ const INFO = {
   sphost: ['Ostium natural del esfenoides', 'En el receso esfenoetmoidal, medial al cornete superior. Punto de entrada seguro para la esfenoidotomía.'],
   sphsin: ['Seno esfenoidal (interior)', 'Paredes con relaciones críticas: nervio óptico, carótida interna, silla turca, clivus y planum.'],
   optic: ['Nervio óptico (prominencia)', 'Pared superolateral del esfenoides; puede estar dehiscente. ¡No fresar ni coagular aquí!'],
-  carotid: ['Carótida interna (prominencia)', 'Pared lateral del esfenoides; puede estar dehiscente. El tabique intersinusal puede insertarse sobre ella: cortarlo, nunca arrancarlo.'],
+  carotid: ['Carótida interna', 'Segmentos: petroso/lacerum, paraclival, paraselar (cavernoso), paraclinoideo y supraclinoideo. Su prominencia en el esfenoides puede estar dehiscente. El tabique intersinusal puede insertarse sobre ella: cortarlo, nunca arrancarlo.'],
   ocr: ['Receso opticocarotídeo lateral', 'Entre el nervio óptico (arriba) y la carótida (abajo). Referencia clave dentro del esfenoides.'],
-  sella: ['Silla turca', 'Pared posterosuperior (hipófisis). Debajo: clivus; delante y arriba: planum esfenoidal.'],
+  sella: ['Piso selar (silla turca)', 'Protuberancia selar en el centro de la pared posterior. Arriba: planum y tubérculo; abajo: clivus; a los lados: carótidas y receso opticocarotídeo. Se fresa de medial a lateral, sin pasar los reparos carotídeos.'],
+  selladura: ['Duramadre selar', 'Se abre en cruz o en "C" invertida. Lateralmente se continúa con la pared medial del seno cavernoso; arriba, el seno intercavernoso.'],
+  pituitary: ['Hipófisis', 'Glándula en la silla turca. En los adenomas, la glándula normal suele quedar desplazada (a menudo hacia arriba y atrás).'],
+  stalk: ['Tallo hipofisario', 'Une la hipófisis con el hipotálamo, por encima del diafragma selar. Su lesión: diabetes insípida.'],
+  clivdura: ['Duramadre del clivus', 'Detrás: cisterna prepontina, arteria basilar y tronco cerebral. Abordaje transclival.'],
+  basilar: ['Arteria basilar', 'Detrás de la duramadre del clivus, en la cisterna prepontina.'],
+  cs: ['Seno cavernoso', 'Espacio venoso a cada lado de la silla. Adentro, la carótida (segmento paraselar) y el VI par libre; en su pared lateral, III, IV, V1 y V2. Sangra en sábana: hemostáticos y compresión.'],
+  csmed: ['Pared medial del seno cavernoso', 'Lámina dural entre la hipófisis y el seno cavernoso; detrás está la carótida paraselar.'],
+  ica_pc: ['Carótida paraclival', 'Segmento vertical a los lados del clivus, por debajo de la silla. Continúa hacia arriba como paraselar (cavernosa).'],
+  ica_ps: ['Carótida paraselar (cavernosa)', 'Dentro del seno cavernoso, a los lados de la silla: es el reparo lateral de la apertura selar.'],
+  ica_pcl: ['Carótida paraclinoidea', 'A la altura del receso opticocarotídeo, debajo del nervio óptico; luego se hace supraclinoidea (intradural).'],
+  n3: ['III par (oculomotor)', 'El más superior de la pared lateral del seno cavernoso; entra a la órbita por la fisura orbitaria superior.'],
+  n4: ['IV par (troclear)', 'Debajo del III en la pared lateral del seno cavernoso.'],
+  v1: ['V1 (nervio oftálmico)', 'Pared lateral del seno cavernoso, debajo del IV; va a la fisura orbitaria superior.'],
+  n6: ['VI par (abducens)', 'El único que corre libre dentro del seno cavernoso, lateral a la carótida: el más vulnerable.'],
+  v2: ['V2 (nervio maxilar)', 'Parte inferior de la pared lateral del seno cavernoso; sale por el agujero redondo a la fosa pterigopalatina y sigue como infraorbitario.'],
+  vid: ['Nervio vidiano', 'Corre en el conducto vidiano, en el piso del esfenoides, desde el agujero rasgado hasta la fosa pterigopalatina. Reparo de la carótida petrosa: seguirlo hacia atrás lleva a la rodilla anterior de la carótida.'],
+  frotundum: ['Agujero redondo', 'En la pared posterior de la fosa pterigopalatina, superolateral al conducto vidiano: por él sale V2.'],
+  vidcanal: ['Conducto vidiano (orificio anterior)', 'Inferomedial al agujero redondo en la pared posterior de la fosa pterigopalatina.'],
+  ppg: ['Ganglio pterigopalatino', 'Recibe el nervio vidiano; da ramas nasales, palatinas y orbitarias.'],
+  ppf: ['Fosa pterigopalatina', 'Detrás de la pared posterior del seno maxilar. Plano anterior: arteria maxilar interna y sus ramas en grasa; plano posterior: V2, ganglio y vidiano.'],
+  ima: ['Arteria maxilar interna', 'Llega desde la fosa infratemporal por la fisura pterigomaxilar y se ramifica en la fosa pterigopalatina; termina como esfenopalatina.'],
+  dpa: ['Arteria palatina descendente', 'Baja por el conducto palatino mayor hacia el paladar.'],
+  ioa: ['Arteria infraorbitaria', 'Acompaña al nervio infraorbitario hacia el piso de la órbita.'],
+  psaa: ['Arteria alveolar posterosuperior', 'Rama de la maxilar interna hacia la tuberosidad del maxilar.'],
+  itf: ['Fosa infratemporal', 'Lateral a la fisura pterigomaxilar: músculos pterigoideos, maxilar interna, V3 y plexo venoso pterigoideo.'],
+  lpt: ['Músculo pterigoideo lateral', 'Ocupa la fosa infratemporal; la maxilar interna pasa sobre él o a través de él.'],
+  mpt: ['Músculo pterigoideo medial', 'En la cara medial de la lámina lateral de la apófisis pterigoides.'],
+  v3: ['V3 (nervio mandibular)', 'Sale por el agujero oval hacia la fosa infratemporal (nervios lingual y alveolar inferior).'],
+  fovale: ['Agujero oval', 'En el techo de la fosa infratemporal (ala mayor del esfenoides), posterolateral a la apófisis pterigoides: por él sale V3.'],
+  ptplate: ['Apófisis pterigoides (lámina lateral)', 'Límite posterior de la fosa pterigopalatina y medial de la infratemporal.'],
+  pterygbase: ['Base de la apófisis pterigoides', 'Pared posterior de la fosa pterigopalatina, con el agujero redondo y el conducto vidiano.'],
+  maxpost: ['Pared posterior del seno maxilar', 'Se fresa para el abordaje transmaxilar a la fosa pterigopalatina.'],
+  sphlat: ['Pared lateral del esfenoides', 'Con las prominencias del nervio óptico y de la carótida; detrás, el seno cavernoso.'],
+  sphpost: ['Pared posterior del esfenoides', 'Silla turca en el centro, clivus abajo y carótida paraclival a los lados.'],
+  sphfloor: ['Piso del esfenoides', 'Debajo corre el conducto vidiano.'],
+  latpost: ['Pared lateral nasal posterior', 'Lámina perpendicular del palatino con el agujero esfenopalatino; se reseca en el abordaje transpterigoideo.'],
   septsph: ['Tabique intersinusal', 'Suele ser asimétrico y desviado hacia la carótida. Cortar con instrumento cortante, no torsionar.'],
   ethmuc: ['Mucosa del laberinto etmoidal', 'Cubre las celdas etmoidales por medial (receso suprabullar / meato superior). Al abrirla aparecen las celdas.'],
   ct_soft: ['Mucosa / partes blandas (TC)', 'Superficie reconstruida a partir de la TC del paciente: por detrás hay partes blandas (mucosa engrosada, cornete, pólipo o contenido del seno).'],
@@ -371,7 +430,7 @@ const INFO = {
   torus: ['Torus tubario', 'Rodete del orificio faríngeo de la trompa de Eustaquio.'],
   nld: ['Válvula de Hasner (conducto nasolagrimal)', 'El conducto corre en la pared lateral por delante del ostium maxilar: no extender la antrostomía hacia anterior.']
 };
-const DANGER_KEYS = new Set(['psa', 'ct_fat', 'lamina', 'orbit', 'roof', 'dura', 'aea', 'pea', 'spa', 'optic', 'carotid', 'nld', 'cribr']);
+const DANGER_KEYS = new Set(['cs', 'n3', 'n4', 'v1', 'n6', 'v2', 'v3', 'vid', 'ima', 'dpa', 'ioa', 'psaa', 'basilar', 'ica_pc', 'ica_ps', 'ica_pcl', 'pituitary', 'stalk', 'psa', 'ct_fat', 'lamina', 'orbit', 'roof', 'dura', 'aea', 'pea', 'spa', 'optic', 'carotid', 'nld', 'cribr']);
 
 /* ============================== GEOMETRÍA ============================== */
 const meshes = [], overlays = [], map2d = [];
@@ -480,7 +539,21 @@ const AEA = [[18.8, 44.6, -31.5], [12, 44.85, -30], [5, 45.1, -28.5]];
 const PEA = [[18.8, 42.0, -56.5], [12, 42.2, -55.5], [6, 42.4, -54.5]];
 const SPA = [[17.6, 22, -61], [16, 20.5, -62], [14.5, 19, -63]];
 const OPTIC = [[18.3, 38.8, -67.5], [16.2, 39.3, -77], [12.5, 39.6, -87]];
-const CAROTID = [[18.6, 20, -86], [18.1, 26, -83], [17.9, 31, -78], [18.4, 34.5, -70]];
+const CAROTID = [[15, 6, -98], [13, 14, -93], [13, 24, -91.5], [14.5, 28.5, -89.4], [17.3, 30.5, -84], [18.0, 32, -77], [18.4, 34.5, -71], [17.6, 38.2, -71.5], [15, 42.5, -74]];
+// Seno cavernoso: pares craneales (pared lateral III, IV, V1, V2; VI libre junto a la carótida)
+const N3 = [[18.5, 39, -100], [20.8, 38.5, -88], [20.5, 38.8, -76.5]];
+const N4 = [[19, 37.4, -100], [21, 37, -88], [20.8, 37.4, -76.5]];
+const N5_1 = [[19.5, 33.5, -100], [21, 33.5, -88], [21, 35.5, -76.5]];
+const N6 = [[15.5, 30, -100], [16.6, 30.6, -93], [19.3, 32.5, -82], [20.3, 35, -76.5]];
+const V2N = [[20, 27, -100], [21.2, 25.5, -88], [21.6, 24.5, -76], [21.9, 24.1, -70], [22, 24, -64], [23, 26, -60], [24.5, 28, -54.6]];
+const V3N = [[30, 40, -84], [31, 30, -81], [32, 18, -77], [33, 6, -74]];
+const VIDN = [[12, 13.5, -95], [13.5, 16.5, -85], [15.5, 17, -76], [17.5, 17.6, -68], [18.6, 18, -65.5], [19.5, 19.6, -63]];
+// Fosa pterigopalatina / infratemporal: arteria maxilar interna y ramas
+const IMA = [[44, 16, -74], [36, 19, -66], [29, 21, -61], [24, 21.5, -60], [19.5, 22, -60.5], [17.6, 22, -61]];
+const DPA = [[21, 21.6, -60.2], [20.5, 14, -59], [20, 5, -58]];
+const IOA = [[24, 21.5, -60], [24.5, 26, -57], [25, 28.4, -54.6]];
+const PSAA = [[29, 21, -61], [30, 15, -56.5], [31, 10, -55]];
+const BASILAR = [[0, 4, -99], [0, 20, -98], [0, 40, -97]];
 const PSA = [[15.5, 21, -65.7], [8, 21.6, -65.8], [1.6, 22.2, -65.6], [1.4, 23.5, -58]];
 const NLD = [[17.6, 3.5, -16], [18.2, 14, -15.5], [18.6, 28, -14.5]];
 
@@ -488,6 +561,9 @@ function buildAnatomy() {
   // Septum y piso
   add(quad([0.8, 0, 6], [0.8, 0, -66], [0.8, 48, 6], 0.4), M.septC, 'septum');
   add(quad([0.8, 0, -66], [0.8, 0, -71], [0.8, 14, -66]), M.septC, 'septum');
+  add(quad([0, 0, 6], [0, 0, -30], [0, 48, 6], 0.05), M.cart, 'septcart', { noMirror: true });
+  add(quad([0, 0, -30], [0, 0, -66], [0, 48, -30], 0.05), M.septbone, 'septbone', { noMirror: true });
+  add(quad([0, 0, -66], [0, 0, -71], [0, 14, -66], 0.05), M.septbone, 'septbone', { noMirror: true });
   add(quad([0, 0, 6], [17, 0, 6], [0, 0, -70]), M.floor, 'floor');
   add(quad([0, 0, 6], [17, 0, 6], [0, 22, 6]), M.muc, 'vest');
   add(quad([0, 22, 6], [17, 22, 6], [0, 44, -14]), M.muc, 'roofant');
@@ -497,7 +573,8 @@ function buildAnatomy() {
   add(quad([17, 0, 6], [17, 0, -80], [17, 11, 6]), M.muc, 'latwall');
   add(quad([17, 11, 6], [17, 11, -22], [17, 25, 6]), M.muc, 'latwall');
   add(quad([17, 11, -22], [17, 11, -52], [17, 25, -22], 0.25), M.mucC, 'font');
-  add(quad([17, 11, -52], [17, 11, -80], [17, 25, -52]), M.muc, 'latwall');
+  add(quad([17, 11, -52], [17, 11, -66], [17, 25, -52]), M.mucC, 'latpost');
+  add(quad([17, 11, -66], [17, 11, -80], [17, 19, -66]), M.muc, 'latwall');
   add(quad([17, 25, 6], [17, 25, -18], [17, 46, 6]), M.muc, 'latwall');
   add(quad([17, 25, -18], [17, 25, -66], [18.5, 25, -18], 0.1), M.muc, 'latwall');
   add(quad([17, 25, -18], [18.5, 25, -18], [17, 46, -18], 0.1), M.muc, 'latwall');
@@ -525,7 +602,8 @@ function buildAnatomy() {
   add(disc([16.85, 15, -44], 1.2, 1.0, 'x-'), M.dark, 'accost');
   add(disc([16.85, 3.4, -16], 1.6, 1.0, 'x-'), M.darkN, 'nld');
   // Seno maxilar
-  openBox([17.2, 40], [3, 26], [-54, -12], 'x0', M.sinus, 'maxsin');
+  openBox([17.2, 40], [3, 26], [-54, -12], ['x0', 'z0'], M.sinus, 'maxsin');
+  add(quad([17.2, 3, -54], [40, 3, -54], [17.2, 26, -54], 0.3), M.bone, 'maxpost');
   add(tube([[23, 25.3, -12], [25, 25.2, -33], [27, 25.3, -54]], 1.1), M.sinus, 'maxsin');
   map2d.push({ t: 'box', x: [17.2, 40], y: [3, 26], z: [-54, -12], c: '#b98', n: 'Maxilar' });
   // Etmoides anterior
@@ -546,12 +624,40 @@ function buildAnatomy() {
   // Esfenoides
   add(quad([0, 14, -66], [18.5, 14, -66], [0, 46, -66], 0.25), M.mucC, 'sphface');
   add(disc([3.2, 33, -65.85], 1.5, 2.1, 'z+'), M.dark, 'sphost');
-  openBox([0, 18.5], [19, 42], [-90, -66.3], ['z1', 'x0'], M.sinus, 'sphsin');
+  openBox([0, 18.5], [19, 42], [-90, -66.3], ['z1', 'x0', 'z0', 'x1', 'y0'], M.sinus, 'sphsin');
+  add(quad([0, 19, -90], [18.5, 19, -90], [0, 42, -90], 0.3), M.bone, 'sphpost');
+  add(quad([18.5, 19, -66.3], [18.5, 19, -90], [18.5, 42, -66.3], 0.3), M.bone, 'sphlat');
+  add(quad([0, 19, -66.3], [18.5, 19, -66.3], [0, 19, -90], 0.3), M.bone, 'sphfloor');
   map2d.push({ t: 'box', x: [0, 18.5], y: [19, 42], z: [-90, -66.3], c: '#b98', n: 'Esfenoides' });
   add(tube(OPTIC, 2.2), M.optic, 'optic', { map: { t: 'poly', pts: OPTIC, col: '#fff3b0' } });
-  add(tube(CAROTID, 3.0), M.carotid, 'carotid', { map: { t: 'poly', pts: CAROTID, col: '#ff5d7a' } });
+  add(tube(CAROTID, 2.8, 80), M.carotid, 'carotid', { map: { t: 'poly', pts: CAROTID, col: '#ff5d7a' } });
   add(ellipsoid([17.9, 36.4, -70.5], [1.3, 1.5, 1.5], 20), M.darkN, 'ocr');
-  add(ellipsoid([0, 31, -90.5], [7, 6.5, 5.5]), M.sella, 'sella', { noMirror: true });
+  add(ellipsoid([0, 31, -91], [6.5, 6, 5.5]), M.sellaC, 'sella', { noMirror: true });
+  add(ellipsoid([0, 31, -91.8], [6, 5.5, 5]), M.duraC, 'selladura', { noMirror: true });
+  add(ellipsoid([0, 31, -93], [4.6, 4, 4.2]), M.gland, 'pituitary', { noMirror: true });
+  add(tube([[0, 34.5, -93.5], [0, 39, -93], [0, 45, -91.5]], 1.1), M.gland, 'stalk', { noMirror: true });
+  add(quad([-12, 6, -95.5], [12, 6, -95.5], [-12, 26.5, -95.5], 0.2), M.duraC, 'clivdura', { noMirror: true });
+  add(tube(BASILAR, 2.0), M.artery, 'basilar', { noMirror: true });
+  // seno cavernoso (espacio venoso detrás de la pared posterior y lateral al esfenoides)
+  openBox([18.5, 22.5], [22, 41], [-100, -76], ['x0'], M.cs, 'cs');
+  openBox([6.5, 18.5], [22, 41], [-100, -90], ['z1', 'x1', 'x0'], M.cs, 'cs');
+  add(quad([6.5, 22, -90], [6.5, 22, -100], [6.5, 41, -90], 0.2), M.duraC, 'csmed');
+  add(tube(N3, 0.9), M.nerve, 'n3'); add(tube(N4, 0.5), M.nerve, 'n4'); add(tube(N5_1, 1.0), M.nerve, 'v1');
+  add(tube(N6, 0.7), M.nerve, 'n6'); add(tube(V2N, 1.2, 60), M.nerve, 'v2'); add(tube(VIDN, 0.8, 50), M.nerve, 'vid');
+  // fosa pterigopalatina (grasa) y fosa infratemporal
+  openBox([17.2, 26], [12, 32], [-66, -54.3], ['z1', 'x1', 'z0'], M.fatC, 'ppf');
+  add(quad([17.2, 12, -66], [26, 12, -66], [17.2, 32, -66], 0.2), M.bone, 'pterygbase');
+  add(disc([22, 24, -65.85], 1.7, 1.7, 'z+'), M.darkN, 'frotundum');
+  add(disc([18.6, 18, -65.85], 1.0, 1.0, 'z+'), M.darkN, 'vidcanal');
+  add(ellipsoid([19.5, 20, -63], [1.4, 1.8, 1.4], 20), M.nerve, 'ppg');
+  openBox([26, 46], [2, 38], [-92, -54.3], ['z1', 'x0'], M.fatC, 'itf');
+  add(quad([26, 2, -66], [26, 2, -92], [26, 38, -66], 0.2), M.bone, 'ptplate');
+  { const g = new THREE.CircleGeometry(1.8, 24); g.rotateX(Math.PI / 2); g.translate(30, 37.85, -84); add(g, M.darkN, 'fovale'); }
+  add(ellipsoid([35, 26, -75], [7, 5, 11]), M.muscle, 'lpt');
+  add(ellipsoid([28.5, 12, -77], [2.5, 8, 8]), M.muscle, 'mpt');
+  add(tube(V3N, 1.3), M.nerve, 'v3');
+  add(tube(IMA, 1.1, 60), M.artery, 'ima'); add(tube(DPA, 0.7), M.artery, 'dpa');
+  add(tube(IOA, 0.6), M.artery, 'ioa'); add(tube(PSAA, 0.6), M.artery, 'psaa');
   add(quad([2, 19, -66.5], [13, 19, -85], [2, 42, -66.5], 0.2), M.bone, 'septsph', { noMirror: true });
   add(tube(PSA, 0.6), M.artery, 'psa', { map: { t: 'poly', pts: PSA, col: '#ff3030' } });
   // Arterias
@@ -567,7 +673,9 @@ function buildAnatomy() {
 
   // Superposición "rayos X" de estructuras de riesgo
   overlay(tube(AEA, 0.9), 0xff2020); overlay(tube(PEA, 0.75), 0xff2020); overlay(tube(SPA, 0.8), 0xff2020);
-  overlay(tube(PSA, 0.6), 0xff2020); overlay(tube(OPTIC, 2.2), 0xfff0a0); overlay(tube(CAROTID, 3.0), 0xff4060); overlay(tube(NLD, 1.6), 0x60c0ff);
+  overlay(tube(PSA, 0.6), 0xff2020); overlay(tube(OPTIC, 2.2), 0xfff0a0); overlay(tube(CAROTID, 2.8, 80), 0xff4060); overlay(tube(BASILAR, 2.0), 0xff2020, 0.25);
+  for (const [pts, r] of [[IMA, 1.1], [DPA, 0.7], [IOA, 0.6], [PSAA, 0.6]]) overlay(tube(pts, r), 0xff2020);
+  for (const [pts, r] of [[N3, 0.9], [N4, 0.5], [N5_1, 1.0], [N6, 0.7], [V2N, 1.2], [V3N, 1.3], [VIDN, 0.8]]) overlay(tube(pts, r), 0xffe680); overlay(tube(NLD, 1.6), 0x60c0ff);
   overlay(quad([18.5, 25, -18], [18.5, 25, -66], [18.5, 46, -18], 0), 0xffd040, 0.12);
   overlay(quad([0, yr(-24), -24], [18.5, yr(-24), -24], [0, yr(-66), -66], 0), 0x8090ff, 0.12);
 }
@@ -613,7 +721,13 @@ const ANCHORS = [
   ['frontost', [11, 45, -19]], ['axila', [7.9, 34.4, -23.5]], ['basal', [10, 22, -47.8]], ['postcell', [7.6, 31, -54]], ['st', [4.8, 37, -58]],
   ['sphost', [3.2, 33, -65.7]], ['lamina', [18.4, 34, -42]], ['roof', [12, yr(-42) - 0.2, -42]],
   ['aea', [12, 44, -30]], ['pea', [12, 41.5, -55.5]], ['spa', [15.8, 20.5, -62]], ['optic', [16, 37.2, -77]],
-  ['carotid', [15.2, 28, -80]], ['ocr', [16.7, 36.4, -70.5]], ['sella', [4, 31, -85.2]], ['nld', [16.7, 3.4, -16]],
+  ['ica_pc', [13, 19, -88.6]], ['ica_ps', [14.6, 30.8, -82.5]], ['ica_pcl', [14.9, 38.2, -71.6]], ['ocr', [16.7, 36.4, -70.5]], ['sella', [0, 31, -85.6]],
+  ['selladura', [0, 27.5, -87.3]], ['pituitary', [0, 31, -88.9]], ['stalk', [0, 40, -92]], ['clivdura', [4, 15, -95.4]], ['basilar', [0, 20, -96]],
+  ['cs', [22.3, 30, -85]], ['csmed', [6.6, 32, -94]], ['n3', [19.9, 38.6, -86]], ['n4', [20.4, 37.1, -84]], ['v1', [20.1, 33.8, -86]],
+  ['n6', [17.6, 31.2, -88]], ['v2', [20.4, 25.6, -86]], ['vid', [16.5, 16.5, -78]], ['frotundum', [22, 24, -65.7]], ['vidcanal', [18.6, 18, -65.7]],
+  ['ppg', [19.5, 20, -61.6]], ['ima', [24, 21.5, -58.9]], ['dpa', [20.4, 14, -58.4]], ['ioa', [24.6, 26.3, -56.4]], ['psaa', [30, 15, -55.9]],
+  ['ppf', [25.8, 14, -60]], ['itf', [44, 20, -70]], ['lpt', [35, 26, -64.1]], ['mpt', [28.5, 12, -69.1]], ['v3', [31.4, 26, -79.7]], ['fovale', [30, 37.7, -84]],
+  ['ptplate', [26.1, 20, -75]], ['maxpost', [24, 16, -53.9]], ['sphlat', [18.4, 24, -84]], ['sphfloor', [8, 19.1, -80]], ['latpost', [16.9, 18, -56]], ['nld', [16.7, 3.4, -16]],
   ['torus', [13, 10, -84]], ['np', [4, 9, -78]], ['septsph', [6, 30, -73]]
 ].map(([k, p]) => ({ key: k, p: V(...p), el: null }));
 
@@ -621,6 +735,23 @@ const ANCHORS = [
 function distSeg(p, a, b) { const ab = b.clone().sub(a), t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1); return p.distanceTo(a.clone().addScaledVector(ab, t)); }
 function distPoly(p, pts) { let d = 1e9; for (let i = 0; i < pts.length - 1; i++) d = Math.min(d, distSeg(p, V(...pts[i]), V(...pts[i + 1]))); return d; }
 const DANGERS = [
+  { id: 'cs', test: (p, r) => p.y > 22 && p.y < 41 && ((p.x > 6.5 && p.x < 18.5 && p.z - r * 0.5 < -90.3 && p.z > -100) || (p.x + r * 0.5 > 18.7 && p.x < 22.5 && p.z < -76 && p.z > -100)),
+    msg: 'Apertura del seno cavernoso: sangrado venoso. Controlar con hemostáticos y compresión; carótida y pares craneales en riesgo.', ven: true, name: 'Seno cavernoso', rate: 1.8, max: 12 },
+  { id: 'n3', test: (p, r) => distPoly(p, N3) < 0.9 + r * 0.6, msg: 'Lesión del III par (oculomotor): ptosis, midriasis y diplopía.', bad: 2 },
+  { id: 'n4', test: (p, r) => distPoly(p, N4) < 0.5 + r * 0.6, msg: 'Lesión del IV par (troclear): diplopía vertical.', bad: 2 },
+  { id: 'v1', test: (p, r) => distPoly(p, N5_1) < 1.0 + r * 0.6, msg: 'Lesión de V1 (oftálmico): anestesia corneal y frontal.', bad: 2 },
+  { id: 'n6', test: (p, r) => distPoly(p, N6) < 0.7 + r * 0.6, msg: 'Lesión del VI par (abducens): diplopía horizontal.', bad: 2 },
+  { id: 'v2', test: (p, r) => distPoly(p, V2N) < 1.2 + r * 0.6, msg: 'Lesión de V2 (maxilar): anestesia del territorio infraorbitario.' },
+  { id: 'v3', test: (p, r) => distPoly(p, V3N) < 1.3 + r * 0.6, msg: 'Lesión de V3 (mandibular): anestesia hemimandibular.' },
+  { id: 'vid', test: (p, r) => distPoly(p, VIDN) < 0.8 + r * 0.6, msg: 'Sección del nervio vidiano: ojo seco. Seguirlo hacia atrás lleva a la carótida petrosa.' },
+  { id: 'pituitary', test: (p, r) => Math.hypot(p.x / 4.6, (p.y - 31) / 4, (p.z + 93) / 4.2) < 1 + r * 0.15, msg: 'Manipulación de la hipófisis: riesgo de hipopituitarismo y diabetes insípida.' },
+  { id: 'supra', test: (p, r) => p.x < 6 && p.y + r * 0.5 > 36.8 && p.z < -87 && p.z > -97, msg: 'Diafragma selar / cisterna supraselar: riesgo de fístula de LCR.', bad: 2 },
+  { id: 'clivdura', test: (p, r) => p.x < 12 && p.y > 6 && p.y < 26.5 && p.z - r * 0.5 < -95.4, msg: 'Duramadre del clivus abierta: detrás la arteria basilar y el tronco; fístula de LCR.', bad: 2 },
+  { id: 'basilar', test: (p, r) => distPoly(p, BASILAR) < 2.0 + r * 0.6, msg: '¡Lesión de la arteria basilar! Hemorragia catastrófica.', art: BASILAR, name: 'Arteria basilar', rate: 8, max: 30, bad: 3 },
+  { id: 'ima', test: (p, r) => distPoly(p, IMA) < 1.1 + r * 0.6, msg: 'Lesión de la arteria maxilar interna: sangrado arterial profuso en la fosa pterigopalatina.', art: IMA, name: 'A. maxilar interna', rate: 3.8, max: 20 },
+  { id: 'dpa', test: (p, r) => distPoly(p, DPA) < 0.7 + r * 0.6, msg: 'Lesión de la arteria palatina descendente: sangrado.', art: DPA, name: 'A. palatina descendente', rate: 2.2, max: 14 },
+  { id: 'ioa', test: (p, r) => distPoly(p, IOA) < 0.6 + r * 0.6, msg: 'Lesión de la arteria infraorbitaria: sangrado.', art: IOA, name: 'A. infraorbitaria', rate: 1.6, max: 12 },
+  { id: 'psaa', test: (p, r) => distPoly(p, PSAA) < 0.6 + r * 0.6, msg: 'Lesión de la arteria alveolar posterosuperior: sangrado.', art: PSAA, name: 'A. alveolar posterosuperior', rate: 1.6, max: 12 },
   { id: 'psa', test: (p, r) => distPoly(p, PSA) < 0.6 + r * 0.6, msg: 'Lesión de la arteria septal posterior: sangrado al ampliar la esfenoidotomía hacia inferior.', art: PSA, name: 'A. septal posterior', rate: 2.2, max: 14 },
   { id: 'olf', test: (p, r) => p.x < 3.5 && p.y + r * 0.5 > 42.5 && p.z < -23 && p.z > -30,
     msg: 'Primer filete olfatorio / lámina cribosa: límite posterior del Draf III. Riesgo de fístula de LCR y anosmia.', bad: 2 },
@@ -645,9 +776,10 @@ const DANGERS = [
 const lastDanger = {};
 function checkDanger(lp, r) {
   const now = performance.now();
+  if (state.prepping) return;
   if (state.model === 'ct') { checkDangerCT(lp, r); return; }
   const pm = V(Math.abs(lp.x), lp.y, lp.z), sx = lp.x < 0 ? -1 : 1;
-  for (const d of DANGERS) if (d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; addBleed(d.id + sx, d.name, q, d.rate, d.max); } }
+  for (const d of DANGERS) if (d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
 }
 function reportDanger(d) {
   const now = performance.now();
@@ -919,7 +1051,34 @@ function tryMove(delta) {
   }
   scope.pos.add(delta);
 }
+const PREP = {
+  sphenoid: B => {
+    for (let x = -1.6; x <= 1.6; x += 1.6) for (let y = 16; y <= 40; y += 1.6) for (let z = -50; z >= -67; z -= 1.6) B(x, y, z, 1.7);
+    for (let x = -14; x <= 14; x += 1.6) for (let y = 21; y <= 41; y += 1.6) { B(x, y, -66, 1.7); B(x, y, -67.5, 1.7); }
+    for (let t = 0; t <= 1; t += 0.05) for (let y = 20.5; y <= 41.5; y += 1.6) B(2 + 11 * t, y, -66.5 - 18.5 * t, 1.6);
+  },
+  sella: B => {
+    PREP.sphenoid(B);
+    for (let x = -5; x <= 5; x += 1.2) for (let y = 26; y <= 36; y += 1.2) { B(x, y, -85.8, 1.5); B(x, y, -87.2, 1.4); }
+  },
+  cs: B => {
+    PREP.sella(B);
+    for (let y = 25; y <= 40; y += 1.5) for (let z = -77; z >= -89; z -= 1.5) B(18.6, y, z, 1.6);
+  },
+  antro: B => {
+    for (let t = 0; t <= 1; t += 0.05) { const y = (1 - t) ** 2 * 34 + 2 * (1 - t) * t * 22 + t * t * 13, z = (1 - t) ** 2 * -21 + 2 * (1 - t) * t * -21 + t * t * -35; for (let k = 0; k <= 1; k += 0.25) B(11 + 5.9 * (1 - k), y, z + 3 - 4 * (1 - k), 2.2); }
+    for (let y = 12; y <= 24; y += 1.6) for (let z = -24; z >= -51; z -= 1.6) B(17, y, z, 1.8);
+  },
+  ppf: B => { PREP.antro(B); for (let x = 18; x <= 26; x += 1.5) for (let y = 12; y <= 25.5; y += 1.5) B(x, y, -54, 1.7); },
+  itf: B => { PREP.ppf(B); for (let x = 26; x <= 39.5; x += 1.5) for (let y = 4; y <= 25.5; y += 1.5) B(x, y, -54, 1.7); }
+};
+function runPrep(name) {
+  state.prepping = true;
+  try { PREP[name]((x, y, z, r) => addCut(V(x, y, z), r)); } finally { state.prepping = false; }
+}
 function goTo(p) {
+  if (p.prep && state.model === 'generic') runPrep(p.prep);
+  if (state.model === 'generic') { if (p.perf && !perforation) makePerforation(); if (p.guide) setGuide(p.guide); if (p.tool) setTool(p.tool); if (p.mono) setMono(p.mono); }
   const P = anatomy.localToWorld(V(...p.pos)), T = anatomy.localToWorld(V(...p.target));
   setAngle(p.angle || 0);
   const roll = (p.roll || 0) * D2R * -state.side;
@@ -970,7 +1129,25 @@ const TOUR = [
   { name: '18 · Esfenoidotomía ampliada', pos: [2.6, 29, -50], target: [3.5, 30, -66], angle: 0,
     text: 'Desde el ostium natural ampliar hacia <b>medial e inferior</b> con pinza o drill. Hacia inferior corre la <b>arteria septal posterior</b>: si sangra, bipolar. Nunca hacia superolateral (óptico, carótida).' },
   { name: '19 · Esfenoidotomía bilateral (septectomía posterior)', pos: [2.6, 26, -52], target: [-4, 30, -76], angle: 0,
-    text: 'Resecar 1–2 cm de <b>septum posterior</b> y el rostrum, abrir el esfenoides contralateral y resecar el <b>tabique intersinusal</b> (cortarlo, no torsionarlo: puede insertarse en la carótida). Queda una cavidad esfenoidal única.' }
+    text: 'Resecar 1–2 cm de <b>septum posterior</b> y el rostrum, abrir el esfenoides contralateral y resecar el <b>tabique intersinusal</b> (cortarlo, no torsionarlo: puede insertarse en la carótida). Queda una cavidad esfenoidal única.' },
+  { name: '20 · Abordaje transesfenoidal: silla turca', prep: 'sphenoid', pos: [0.4, 31, -68.5], target: [0, 31, -86], angle: 0,
+    text: '(Se prepara la esfenoidotomía bilateral.) Reconocé la <b>protuberancia selar</b> en el centro, el <b>planum</b> arriba y el <b>clivus</b> abajo. A los lados: <b>carótida paraclival</b> y <b>paraselar</b>, <b>nervios ópticos</b> y <b>recesos opticocarotídeos</b>. Fresá el piso selar de medial a lateral sin pasar los reparos carotídeos.' },
+  { name: '21 · Apertura selar: duramadre e hipófisis', prep: 'sella', pos: [0.4, 31, -75], target: [0, 31, -90], angle: 0,
+    text: '(Se preparan el piso selar y la duramadre abiertos.) Se ve la <b>hipófisis</b>. Lateralmente, la <b>pared medial del seno cavernoso</b> y detrás la carótida paraselar; arriba, el diafragma (riesgo de fístula de LCR). Activá "Estructuras de riesgo" para ver carótidas y pares craneales a través del hueso.' },
+  { name: '22 · Seno cavernoso y pares craneales', prep: 'cs', pos: [7, 31, -79], target: [20, 32, -87], angle: 0,
+    text: '(Se prepara la apertura de la pared lateral del esfenoides.) En el seno cavernoso: <b>carótida paraselar</b> y, libre a su lado, el <b>VI par</b>. En la pared lateral, de arriba abajo: <b>III, IV, V1 y V2</b>. Sangrado venoso: hemostáticos y aspiración.' },
+  { name: '23 · Fosa pterigopalatina (transmaxilar)', prep: 'ppf', pos: [25, 19, -31], target: [21.5, 21, -60], angle: 0,
+    text: '(Se preparan la antrostomía amplia y la apertura de la pared posterior del seno maxilar.) <b>Plano anterior</b>: la <b>maxilar interna</b> con sus ramas (esfenopalatina, palatina descendente, infraorbitaria, alveolar posterosuperior) en la grasa. <b>Plano posterior</b>: V2, ganglio pterigopalatino y vidiano. Coagulá antes de cortar.' },
+  { name: '24 · Agujero redondo y conducto vidiano', prep: 'ppf', pos: [21.5, 20.5, -51], target: [20.5, 21, -66], angle: 0,
+    text: 'En la <b>pared posterior de la fosa pterigopalatina</b> (base de la pterigoides): <b>agujero redondo</b> (V2) superolateral y <b>conducto vidiano</b> inferomedial. El vidiano, seguido hacia atrás por el piso del esfenoides, lleva a la <b>carótida petrosa</b> en el agujero rasgado.' },
+  { name: '25 · Fosa infratemporal y agujero oval', prep: 'itf', pos: [32, 17, -40], target: [31, 32, -84], angle: 30,
+    text: '(Se prepara la apertura completa de la pared posterior del maxilar.) Por la <b>fisura pterigomaxilar</b>: la <b>maxilar interna</b> sobre el <b>pterigoideo lateral</b>, la <b>lámina lateral de la pterigoides</b> y, en el techo, el <b>agujero oval</b> con <b>V3</b>.' },
+  { name: '26 · Colgajo nasoseptal de Hadad', pos: [9.5, 20, 2], target: [0.8, 19, -32], angle: 0, guide: 'hadad', tool: 'monopolar', mono: 'cut',
+    text: 'Monopolar en <b>corte</b> siguiendo la guía verde: incisión <b>superior</b> 1–1,5 cm por debajo del techo (preserva la franja olfatoria) desde el nivel del <b>ostium esfenoidal</b>; incisión <b>anterior</b> vertical; incisión <b>inferior</b> por el piso hasta la coana. El <b>pedículo</b> posterior (entre ostium esfenoidal y coana) lleva la <b>arteria septal posterior</b>. Luego <b>Freer</b> adentro del área para elevarlo y <b>Rotar colgajo a base de cráneo</b>.' },
+  { name: '27 · Septoplastia: incisión de Killian', pos: [8.5, 16, 5], target: [0.8, 16, -14], angle: 0, guide: 'killian', tool: 'monopolar', mono: 'cut',
+    text: 'Incisión vertical ~1 cm por detrás del borde caudal (<b>Killian</b>) o en el borde caudal (hemitransfixión). Con la <b>Freer</b> elevá el colgajo mucopericóndrico para ver el <b>cartílago cuadrangular</b>; resecá la parte desviada con la pinza conservando una <b>L de ~1 cm</b> dorsal y caudal.' },
+  { name: '28 · Cierre de perforación septal', pos: [9, 17, 0], target: [0.8, 15, -20], angle: 0, perf: true, guide: 'none', tool: 'monopolar', mono: 'cut',
+    text: 'Se crea una <b>perforación septal</b> de ~12 mm. Diseñá con el monopolar un colgajo vecino (de base inferior, de avance o bipediculado), elevalo con la <b>Freer</b> y usá <b>Rotar a la perforación</b>. En la práctica se cierra por ambos lados, idealmente con interposición.' }
 ];
 const tourEl = $('#tour');
 TOUR.forEach((p, i) => { const b = document.createElement('button'); b.textContent = p.name; b.onclick = () => goTo(p); tourEl.appendChild(b); });
@@ -986,6 +1163,7 @@ seg('optic', v => setAngle(+v));
 seg('tool', v => setTool(v));
 function setTool(v) {
   state.tool = v; drilling = false; using = false; freerGrab = null;
+  $('#monoMode').style.display = v === 'monopolar' ? 'flex' : 'none';
   document.querySelectorAll('#tool button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   hudKey = '';
 }
@@ -1031,6 +1209,7 @@ const cv = renderer.domElement;
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   keys[e.code] = true;
+  if (e.code === 'KeyM') { setTool('monopolar'); setMono(state.monoMode === 'cut' ? 'coag' : 'cut'); }
   { const TK = { Digit1: 'none', Digit2: 'pinza', Digit3: 'drill', Digit4: 'bipolar', Digit5: 'monopolar', Digit6: 'aspirador', Digit7: 'freer' }; if (TK[e.code]) setTool(TK[e.code]); }
   if (e.code === 'KeyO') { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
   if (e.code === 'KeyL') { $('#chkLabels').checked = !state.labels; $('#chkLabels').onchange({ target: $('#chkLabels') }); }
@@ -1147,6 +1326,7 @@ function updateVR(dt) {
       if (edge(c, 4)) { const T = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % T.length]); }
       vrFwd.copy(fwd);
       if (edge(c, 5)) setXray(!state.xray);
+      if (edge(c, 1) && state.tool === 'monopolar') setMono(state.monoMode === 'cut' ? 'coag' : 'cut');
     }
   }
   if (state.vrFly) {
@@ -1200,6 +1380,7 @@ function updateInstrumentCommon(dt) {
 }
 function updateEffects(dt) {
   updateBleeds(dt);
+  updateFlaps(dt);
   $('#bleed').style.opacity = state.bleed * 0.85;
   monMat.uniforms.bleed.value = state.bleed;
   hudWarnT = Math.max(0, hudWarnT - dt);
@@ -1319,15 +1500,15 @@ function drawMap(g, W, H, P, plane, lp, lpd, tp) {
   if (plane === 'yz') { g.fillStyle = 'rgba(255,255,255,.45)'; g.fillText('techo / base de cráneo', 150, 22); }
 }
 function drawHUD() {
-  const k = [state.side, state.angle, state.tool, lookKey, hudWarnT > 0 ? hudWarn : ''].join('|');
+  const k = [state.side, state.angle, state.tool, state.monoMode, G.i, G.done, lookKey, hudWarnT > 0 ? hudWarn : ''].join('|');
   if (k === hudKey) return; hudKey = k;
   const g = hudCanvas.getContext('2d');
   g.clearRect(0, 0, 1024, 220); g.fillStyle = 'rgba(10,12,16,.85)'; g.fillRect(0, 0, 1024, 220);
   g.fillStyle = '#9fffd0'; g.font = 'bold 34px system-ui';
-  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill', bipolar: 'Bipolar', monopolar: 'Monopolar', aspirador: 'Aspirador', freer: 'Espátula de Freer' }[state.tool];
+  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill', bipolar: 'Bipolar', monopolar: state.monoMode === 'cut' ? 'Monopolar (corte)' : 'Monopolar (coagulación)', aspirador: 'Aspirador', freer: 'Espátula de Freer' }[state.tool];
   g.fillText(`Fosa ${state.side > 0 ? 'DERECHA' : 'IZQUIERDA'} · Óptica ${state.angle}° · ${toolN}`, 24, 50);
   g.fillStyle = '#fff'; g.font = '32px system-ui';
-  g.fillText('Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
+  g.fillText(G.on && G.proc ? `Paso ${Math.min(G.i + 1, G.proc.steps.length)}/${G.proc.steps.length}: ${G.done ? 'completado' : G.proc.steps[G.i].t}` : 'Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
   if (hudWarnT > 0) { g.fillStyle = '#ff7070'; g.font = 'bold 26px system-ui'; wrapText(g, '⚠ ' + hudWarn, 24, 152, 980, 32); }
 }
 function wrapText(g, t, x, y, w, lh) { let line = ''; for (const word of t.split(' ')) { const test = line + word + ' '; if (g.measureText(test).width > w && line) { g.fillText(line, x, y); line = word + ' '; y += lh; } else line = test; } g.fillText(line, x, y); }
@@ -1761,6 +1942,7 @@ function setModel(m) {
   $('#ctPanel').style.display = m === 'ct' ? 'block' : 'none';
   document.querySelector('.maps').style.display = m === 'ct' ? 'none' : 'flex';
   $('#tourGrp').style.display = m === 'ct' ? 'none' : 'block';
+  $('#flapGrp').style.display = m === 'ct' ? 'none' : 'block';
   $('#stepText').style.display = 'none';
   $('#lLam').textContent = m === 'ct' ? 'Punta → grasa orbitaria' : 'Punta → lámina papirácea';
   $('#lSkull').textContent = m === 'ct' ? 'Punta → base de cráneo (marcas)' : 'Punta → base de cráneo';
@@ -1807,6 +1989,7 @@ function resetFx() {
   bleeds.length = 0; burnN = 0; burnIdx = 0; fxU.uBurnN.value = 0; fxU.uBloodN.value = 0; state.bleed = 0;
   drops.forEach(d => d.life = 0); smokes.forEach(d => d.life = 0);
   turbDisp.mt = 0; turbDisp.it = 0; applyTurb('mt'); applyTurb('it');
+  incisions.length = 0; lastInc = null; flaps.forEach(f => anatomy.remove(f.mesh)); flaps.length = 0; perforation = null;
 }
 // partículas: gotas de sangre (chorro pulsátil) y humo de cauterio, en coordenadas de la anatomía
 const fxGroup = new THREE.Group(); anatomy.add(fxGroup);
@@ -1880,8 +2063,14 @@ function toolContactLocal() {   // punto de contacto de la punta con el tejido (
 }
 function updateToolAction(dt) {
   suctionOn = false;
-  if (!using) return;
+  if (!using) { lastInc = null; return; }
   const lp = toolContactLocal(); if (!lp) return;
+  if (state.tool === 'monopolar' && state.monoMode === 'cut') {
+    const camL = anatomy.worldToLocal(state.vr ? tipWorld.clone().addScaledVector(vrFwd, -10 * state.S) : endoCam.position.clone());
+    monoCut(lp, lp.clone().sub(camL).normalize());
+    const now = performance.now(); if (now - lastFx > 250) { lastFx = now; thermalDanger(lp, true); checkDanger(lp, 0.45); haptic(0.08, 10); }
+    return;
+  }
   if (state.tool === 'aspirador') { suctionOn = true; suctionTipL.copy(lp); return; }
   if (state.tool === 'bipolar' || state.tool === 'monopolar') {
     const isMono = state.tool === 'monopolar', now = performance.now();
@@ -1940,8 +2129,10 @@ function freerLabel(k) {
 }
 function startFreerDesktop(e) {
   if (state.model === 'ct') { toast('La espátula de Freer mueve cornetes sólo en el modelo genérico.'); return; }
-  const k = tipHit ? turbKeyOf(keyOfHit(tipHit)) : null;
-  if (!k) { toast('Apoyá la espátula sobre el cornete medio o el inferior y arrastrá a los lados.'); return; }
+  const hk = tipHit ? keyOfHit(tipHit) : null;
+  if (hk === 'septum' || hk === 'septcart' || hk === 'septbone') { elevateFlap(anatomy.worldToLocal(tipHit.point.clone())); return; }
+  const k = hk ? turbKeyOf(hk) : null;
+  if (!k) { toast('Apoyá la espátula sobre un cornete (para moverlo) o sobre el septum dentro de un colgajo delimitado (para elevarlo).'); return; }
   freerGrab = { k, x0: e.clientX, base: turbDisp[k] };
 }
 function moveFreerDesktop(e) {
@@ -1954,6 +2145,7 @@ function moveFreerDesktop(e) {
 function startFreerVR() {
   if (state.model === 'ct') return;
   const lp = anatomy.worldToLocal(tipWorld.clone());
+  if (Math.abs(lp.x) < 2.5 && septValid(lp.z, lp.y)) { elevateFlap(V((lp.x < 0 ? -0.8 : 0.8), lp.y, lp.z)); haptic(0.3, 40); return; }
   const em = (c, r) => Math.hypot((lp.x - c[0]) / r[0], (lp.y - c[1]) / r[1], (lp.z - c[2]) / r[2]);
   const dMT = em([6 + turbDisp.mt * 0.6, 26, -42], [2, 8, 18]), dIT = em([12 + turbDisp.it * 0.6, 10, -32], [5, 5.5, 26]);
   const k = dMT < 1.6 && dMT <= dIT ? 'mt' : dIT < 1.4 ? 'it' : null;
@@ -1967,6 +2159,365 @@ function updateFreerVR() {
   applyTurb(freerGrab.k); hudWarn = freerLabel(freerGrab.k); hudWarnT = 1.5;
 }
 function endFreer() { const k = freerGrab.k; freerGrab = null; toast(freerLabel(k) + '.'); }
+
+
+/* ============================== MONOPOLAR EN CORTE Y COLGAJOS SEPTALES ============================== */
+const incisions = [];
+let lastInc = null, perforation = null, guideMode = 'none';
+const flaps = [];
+function setMono(m) {
+  state.monoMode = m;
+  document.querySelectorAll('#monoMode button').forEach(b => b.classList.toggle('on', b.dataset.v === m));
+  hudKey = '';
+}
+document.querySelectorAll('#monoMode button').forEach(b => b.onclick = () => setMono(b.dataset.v));
+function monoCut(lp, dirL) {
+  if (lastInc && lastInc.distanceTo(lp) < 0.3) return;
+  const pts = [];
+  if (lastInc && lastInc.distanceTo(lp) < 8) { const n = Math.ceil(lastInc.distanceTo(lp) / 0.3); for (let k = 1; k <= n; k++) pts.push(lastInc.clone().lerp(lp, k / n)); }
+  else pts.push(lp.clone());
+  for (const q of pts) { addCut(q.clone().addScaledVector(dirL, 0.2), 0.45); incisions.push(q); }
+  lastInc = lp.clone();
+  if (Math.random() < 0.35) spawnSmoke(lp);
+}
+function septRoof(z) { if (z > -14) return 22 + (4 - z) * (22 / 18); if (z > -24) return 44; return yr(z); }
+function septValid(z, y) { if (z > 6 || z < -71 || y < 0) return false; if (z < -66) return y < 14; return y < septRoof(z) - 0.3; }
+const FG = { z0: -71, y0: 0, st: 0.5, nz: 155, ny: 97 };
+function elevateFlap(lp) {
+  if (state.model !== 'generic') return;
+  const sx = lp.x < 0 ? -1 : 1, { z0, y0, st, nz, ny } = FG, N = nz * ny;
+  const valid = new Uint8Array(N), blocked = new Uint8Array(N);
+  let nValid = 0;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nz; i++) {
+    const z = z0 + i * st, y = y0 + j * st;
+    if (!septValid(z, y)) continue;
+    valid[i + j * nz] = 1; nValid++;
+    if (isCut(V(sx * 0.8, y, z))) blocked[i + j * nz] = 1;
+  }
+  for (const q of incisions) {
+    if (Math.abs(q.x) > 2.5 || (q.x < 0 ? -1 : 1) !== sx) continue;
+    const ci = Math.round((q.z - z0) / st), cj = Math.round((q.y - y0) / st);
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const i = ci + di, j = cj + dj; if (i >= 0 && j >= 0 && i < nz && j < ny) blocked[i + j * nz] = 1; }
+  }
+  let si = Math.round((lp.z - z0) / st), sj = Math.round((lp.y - y0) / st), seed = -1;
+  for (let r = 0; r <= 4 && seed < 0; r++) for (let dj = -r; dj <= r && seed < 0; dj++) for (let di = -r; di <= r; di++) {
+    const i = si + di, j = sj + dj; if (i < 0 || j < 0 || i >= nz || j >= ny) continue;
+    const k = i + j * nz; if (valid[k] && !blocked[k]) { seed = k; break; }
+  }
+  if (seed < 0) { toast('Apoyá la Freer sobre mucosa septal sana, dentro del área delimitada.'); return; }
+  const reg = new Uint8Array(N), stack = [seed]; reg[seed] = 1; let n = 0;
+  while (stack.length) {
+    const k = stack.pop(); n++;
+    const i = k % nz, j = (k / nz) | 0;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nz || b >= ny) continue;
+      const kk = a + b * nz; if (reg[kk] || !valid[kk] || blocked[kk]) continue;
+      reg[kk] = 1; stack.push(kk);
+    }
+  }
+  if (n > nValid * 0.95) { toast('El colgajo no está delimitado: marcá las incisiones con el monopolar en modo corte y apoyá la Freer adentro.', 5000); return; }
+  if (n < 24) { toast('El área delimitada es demasiado chica para un colgajo.'); return; }
+  // elevar: retirar la mucosa del área (queda el cartílago/hueso a la vista) y crear el colgajo levantado
+  const pos = [], zy = [], idx = [];
+  let cz = 0, cy = 0, ped = false, olf = false;
+  state.prepping = true;
+  for (let k = 0; k < N; k++) {
+    if (!reg[k]) continue;
+    const i = k % nz, j = (k / nz) | 0, z = z0 + i * st, y = y0 + j * st;
+    addCut(V(sx * 0.8, y, z), 0.68);
+    cz += z; cy += y;
+    if (z < -56 && y > 19.5 && y < 25.5) ped = true;
+    if (y > 41 && z < -24 && z > -62) olf = true;
+    const b = pos.length / 3;
+    for (const [dz, dy] of [[0, 0], [st, 0], [0, st], [st, st]]) {
+      const Z = z + dz - st / 2, Y = y + dy - st / 2;
+      pos.push(0, 0, 0); zy.push(Z, Y);
+    }
+    idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
+  }
+  state.prepping = false;
+  cz /= n; cy /= n;
+  let ymin = 1e9; for (let v = 1; v < zy.length; v += 2) ymin = Math.min(ymin, zy[v]);
+  for (let v = 0; v < pos.length / 3; v++) {   // colgajo plegado y apoyado sobre el piso de la fosa
+    const Z = zy[v * 2], Y = zy[v * 2 + 1];
+    pos[v * 3] = sx * Math.min(16.4, 1.6 + (Y - ymin) * 0.45); pos[v * 3 + 1] = 0.95; pos[v * 3 + 2] = Z;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); planarUV(g);
+  const mesh = new THREE.Mesh(g, M.flap); mesh.userData = { key: 'flap' }; mesh.frustumCulled = false;
+  anatomy.add(mesh); meshes.push(mesh);
+  flaps.push({ mesh, sx, zy, cz, cy, ped, anim: null });
+  const area = n * st * st / 100;
+  toast(`Colgajo elevado: ${area.toFixed(1)} cm². ` + (ped ? 'Pedículo con la arteria septal posterior ✓.' : '⚠ No incluye la arteria septal posterior (sin pedículo para un Hadad).') + (olf ? ' ⚠ Incluiste la franja olfatoria superior: riesgo de hiposmia.' : ''), 8000, !ped || olf);
+}
+function rotateFlap(target) {
+  const f = flaps[flaps.length - 1];
+  if (!f) { toast('Primero elevá un colgajo con la Freer.'); return; }
+  if (target === 'perf' && !perforation) { toast('No hay perforación: creala con "Crear perforación".'); return; }
+  const pa = f.mesh.geometry.attributes.position, from = pa.array.slice(), to = new Float32Array(from.length);
+  for (let v = 0; v < pa.count; v++) {
+    const z = f.zy[v * 2], y = f.zy[v * 2 + 1];
+    if (target === 'skull') { to[v * 3] = (z - f.cz) * 0.55; to[v * 3 + 1] = 31 + (y - f.cy) * 0.75; to[v * 3 + 2] = -84.2; }
+    else { to[v * 3] = f.sx * 0.98; to[v * 3 + 1] = perforation.y + (y - f.cy); to[v * 3 + 2] = perforation.z + (z - f.cz); }
+  }
+  f.anim = { t: 0, from, to }; f.rotated = target;
+  toast(target === 'skull'
+    ? (f.ped ? '✔ Colgajo nasoseptal rotado sobre el defecto selar / clival. El pedículo debe llegar sin tensión.' : '⚠ Colgajo rotado a la base de cráneo, pero sin pedículo de la septal posterior: necrosaría.')
+    : '✔ Colgajo llevado sobre la perforación septal.', 6000, target === 'skull' && !f.ped);
+}
+function updateFlaps(dt) {
+  for (const f of flaps) {
+    if (!f.anim) continue;
+    const a = f.anim; a.t = Math.min(1, a.t + dt / 1.6); const k = a.t * a.t * (3 - 2 * a.t);
+    const arr = f.mesh.geometry.attributes.position.array;
+    for (let i = 0; i < arr.length; i++) arr[i] = a.from[i] + (a.to[i] - a.from[i]) * k;
+    f.mesh.geometry.attributes.position.needsUpdate = true;
+    if (a.t >= 1) { f.mesh.geometry.computeVertexNormals(); f.mesh.geometry.computeBoundingSphere(); f.anim = null; }
+  }
+  guideGroup.visible = state.model === 'generic' && guideMode !== 'none';
+}
+function makePerforation() {
+  if (state.model !== 'generic') return;
+  perforation = { z: -20, y: 15, r: 6 };
+  state.prepping = true;
+  for (let dz = -6; dz <= 6; dz += 1) for (let dy = -6; dy <= 6; dy += 1) if (dz * dz + dy * dy <= 36) addCut(V(0, 15 + dy, -20 + dz), 1.6);
+  state.prepping = false;
+  toast('Perforación septal creada (~12 mm). Diseñá un colgajo vecino, elevalo con la Freer y rotalo a la perforación.', 5000);
+}
+const guideGroup = new THREE.Group(); anatomy.add(guideGroup);
+const GUIDES = {
+  hadad: [[[-66.5, 31], [-40, 33.5], [-20, 33.5], [-3, 33.5]], [[-3, 33.5], [-3, 1.2]], [[-3, 1.2], [-66, 1.2], [-66, 12]]],
+  killian: [[[-4, 30], [-4, 1.2]]]
+};
+function setGuide(m) {
+  guideMode = m; while (guideGroup.children.length) guideGroup.remove(guideGroup.children[0]);
+  for (const line of (GUIDES[m] || [])) {
+    const g = new THREE.BufferGeometry().setFromPoints(line.map(([z, y]) => V(1.05, y, z)));
+    const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0x5cffb0, dashSize: 1.4, gapSize: 0.9 }));
+    l.computeLineDistances(); guideGroup.add(l);
+  }
+  $('#btnGHadad').classList.toggle('on', m === 'hadad'); $('#btnGKillian').classList.toggle('on', m === 'killian');
+}
+$('#btnGHadad').onclick = () => setGuide(guideMode === 'hadad' ? 'none' : 'hadad');
+$('#btnGKillian').onclick = () => setGuide(guideMode === 'killian' ? 'none' : 'killian');
+$('#btnPerf').onclick = () => { if (!perforation) makePerforation(); };
+$('#btnRotSkull').onclick = () => rotateFlap('skull');
+$('#btnRotPerf').onclick = () => rotateFlap('perf');
+
+
+/* ============================== CIRUGÍA GUIADA ============================== */
+// vértices de cada estructura (coordenadas de la anatomía) para medir cuánto se resecó
+const KEYV = {};
+for (const m of meshes) { const k = m.userData.key; if (!k) continue; (KEYV[k] = KEYV[k] || []).push(m.geometry.attributes.position.array); }
+const _fp = new THREE.Vector3();
+function fracCut(keys, box, side = 0) {
+  let n = 0, c = 0;
+  for (const k of keys) for (const a of (KEYV[k] || [])) {
+    const step = 3 * Math.max(1, Math.ceil(a.length / 9000));
+    for (let i = 0; i < a.length; i += step) {
+      const x = a[i], y = a[i + 1], z = a[i + 2];
+      if (side && Math.abs(x) > 0.05 && Math.sign(x) !== side) continue;
+      if (box && (x < box[0] || x > box[1] || y < box[2] || y > box[3] || z < box[4] || z > box[5])) continue;
+      n++; _fp.set(x, y, z); if (isCut(_fp)) c++;
+    }
+  }
+  return n ? c / n : 0;
+}
+function guideCov(seg) {   // fracción de la guía de Hadad recorrida con incisiones
+  const line = GUIDES.hadad[seg]; let n = 0, c = 0;
+  for (let i = 0; i < line.length - 1; i++) {
+    const [z0, y0] = line[i], [z1, y1] = line[i + 1], m = Math.ceil(Math.hypot(z1 - z0, y1 - y0));
+    for (let k = 0; k <= m; k++) {
+      const z = z0 + (z1 - z0) * k / m, y = y0 + (y1 - y0) * k / m; n++;
+      if (incisions.some(q => q.x > 0 && Math.abs(q.z - z) < 1.6 && Math.abs(q.y - y) < 1.6)) c++;
+    }
+  }
+  return c / n;
+}
+const box = (x0, x1, y0, y1, z0, z1) => [x0, x1, y0, y1, z0, z1];
+const LOOK = (keys) => ({ look: [].concat(keys) });
+const CUT = (keys, b, thr, side = 0) => ({ cut: { keys: [].concat(keys), box: b, thr, side } });
+Object.assign(PREP, {
+  ethmoid: B => { for (let x = 9; x <= 17; x += 1.6) for (let y = 30; y <= 42.5; y += 1.8) for (let z = -24; z >= -37; z -= 1.8) B(x, y, z, 1.6); },
+  draf1done: B => { for (let x = 8; x <= 17; x += 1.6) for (let y = 28; y <= 42.5; y += 1.6) for (let z = -13; z >= -34; z -= 1.6) B(x, y, z, 1.6); },
+  draf2a: B => { PREP.draf1done(B); for (let x = 7; x <= 17; x += 1.5) for (let y = 43; y <= 49.5; y += 1.5) for (let z = -13.5; z >= -24.5; z -= 1.5) B(x, y, z, 1.7); },
+  draf2b: B => { PREP.draf2a(B); for (let x = 1.2; x <= 7; x += 1.5) for (let y = 43; y <= 49.5; y += 1.5) for (let z = -13.5; z >= -24.5; z -= 1.5) B(x, y, z, 1.7); },
+  sphen1: B => { for (let x = 1; x <= 12; x += 1.6) for (let y = 24; y <= 40; y += 1.6) { B(x, y, -66, 1.7); B(x, y, -67.5, 1.7); } },
+  hemo: B => { PREP.ethmoid(B); }
+});
+const PROCS = {
+  cens: { name: 'CENS completa', steps: [
+    { t: 'Identificá el septum', d: 'Centrá la cruz del endoscopio sobre el tabique nasal (medial).', hl: 'septum', view: 0, tool: 'none', check: LOOK('septum') },
+    { t: 'Identificá el cornete inferior', d: 'Centrá la cruz sobre el cornete inferior (lateral y abajo).', hl: 'it', check: LOOK('it') },
+    { t: 'Identificá el cornete medio', d: 'Avanzá y centrá la cruz sobre la cabeza del cornete medio.', hl: 'mt', view: 1, check: LOOK(['mt', 'axila']) },
+    { t: 'Medializá el cornete medio', d: 'Con la espátula de Freer apoyada en el cornete medio, arrastrá hacia el septum (≥ 1 mm) para abrir el meato medio.', hl: 'mt', tool: 'freer', check: { fn: () => turbDisp.mt <= -1.0 } },
+    { t: 'Identificá la apófisis unciforme', d: 'En el meato medio, la lámina en media luna por delante de la bulla.', hl: 'unc', view: 2, tool: 'none', check: LOOK('unc') },
+    { t: 'Uncinectomía', d: 'Con la pinza cortante resecá la apófisis unciforme (de arriba hacia abajo).', hl: 'unc', tool: 'pinza', check: CUT('unc', null, 0.55, 1) },
+    { t: 'Identificá el ostium maxilar', d: 'Con óptica de 45° rotada a lateral, encontrá el ostium natural del seno maxilar.', hl: 'maxost', view: 3, check: LOOK(['maxost', 'font', 'accost', 'maxsin']) },
+    { t: 'Antrostomía maxilar', d: 'Ampliá el ostium hacia posterior e inferior por la fontanela, uniendo el ostium accesorio. No vayas hacia anterior (conducto nasolagrimal).', hl: 'maxost', tool: 'pinza', check: CUT(['font', 'maxost', 'accost'], box(16, 18, 12, 25, -46, -24), 0.45, 1) },
+    { t: 'Identificá la bulla etmoidal', d: 'Detrás del lugar de la unciforme.', hl: 'bulla', view: 4, tool: 'none', check: LOOK('bulla') },
+    { t: 'Abrí la bulla', d: 'Resecá la bulla etmoidal con pinza, por su cara medial e inferior.', hl: 'bulla', tool: 'pinza', check: CUT('bulla', null, 0.55, 1) },
+    { t: 'Identificá la lamela basal', d: 'La pared vertical que queda detrás de la bulla.', hl: 'basal', view: 5, tool: 'none', check: LOOK('basal') },
+    { t: 'Abrí la lamela basal', d: 'Perforala en su porción inferomedial para entrar al etmoides posterior.', hl: 'basal', tool: 'pinza', check: CUT('basal', box(7, 19, 16, 30, -49, -47), 0.35, 1) },
+    { t: 'Etmoidectomía posterior', d: 'Resecá las celdas posteriores respetando la lámina papirácea (lateral) y la base de cráneo (arriba).', hl: 'postcell', view: 7, check: CUT('postcell', null, 0.4, 1) },
+    { t: 'Identificá el ostium esfenoidal', d: 'En el receso esfenoetmoidal, medial al cornete superior.', hl: 'sphost', view: 8, tool: 'none', check: LOOK(['sphost', 'sphface']) },
+    { t: 'Esfenoidotomía', d: 'Ampliá el ostium esfenoidal hacia medial e inferior.', hl: 'sphost', tool: 'pinza', check: CUT(['sphface', 'sphost'], box(0.5, 12, 24, 40, -67, -65), 0.4, 1) },
+    { t: 'Identificá el agger nasi', d: 'Con 70° mirando hacia arriba, por delante de la axila del cornete medio.', hl: 'agger', view: 6, tool: 'none', check: LOOK(['agger', 'axila']) },
+    { t: 'Abrí el agger nasi', d: 'Resecá la celda agger nasi para exponer el receso frontal.', hl: 'agger', tool: 'pinza', check: CUT('agger', null, 0.45, 1) },
+    { t: 'Identificá el ostium frontal', d: 'Posterior y medial al agger: el receso frontal.', hl: 'frontost', tool: 'none', check: LOOK(['frontost', 'frontsin', 'beak']) }
+  ] },
+  draf1: { name: 'Draf I', steps: [
+    { t: 'Identificá la axila del cornete medio', d: 'Con 70° mirando hacia arriba.', hl: 'axila', view: 13, tool: 'none', check: LOOK(['axila', 'mt']) },
+    { t: 'Identificá el agger nasi', d: 'Por delante y encima de la axila.', hl: 'agger', check: LOOK('agger') },
+    { t: 'Resecá el agger nasi', d: 'Pinza o drill sobre el agger, sin tocar el ostium frontal.', hl: 'agger', tool: 'pinza', check: CUT('agger', null, 0.5, 1) },
+    { t: 'Resecá las celdas del receso frontal', d: 'Retirá las celdas que obstruyen el receso por detrás y encima del agger.', hl: 'antcell', check: CUT('antcell', box(9, 18, 34, 44, -34, -24), 0.35, 1) },
+    { t: 'Identificá el ostium frontal', d: 'Debe quedar libre y a la vista.', hl: 'frontost', tool: 'none', check: LOOK(['frontost', 'frontsin', 'beak']) }
+  ] },
+  draf2a: { name: 'Draf IIa', prep: 'draf1done', steps: [
+    { t: 'Identificá el ostium frontal', d: 'El receso ya está limpio (Draf I hecho).', hl: 'frontost', view: 14, tool: 'none', check: LOOK(['frontost', 'beak', 'frontsin']) },
+    { t: 'Fresá el piso del frontal hacia lateral', d: 'Con drill, entre la lámina papirácea y el cornete medio. Cuidado con la lámina (lateral) y la AEA (posterior).', hl: 'beak', tool: 'drill', check: CUT(['beak', 'frontfloor'], box(7, 17.5, 43, 49, -24.5, -13.5), 0.45, 1) },
+    { t: 'Mirá dentro del seno frontal', d: 'Centrá la cruz en el interior del seno frontal.', hl: 'frontsin', tool: 'none', check: LOOK('frontsin') }
+  ] },
+  draf2b: { name: 'Draf IIb', prep: 'draf2a', steps: [
+    { t: 'Fresá el piso del frontal hacia medial', d: 'Por delante de la inserción del cornete medio, hasta el septum.', hl: 'beak', view: 15, tool: 'drill', check: CUT(['beak', 'frontfloor'], box(0.9, 7, 43, 49, -24.5, -13.5), 0.45, 1) },
+    { t: 'Mirá dentro del seno frontal', d: 'Ostium ampliado entre lámina papirácea y septum.', hl: 'frontsin', tool: 'none', check: LOOK('frontsin') }
+  ] },
+  draf3: { name: 'Draf III (Lothrop modificado)', prep: 'draf2b', steps: [
+    { t: 'Septectomía superior', d: 'Con drill, abrí una ventana en el septum por debajo del piso del frontal (~1,5 cm).', hl: 'septum', view: 16, tool: 'drill', check: CUT(['septum', 'septcart'], box(-1, 1, 32, 46, -22, -8), 0.4) },
+    { t: 'Draf IIb contralateral', d: 'Por la ventana septal, fresá el piso del frontal del otro lado.', hl: 'beak', tool: 'drill', check: CUT(['beak', 'frontfloor'], box(-17.5, -0.9, 43, 49, -24.5, -13.5), 0.4, -1) },
+    { t: 'Resecá el tabique intersinusal frontal', d: 'Unificá ambos senos frontales en una cavidad común. Límite posterior: primer filete olfatorio.', hl: 'frontsept', check: CUT('frontsept', box(-1, 1, 48, 62, -26, -8), 0.35) },
+    { t: 'Revisá la cavidad común', d: 'Centrá la cruz dentro del seno frontal.', hl: 'frontsin', tool: 'none', check: LOOK(['frontsin', 'frontsept']) }
+  ] },
+  sphen: { name: 'Esfenoidotomía', steps: [
+    { t: 'Identificá el cornete superior', d: 'En el receso esfenoetmoidal, entre septum y cornete medio.', hl: 'st', view: 8, tool: 'none', check: LOOK('st') },
+    { t: 'Identificá el ostium esfenoidal', d: 'Medial al cornete superior.', hl: 'sphost', check: LOOK(['sphost', 'sphface']) },
+    { t: 'Ampliá el ostium', d: 'Con pinza o drill hacia medial e inferior (cuidado con la septal posterior abajo).', hl: 'sphost', tool: 'pinza', check: CUT(['sphface', 'sphost'], box(0.5, 12, 24, 40, -67, -65), 0.4, 1) },
+    { t: 'Identificá el nervio óptico', d: 'Dentro del seno, en la pared superolateral.', hl: 'optic', view: 9, tool: 'none', check: LOOK('optic') },
+    { t: 'Identificá la carótida', d: 'Prominencia en la pared lateral, por debajo del óptico.', hl: 'ica_ps', check: LOOK('carotid') }
+  ] },
+  sphenbil: { name: 'Esfenoidotomía bilateral', prep: 'sphen1', steps: [
+    { t: 'Septectomía posterior', d: 'Resecá 1–2 cm de septum posterior y el rostrum.', hl: 'septum', view: 18, tool: 'drill', check: CUT(['septum', 'septbone'], box(-1, 1, 16, 38, -66, -53), 0.4) },
+    { t: 'Abrí el esfenoides contralateral', d: 'Por la ventana septal, abrí la cara anterior del otro lado.', hl: 'sphface', check: CUT('sphface', box(-12, -0.5, 24, 40, -67, -65), 0.35, -1) },
+    { t: 'Resecá el tabique intersinusal', d: 'Cortalo, no lo torsiones: puede insertarse en la carótida.', hl: 'septsph', tool: 'pinza', check: CUT('septsph', null, 0.4) },
+    { t: 'Identificá la silla turca', d: 'Protuberancia selar en la pared posterior.', hl: 'sella', tool: 'none', check: LOOK('sella') }
+  ] },
+  septo: { name: 'Septoplastia', guide: 'killian', steps: [
+    { t: 'Incisión de Killian', d: 'Monopolar en corte: incisión vertical ~1 cm por detrás del borde caudal, siguiendo la guía.', hl: 'septum', view: 26, tool: 'monopolar', mono: 'cut', check: { fn: () => { const p = incisions.filter(q => q.x > 0 && Math.abs(q.z + 4) < 3); if (p.length < 25) return false; let a = 99, b = -99; for (const q of p) { a = Math.min(a, q.y); b = Math.max(b, q.y); } return b - a > 15; } } },
+    { t: 'Elevá el colgajo mucopericóndrico', d: 'Con la Freer apoyada sobre la mucosa por detrás de la incisión.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.length > 0 } },
+    { t: 'Resecá el cartílago desviado', d: 'Con pinza, en la zona central, conservando una L de ~1 cm dorsal y caudal.', hl: 'septcart', tool: 'pinza', check: CUT('septcart', box(-0.5, 0.5, 6, 26, -26, -8), 0.3) }
+  ], finish: () => (fracCut(['septcart'], box(-0.5, 0.5, 0, 48, -3, 6)) > 0.1 || fracCut(['septcart'], box(-0.5, 0.5, 36, 48, -30, 6)) > 0.1) ? '⚠ Comprometiste la L de soporte (dorsal o caudal): riesgo de nariz en silla de montar.' : 'L de soporte conservada ✓.' },
+  hadad: { name: 'Colgajo nasoseptal de Hadad', guide: 'hadad', steps: [
+    { t: 'Incisión superior', d: 'Monopolar en corte, 1–1,5 cm por debajo del techo, desde el nivel del ostium esfenoidal hacia adelante (guía verde).', hl: 'septum', view: 25, tool: 'monopolar', mono: 'cut', check: { fn: () => guideCov(0) >= 0.75 } },
+    { t: 'Incisión anterior', d: 'Vertical, del extremo anterior de la superior hasta el piso.', check: { fn: () => guideCov(1) >= 0.75 } },
+    { t: 'Incisión inferior', d: 'Por el piso hasta la coana, subiendo por el borde posterior del septum.', check: { fn: () => guideCov(2) >= 0.75 } },
+    { t: 'Elevá el colgajo', d: 'Freer apoyada dentro del área: debe incluir el pedículo con la arteria septal posterior.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.some(f => f.ped) } },
+    { t: 'Rotalo a la base de cráneo', d: 'Botón "Rotar colgajo a base de cráneo" (panel Septum y colgajos).', check: { fn: () => flaps.some(f => f.rotated === 'skull') } }
+  ] },
+  sella: { name: 'Abordaje transesfenoidal a la silla turca', prep: 'sphenoid', steps: [
+    { t: 'Identificá la silla turca', d: 'Protuberancia selar en el centro de la pared posterior.', hl: 'sella', view: 19, tool: 'none', check: LOOK('sella') },
+    { t: 'Identificá la carótida', d: 'Reparo lateral: prominencia carotídea (paraclival / paraselar).', hl: 'ica_ps', check: LOOK('carotid') },
+    { t: 'Identificá el receso opticocarotídeo', d: 'Entre el nervio óptico y la carótida.', hl: 'ocr', check: LOOK(['ocr', 'optic']) },
+    { t: 'Fresá el piso selar', d: 'Con drill, de medial a lateral, sin pasar los reparos carotídeos.', hl: 'sella', tool: 'drill', check: CUT('sella', box(-6, 6, 25, 37, -88, -84), 0.35) },
+    { t: 'Abrí la duramadre', d: 'Con pinza, incisión central (en cruz).', hl: 'selladura', tool: 'pinza', check: CUT('selladura', box(-5.5, 5.5, 26, 36, -89, -86), 0.3) },
+    { t: 'Identificá la hipófisis', d: 'Glándula dentro de la silla.', hl: 'pituitary', tool: 'none', check: LOOK('pituitary') }
+  ] },
+  ppf: { name: 'Fosa pterigopalatina (transmaxilar)', prep: 'antro', steps: [
+    { t: 'Fresá la pared posterior del seno maxilar', d: 'Desde la antrostomía, con drill, en su porción medial.', hl: 'maxpost', view: 22, tool: 'drill', check: CUT('maxpost', box(18, 26, 12, 25.5, -55, -53), 0.45, 1) },
+    { t: 'Identificá la arteria maxilar interna', d: 'En el plano anterior, dentro de la grasa.', hl: 'ima', tool: 'none', check: LOOK('ima') },
+    { t: 'Identificá el ganglio pterigopalatino', d: 'Plano posterior, medial.', hl: 'ppg', check: LOOK(['ppg', 'vid']) },
+    { t: 'Identificá V2', d: 'Plano posterior, superolateral.', hl: 'v2', check: LOOK('v2') },
+    { t: 'Identificá el agujero redondo', d: 'En la pared posterior de la fosa, por donde sale V2.', hl: 'frotundum', view: 23, check: LOOK(['frotundum', 'pterygbase']) },
+    { t: 'Identificá el conducto vidiano', d: 'Inferomedial al agujero redondo.', hl: 'vidcanal', check: LOOK(['vidcanal', 'vid']) }
+  ] },
+  hemo: { name: 'Control de sangrado de la etmoidal anterior', prep: 'hemo', after: () => addBleed('aea1', 'A. etmoidal anterior', V(12, 44.85, -30), 2.6, 16), steps: [
+    { t: 'Coagulá la arteria', d: 'Bipolar sobre el punto que sangra en el techo etmoidal (si no lo ves, aspirá primero).', hl: 'aea', view: 10, tool: 'bipolar', check: { fn: () => !bleeds.some(b => b.active) } },
+    { t: 'Aspirá la sangre', d: 'Aspirador sobre la sangre acumulada hasta dejar el campo limpio.', tool: 'aspirador', check: { fn: () => bleeds.length === 0 } }
+  ] }
+};
+$('#procSel').innerHTML = Object.entries(PROCS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+const G = { on: false, proc: null, i: 0, t0: 0, hold: 0, wait: 0, done: false, chk: 0 };
+// anillo naranja que señala la estructura objetivo
+const hl = new THREE.Group(); anatomy.add(hl);
+const hlMat = new THREE.MeshBasicMaterial({ color: 0xffa94d, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false });
+const hlRing = new THREE.Mesh(new THREE.RingGeometry(1.6, 2.1, 40), hlMat); hl.add(hlRing);
+hl.add(new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 8), hlMat));
+hl.traverse(o => { o.renderOrder = 31; o.layers.enable(WORLD_LAYER); }); hl.visible = false;
+function viewOf(v) { const t = typeof v === 'number' ? TOUR[v] : v; return { pos: t.pos, target: t.target, angle: t.angle, roll: t.roll }; }
+function enterStep() {
+  const st = G.proc.steps[G.i]; G.hold = 0; G.wait = 0; G.chk = 0;
+  if (st.view !== undefined) goTo(viewOf(st.view));
+  if (st.tool) setTool(st.tool);
+  if (st.mono) setMono(st.mono);
+  const a = st.hl ? ANCHORS.find(x => x.key === st.hl) : null;
+  G.hlp = a ? a.p.clone() : null;
+  renderCard();
+}
+function renderCard() {
+  const c = $('#gcard'), n = G.proc.steps.length;
+  c.style.display = G.on ? 'block' : 'none'; c.classList.toggle('ok', G.done || G.wait > 0);
+  $('#gProc').textContent = 'Cirugía guiada · ' + G.proc.name;
+  if (G.done) {
+    const t = (performance.now() - G.t0) / 1000;
+    $('#gStep').textContent = '✔ Procedimiento completado';
+    $('#gText').innerHTML = `Tiempo: ${Math.floor(t / 60)}:${String(Math.round(t % 60)).padStart(2, '0')} · Complicaciones: ${state.comps.length}${state.comps.length ? ' (' + state.comps.slice(0, 4).join('; ') + ')' : ''}${G.proc.finish ? '<br>' + G.proc.finish() : ''}`;
+    $('#gFill').style.width = '100%'; $('#gView').textContent = 'Repetir'; $('#gSkip').style.display = 'none';
+  } else {
+    const st = G.proc.steps[G.i];
+    $('#gStep').textContent = `Paso ${G.i + 1}/${n}: ${st.t}`;
+    $('#gText').textContent = st.d;
+    $('#gFill').style.width = (G.i / n * 100) + '%'; $('#gView').textContent = 'Ir a la vista'; $('#gSkip').style.display = '';
+  }
+}
+function startProc(id) {
+  if (state.model !== 'generic') setModel('generic');
+  resetCuts(); setXray(false);
+  G.on = true; G.proc = PROCS[id]; G.i = 0; G.t0 = performance.now(); G.done = false;
+  if (G.proc.prep) runPrep(G.proc.prep);
+  setGuide(G.proc.guide || 'none');
+  if (G.proc.after) G.proc.after();
+  if (G.proc.steps[0].view === undefined) goTo(TOUR[0]);
+  $('#stepText').style.display = 'none';
+  enterStep();
+}
+function stopProc() { G.on = false; G.done = false; hl.visible = false; $('#gcard').style.display = 'none'; setGuide('none'); }
+function stepDone(st, dt) {
+  const c = st.check;
+  if (c.look) { if (c.look.includes(lookKey)) G.hold += dt; else G.hold = Math.max(0, G.hold - dt); return G.hold > 0.7; }
+  G.chk -= dt; if (G.chk > 0) return false; G.chk = 0.3;
+  if (c.cut) return fracCut(c.cut.keys, c.cut.box, c.cut.side) >= c.cut.thr;
+  return c.fn();
+}
+function updateGuided(dt) {
+  hl.visible = G.on && !G.done && !!G.hlp && state.model === 'generic';
+  if (hl.visible) {
+    hl.position.copy(G.hlp);
+    const camL = anatomy.worldToLocal(endoCam.position.clone()), d = camL.distanceTo(G.hlp);
+    hl.scale.setScalar(THREE.MathUtils.clamp(d * 0.06, 0.35, 2.2) * (1 + 0.12 * Math.sin(performance.now() / 160)));
+    hl.lookAt(camL);
+  }
+  if (!G.on || G.done) return;
+  if (G.wait > 0) {
+    G.wait -= dt;
+    if (G.wait <= 0) { G.i++; if (G.i >= G.proc.steps.length) { G.done = true; renderCard(); toast('✔ Procedimiento completado.'); } else enterStep(); }
+    return;
+  }
+  const st = G.proc.steps[G.i];
+  if (stepDone(st, dt)) { G.wait = 1.1; toast('✔ ' + st.t); haptic(0.4, 60); renderCard(); }
+}
+document.querySelectorAll('#pmode button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#pmode button').forEach(x => x.classList.toggle('on', x === b));
+  const g = b.dataset.v === 'guided';
+  $('#gsel').style.display = g ? 'block' : 'none';
+  $('#tourGrp').style.display = g || state.model === 'ct' ? 'none' : 'block';
+  if (!g) stopProc();
+});
+$('#btnStart').onclick = () => startProc($('#procSel').value);
+$('#gView').onclick = () => {
+  if (G.done) { startProc(Object.keys(PROCS).find(k => PROCS[k] === G.proc)); return; }
+  for (let j = G.i; j >= 0; j--) { const v = G.proc.steps[j].view; if (v !== undefined) { goTo(viewOf(v)); break; } }
+};
+$('#gSkip').onclick = () => { if (!G.done) { G.wait = 0.01; toast('Paso salteado.'); } };
+$('#gExit').onclick = () => { stopProc(); };
 
 /* ============================== MÁSCARA Y RESIZE ============================== */
 function onResize() {
@@ -1991,6 +2542,7 @@ renderer.setAnimationLoop(() => {
   updateInstrumentCommon(dt);
   updateEffects(dt);
   updateMarker(dt);
+  updateGuided(dt);
   if (cutDirty) { cutTex.needsUpdate = true; cutDirty = false; }
   $('#notchWrap').style.transform = `rotate(${-state.roll / D2R + (state.side < 0 ? 0 : 0)}deg)`;
   frameN++;
@@ -2008,7 +2560,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

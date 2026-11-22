@@ -7,14 +7,19 @@ Autor: Dr. Sebastián Aragón — Servicio de ORL, Hospital Italiano de Buenos A
 ## Cómo usarlo
 Abrí `index.html` en un navegador moderno (Chrome, Edge o el navegador del Meta Quest). Si GitHub Pages está activado, se puede abrir directamente desde la web del repositorio.
 
+### Modo de práctica
+- **Libre:** exploración y cirugía sin restricciones, con recorrido guiado de 28 vistas.
+- **Cirugía guiada:** elegís el procedimiento (CENS completa, Draf I, IIa, IIb y III, esfenoidotomía, esfenoidotomía bilateral, septoplastia, colgajo nasoseptal de Hadad, abordaje transesfenoidal a la silla turca, fosa pterigopalatina, control de sangrado de la etmoidal anterior). Cada paso señala la estructura objetivo, indica el instrumento y avanza solo cuando el paso se cumplió (identificación, resección, medialización, hemostasia, incisiones, colgajo). Al final muestra tiempo y complicaciones.
+
 ### Modelos
-- **Genérico (bilateral):** anatomía esquemática de ambas fosas con recorrido guiado de 19 pasos: secuencia CENS, **Draf I, IIa, IIb y III** (septectomía superior y tabique intersinusal frontal fresables) y **esfenoidotomía ampliada y bilateral** (septectomía posterior, tabique intersinusal esfenoidal, arteria septal posterior).
+- **Genérico (bilateral):** anatomía esquemática de ambas fosas con recorrido guiado de 19 pasos: secuencia CENS, **Draf I, IIa, IIb y III** (septectomía superior y tabique intersinusal frontal fresables) y **esfenoidotomía ampliada y bilateral** (septectomía posterior, tabique intersinusal esfenoidal, arteria septal posterior). Incluye **abordaje a la silla turca** (piso selar, duramadre, hipófisis, carótida por segmentos, seno cavernoso con pares III, IV, V1, V2 y VI), **fosa pterigopalatina** (maxilar interna y ramas, ganglio, V2, agujero redondo, conducto vidiano) y **fosa infratemporal** (pterigoideos, agujero oval, V3), además de **septoplastia y colgajos** (monopolar en corte, elevación con Freer, colgajo de Hadad y cierre de perforación).
 - **TC del paciente:** cargá una carpeta DICOM o un `.zip` con la serie. Todo se procesa localmente en el navegador; las imágenes no se suben a ningún lado. Usar siempre estudios **anonimizados**. En `ejemplo/tc_fantoma.zip` hay una TC sintética de prueba.
 
 ### Controles (computadora)
 - `W`/`S` o rueda: avanzar/retroceder hacia donde mira la óptica · `A`/`D` lateral · `R`/`F` arriba/abajo
 - Flechas o arrastre: orientar · `Z`/`X`: rotar óptica angulada · `O`: cambiar óptica (0°/30°/45°/70°)
 - Modo *Explorar*: clic sobre un punto → el endoscopio viaja hasta ahí · `T`: viajar al centro de la cruz
+- `M`: monopolar en modo corte/coagulación
 - Instrumentos (`1`–`7`): explorar, pinza cortante, drill, bipolar, monopolar, aspirador y espátula de Freer
 - Lesionar la etmoidal anterior/posterior o la esfenopalatina produce un sangrado pulsátil: coagular con bipolar (o monopolar, con riesgo térmico cerca de órbita y base de cráneo) y aspirar
 - Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados para medializar/lateralizar · `Espacio`: lavado-aspiración general

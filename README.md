@@ -20,7 +20,8 @@ Abrí `index.html` en un navegador moderno (Chrome, Edge o el navegador del Meta
 - Flechas o arrastre: orientar · `Z`/`X`: rotar óptica angulada · `O`: cambiar óptica (0°/30°/45°/70°)
 - Modo *Explorar*: clic sobre un punto → el endoscopio viaja hasta ahí · `T`: viajar al centro de la cruz
 - `M`: monopolar en modo corte/coagulación
-- Instrumentos (`1`–`7`): explorar, pinza cortante, drill, bipolar, monopolar, aspirador y espátula de Freer
+- Instrumentos (`1`–`8`): explorar, pinza cortante, drill, bipolar, monopolar, aspirador, espátula de Freer y pinza de agarre
+- Colgajos: incisiones con monopolar en corte → la Freer despega la mucosa progresivamente (queda unida por el pedículo) → la pinza de agarre toma el colgajo y lo mueve (simulación de lámina blanda); botones para rotar a base de cráneo, a una perforación o reposicionar
 - Lesionar la etmoidal anterior/posterior o la esfenopalatina produce un sangrado pulsátil: coagular con bipolar (o monopolar, con riesgo térmico cerca de órbita y base de cráneo) y aspirar
 - Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados para medializar/lateralizar · `Espacio`: lavado-aspiración general
 

@@ -109,12 +109,12 @@
   <div class="grp"><label>Óptica</label>
     <div class="seg" id="optic"><button data-v="0" class="on">0°</button><button data-v="30">30°</button><button data-v="45">45°</button><button data-v="70">70°</button></div></div>
   <div class="grp"><label>Instrumento</label>
-    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button></div>
+    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button><button data-v="grasp">Pinza de agarre</button></div>
     <div class="seg" id="monoMode" style="display:none;margin-top:6px"><button data-v="coag" class="on">Monopolar: coagular</button><button data-v="cut">Monopolar: cortar</button></div></div>
   <div class="grp" id="flapGrp"><label>Septum y colgajos</label>
     <div class="seg"><button id="btnGHadad">Guía Hadad</button><button id="btnGKillian">Guía Killian</button><button id="btnPerf">Crear perforación</button></div>
-    <div class="seg" style="margin-top:4px"><button id="btnRotSkull">Rotar colgajo a base de cráneo</button><button id="btnRotPerf">Rotar a la perforación</button></div>
-    <div class="mut">Monopolar en <b>cortar</b> (tecla <kbd>M</kbd>): dibujá las incisiones manteniendo el clic. <b>Freer</b> apoyada adentro del área delimitada: eleva el colgajo y deja ver el cartílago.</div></div>
+    <div class="seg" style="margin-top:4px"><button id="btnRotSkull">Rotar colgajo a base de cráneo</button><button id="btnRotPerf">Rotar a la perforación</button><button id="btnRepos">Reposicionar colgajo</button></div>
+    <div class="mut">Monopolar en <b>cortar</b> (tecla <kbd>M</kbd>): dibujá las incisiones manteniendo el clic. <b>Freer</b> apoyada y arrastrada adentro del área: despega el colgajo de a poco (queda unido por el pedículo). <b>Pinza de agarre</b> (<kbd>8</kbd>): tomalo del borde y movelo.</div></div>
   <div class="grp checks">
     <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
     <label><input type="checkbox" id="chkXray"> Estructuras de riesgo (transparencia)</label>
@@ -344,7 +344,7 @@ const INFO = {
   septum: ['Tabique nasal (septum)', 'Límite medial de la fosa. Se puede fresar: septectomía superior (Draf III) o posterior (esfenoidotomía bilateral). Arriba, el contacto con la lámina cribosa es zona de riesgo.'],
   septcart: ['Cartílago cuadrangular', 'Se expone al elevar el colgajo mucopericóndrico. En la septoplastia se reseca la parte desviada conservando una L de ~1 cm dorsal y caudal.'],
   septbone: ['Lámina perpendicular del etmoides / vómer', 'Porción ósea posterior del septum, debajo del colgajo mucoperióstico.'],
-  flap: ['Colgajo mucopericóndrico', 'Colgajo elevado. Rotalo con los botones de "Septum y colgajos".'],
+  flap: ['Colgajo mucopericóndrico', 'Despegalo con la Freer (queda unido por el pedículo y los bordes no incididos); tomalo con la pinza de agarre para moverlo, o usá los botones de rotar y reposicionar.'],
   beak: ['Pico frontal / piso del receso frontal', 'Hueso que se fresa para ampliar el ostium frontal: hacia lateral en el Draf IIa, hasta el septum en el IIb y bilateral en el III. Límite anterior: tabla externa y piel.'],
   frontfloor: ['Piso del seno frontal', 'Se reseca en el Draf II: IIa entre lámina papirácea y cornete medio; IIb entre lámina papirácea y septum.'],
   frontsept: ['Tabique intersinusal frontal', 'Se reseca en el Draf III para unir ambos senos frontales en una cavidad común.'],
@@ -913,7 +913,8 @@ function onTrigger(c, down) {
   if (c.userData.hand !== 'right') return;
   if (state.tool === 'pinza' && down) doBite(tipWorld.clone(), 2.2);
   if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = down;
-  if (state.tool === 'freer') { if (down) startFreerVR(); else if (freerGrab) endFreer(); }
+  if (state.tool === 'freer') { if (down) startFreerVR(); else { using = false; if (freerGrab) endFreer(); } }
+  if (state.tool === 'grasp') { if (down) grabFlapAt(anatomy.worldToLocal(tipWorld.clone()), null, 0); else releaseFlap(); }
   if (state.tool === 'drill') drilling = down;
 }
 const S = () => state.S;
@@ -1162,6 +1163,7 @@ seg('side', v => setSide(+v));
 seg('optic', v => setAngle(+v));
 seg('tool', v => setTool(v));
 function setTool(v) {
+  releaseFlap();
   state.tool = v; drilling = false; using = false; freerGrab = null;
   $('#monoMode').style.display = v === 'monopolar' ? 'flex' : 'none';
   document.querySelectorAll('#tool button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
@@ -1210,7 +1212,7 @@ addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   keys[e.code] = true;
   if (e.code === 'KeyM') { setTool('monopolar'); setMono(state.monoMode === 'cut' ? 'coag' : 'cut'); }
-  { const TK = { Digit1: 'none', Digit2: 'pinza', Digit3: 'drill', Digit4: 'bipolar', Digit5: 'monopolar', Digit6: 'aspirador', Digit7: 'freer' }; if (TK[e.code]) setTool(TK[e.code]); }
+  { const TK = { Digit1: 'none', Digit2: 'pinza', Digit3: 'drill', Digit4: 'bipolar', Digit5: 'monopolar', Digit6: 'aspirador', Digit7: 'freer', Digit8: 'grasp' }; if (TK[e.code]) setTool(TK[e.code]); }
   if (e.code === 'KeyO') { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
   if (e.code === 'KeyL') { $('#chkLabels').checked = !state.labels; $('#chkLabels').onchange({ target: $('#chkLabels') }); }
   if (e.code === 'KeyG') setXray(!state.xray);
@@ -1245,6 +1247,7 @@ cv.addEventListener('pointerdown', e => {
     if (state.tool === 'drill') drilling = true;
     if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = true;
     if (state.tool === 'freer') startFreerDesktop(e);
+    if (state.tool === 'grasp') { if (!(tipHit && tipHit.object.userData.flap && grabFlapAt(anatomy.worldToLocal(tipHit.point.clone()), tipHit.object.userData.flap, tipHit.distance))) { if (!flaps.length) toast('La pinza de agarre toma el colgajo despegado (no corta).'); } }
   }
 });
 addEventListener('pointerup', e => {
@@ -1252,6 +1255,7 @@ addEventListener('pointerup', e => {
   if (e.button === 0) {
     drilling = false; using = false;
     if (freerGrab) endFreer();
+    releaseFlap();
     if (dragLook) {
       if (!looking && e.target === cv) { ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); flyToCursor(); }
       dragLook = false; looking = false;
@@ -1323,7 +1327,7 @@ function updateVR(dt) {
     } else {
       tipWorld.copy(_p).addScaledVector(fwd, 0.12);
       instr.position.copy(tipWorld); instr.quaternion.copy(_q);
-      if (edge(c, 4)) { const T = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % T.length]); }
+      if (edge(c, 4)) { const T = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'grasp', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % T.length]); }
       vrFwd.copy(fwd);
       if (edge(c, 5)) setXray(!state.xray);
       if (edge(c, 1) && state.tool === 'monopolar') setMono(state.monoMode === 'cut' ? 'coag' : 'cut');
@@ -1368,14 +1372,15 @@ function updateInstrumentDesktop(dt) {
   }
 }
 function updateInstrumentCommon(dt) {
-  pinza.visible = state.tool === 'pinza'; drill.visible = state.tool === 'drill';
+  pinza.visible = state.tool === 'pinza' || state.tool === 'grasp'; drill.visible = state.tool === 'drill';
   bip.visible = state.tool === 'bipolar'; mono.visible = state.tool === 'monopolar'; asp.visible = state.tool === 'aspirador'; freerM.visible = state.tool === 'freer';
   shaft.material = state.tool === 'bipolar' ? insBlue : state.tool === 'monopolar' ? insYellow : shaftSteel;
   if (state.tool === 'bipolar') { const k = using ? 0.35 : 1; bip.children[0].position.x = -0.55 * k - 0.2; bip.children[1].position.x = 0.55 * k + 0.2; }
   updateToolAction(dt);
   if (state.vr) instr.visible = state.tool !== 'none';
   jawClose = Math.max(0, jawClose - dt);
-  upPivot.rotation.x = jawClose > 0 ? 0 : -0.45;
+  upPivot.rotation.x = jawClose > 0 ? 0 : state.tool === 'grasp' ? -0.3 : -0.45;
+  upJaw.material = lowJaw.material = state.tool === 'grasp' ? shaftSteel : steel;
   if (state.tool === 'drill') burr.rotation.z += dt * (drilling ? 60 : 4);
 }
 function updateEffects(dt) {
@@ -1505,7 +1510,7 @@ function drawHUD() {
   const g = hudCanvas.getContext('2d');
   g.clearRect(0, 0, 1024, 220); g.fillStyle = 'rgba(10,12,16,.85)'; g.fillRect(0, 0, 1024, 220);
   g.fillStyle = '#9fffd0'; g.font = 'bold 34px system-ui';
-  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill', bipolar: 'Bipolar', monopolar: state.monoMode === 'cut' ? 'Monopolar (corte)' : 'Monopolar (coagulación)', aspirador: 'Aspirador', freer: 'Espátula de Freer' }[state.tool];
+  const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill', bipolar: 'Bipolar', monopolar: state.monoMode === 'cut' ? 'Monopolar (corte)' : 'Monopolar (coagulación)', aspirador: 'Aspirador', freer: 'Espátula de Freer', grasp: 'Pinza de agarre' }[state.tool];
   g.fillText(`Fosa ${state.side > 0 ? 'DERECHA' : 'IZQUIERDA'} · Óptica ${state.angle}° · ${toolN}`, 24, 50);
   g.fillStyle = '#fff'; g.font = '32px system-ui';
   g.fillText(G.on && G.proc ? `Paso ${Math.min(G.i + 1, G.proc.steps.length)}/${G.proc.steps.length}: ${G.done ? 'completado' : G.proc.steps[G.i].t}` : 'Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
@@ -1989,7 +1994,7 @@ function resetFx() {
   bleeds.length = 0; burnN = 0; burnIdx = 0; fxU.uBurnN.value = 0; fxU.uBloodN.value = 0; state.bleed = 0;
   drops.forEach(d => d.life = 0); smokes.forEach(d => d.life = 0);
   turbDisp.mt = 0; turbDisp.it = 0; applyTurb('mt'); applyTurb('it');
-  incisions.length = 0; lastInc = null; flaps.forEach(f => anatomy.remove(f.mesh)); flaps.length = 0; perforation = null;
+  incisions.length = 0; lastInc = null; flapGrab = null; flaps.forEach(f => { anatomy.remove(f.mesh); const k = meshes.indexOf(f.mesh); if (k >= 0) meshes.splice(k, 1); }); flaps.length = 0; perforation = null;
 }
 // partículas: gotas de sangre (chorro pulsátil) y humo de cauterio, en coordenadas de la anatomía
 const fxGroup = new THREE.Group(); anatomy.add(fxGroup);
@@ -2071,6 +2076,7 @@ function updateToolAction(dt) {
     const now = performance.now(); if (now - lastFx > 250) { lastFx = now; thermalDanger(lp, true); checkDanger(lp, 0.45); haptic(0.08, 10); }
     return;
   }
+  if (state.tool === 'freer') { const q = state.vr ? anatomy.worldToLocal(tipWorld.clone()) : lp; if (Math.abs(q.x) < 3.5) dissect(V(q.x < 0 ? -0.8 : 0.8, q.y, q.z)); return; }
   if (state.tool === 'aspirador') { suctionOn = true; suctionTipL.copy(lp); return; }
   if (state.tool === 'bipolar' || state.tool === 'monopolar') {
     const isMono = state.tool === 'monopolar', now = performance.now();
@@ -2130,7 +2136,11 @@ function freerLabel(k) {
 function startFreerDesktop(e) {
   if (state.model === 'ct') { toast('La espátula de Freer mueve cornetes sólo en el modelo genérico.'); return; }
   const hk = tipHit ? keyOfHit(tipHit) : null;
-  if (hk === 'septum' || hk === 'septcart' || hk === 'septbone') { elevateFlap(anatomy.worldToLocal(tipHit.point.clone())); return; }
+  if (hk === 'flap' || hk === 'septum' || hk === 'septcart' || hk === 'septbone') {
+    const lp = anatomy.worldToLocal(tipHit.point.clone());
+    if (hk === 'flap' || flapAt(lp) || elevateFlap(lp)) { using = true; dissect(lp); }
+    return;
+  }
   const k = hk ? turbKeyOf(hk) : null;
   if (!k) { toast('Apoyá la espátula sobre un cornete (para moverlo) o sobre el septum dentro de un colgajo delimitado (para elevarlo).'); return; }
   freerGrab = { k, x0: e.clientX, base: turbDisp[k] };
@@ -2145,7 +2155,7 @@ function moveFreerDesktop(e) {
 function startFreerVR() {
   if (state.model === 'ct') return;
   const lp = anatomy.worldToLocal(tipWorld.clone());
-  if (Math.abs(lp.x) < 2.5 && septValid(lp.z, lp.y)) { elevateFlap(V((lp.x < 0 ? -0.8 : 0.8), lp.y, lp.z)); haptic(0.3, 40); return; }
+  if (Math.abs(lp.x) < 3.5 && septValid(lp.z, lp.y)) { const q = V((lp.x < 0 ? -0.8 : 0.8), lp.y, lp.z); if (flapAt(q) || elevateFlap(q)) { using = true; dissect(q); haptic(0.3, 40); } return; }
   const em = (c, r) => Math.hypot((lp.x - c[0]) / r[0], (lp.y - c[1]) / r[1], (lp.z - c[2]) / r[2]);
   const dMT = em([6 + turbDisp.mt * 0.6, 26, -42], [2, 8, 18]), dIT = em([12 + turbDisp.it * 0.6, 10, -32], [5, 5.5, 26]);
   const k = dMT < 1.6 && dMT <= dIT ? 'mt' : dIT < 1.4 ? 'it' : null;
@@ -2183,8 +2193,8 @@ function monoCut(lp, dirL) {
 function septRoof(z) { if (z > -14) return 22 + (4 - z) * (22 / 18); if (z > -24) return 44; return yr(z); }
 function septValid(z, y) { if (z > 6 || z < -71 || y < 0) return false; if (z < -66) return y < 14; return y < septRoof(z) - 0.3; }
 const FG = { z0: -71, y0: 0, st: 0.5, nz: 155, ny: 97 };
-function elevateFlap(lp) {
-  if (state.model !== 'generic') return;
+function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo deja adherido; la Freer lo despega de a poco
+  if (state.model !== 'generic') return null;
   const sx = lp.x < 0 ? -1 : 1, { z0, y0, st, nz, ny } = FG, N = nz * ny;
   const valid = new Uint8Array(N), blocked = new Uint8Array(N);
   let nValid = 0;
@@ -2204,7 +2214,7 @@ function elevateFlap(lp) {
     const i = si + di, j = sj + dj; if (i < 0 || j < 0 || i >= nz || j >= ny) continue;
     const k = i + j * nz; if (valid[k] && !blocked[k]) { seed = k; break; }
   }
-  if (seed < 0) { toast('Apoyá la Freer sobre mucosa septal sana, dentro del área delimitada.'); return; }
+  if (seed < 0) { toast('Apoyá la Freer sobre mucosa septal sana, dentro del área delimitada.'); return null; }
   const reg = new Uint8Array(N), stack = [seed]; reg[seed] = 1; let n = 0;
   while (stack.length) {
     const k = stack.pop(); n++;
@@ -2215,64 +2225,159 @@ function elevateFlap(lp) {
       reg[kk] = 1; stack.push(kk);
     }
   }
-  if (n > nValid * 0.95) { toast('El colgajo no está delimitado: marcá las incisiones con el monopolar en modo corte y apoyá la Freer adentro.', 5000); return; }
-  if (n < 24) { toast('El área delimitada es demasiado chica para un colgajo.'); return; }
-  // elevar: retirar la mucosa del área (queda el cartílago/hueso a la vista) y crear el colgajo levantado
-  const pos = [], zy = [], idx = [];
+  if (n > nValid * 0.95) { toast('El colgajo no está delimitado: marcá las incisiones con el monopolar en modo corte y apoyá la Freer adentro.', 5000); return null; }
+  if (n < 24) { toast('El área delimitada es demasiado chica para un colgajo.'); return null; }
+  const inReg = (z, y) => { const i = Math.round((z - z0) / st), j = Math.round((y - y0) / st); return i >= 0 && j >= 0 && i < nz && j < ny && reg[i + j * nz] === 1; };
+  const isBlk = (z, y) => { const i = Math.round((z - z0) / st), j = Math.round((y - y0) / st); return i >= 0 && j >= 0 && i < nz && j < ny && blocked[i + j * nz] === 1; };
+  // retirar la mucosa del tabique en el área: la lámina del colgajo la reemplaza (y al despegarla aparece el cartílago)
   let cz = 0, cy = 0, ped = false, olf = false;
   state.prepping = true;
   for (let k = 0; k < N; k++) {
     if (!reg[k]) continue;
-    const i = k % nz, j = (k / nz) | 0, z = z0 + i * st, y = y0 + j * st;
-    addCut(V(sx * 0.8, y, z), 0.68);
-    cz += z; cy += y;
+    const z = z0 + (k % nz) * st, y = y0 + ((k / nz) | 0) * st;
+    addCut(V(sx * 0.8, y, z), 0.68); cz += z; cy += y;
     if (z < -56 && y > 19.5 && y < 25.5) ped = true;
     if (y > 41 && z < -24 && z > -62) olf = true;
-    const b = pos.length / 3;
-    for (const [dz, dy] of [[0, 0], [st, 0], [0, st], [st, st]]) {
-      const Z = z + dz - st / 2, Y = y + dy - st / 2;
-      pos.push(0, 0, 0); zy.push(Z, Y);
+  }
+  state.prepping = false; cz /= n; cy /= n;
+  // malla de la lámina (1 mm): vértices, aristas (estructurales y de corte) y estado de cada vértice
+  const S1 = 1, vid = new Map(), rest = [];
+  for (let z = Math.ceil(z0); z <= 6; z += S1) for (let y = 0; y <= 48; y += S1) if (inReg(z, y)) { vid.set(z + ',' + y, rest.length / 3); rest.push(sx * 0.86, y, z); }
+  const nv = rest.length / 3, stt = new Uint8Array(nv), idx = [], edges = [];
+  for (const [key, v] of vid) {
+    const [z, y] = key.split(',').map(Number);
+    const r = vid.get((z + 1) + ',' + y), u = vid.get(z + ',' + (y + 1)), ru = vid.get((z + 1) + ',' + (y + 1)), lu = vid.get((z - 1) + ',' + (y + 1));
+    if (r !== undefined) edges.push(v, r); if (u !== undefined) edges.push(v, u);
+    if (ru !== undefined) edges.push(v, ru); if (lu !== undefined) edges.push(v, lu);
+    if (r !== undefined && u !== undefined && ru !== undefined) idx.push(v, u, r, r, u, ru);
+    // pedículo / bordes no incididos: el vértice queda unido al resto de la mucosa
+    for (const [dz, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const qz = z + dz, qy = y + dy;
+      if (vid.has(qz + ',' + qy)) continue;
+      if (!isBlk(z + dz * 0.5, y + dy * 0.5) && !isBlk(qz, qy)) { stt[v] = 2; break; }
     }
-    idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
   }
-  state.prepping = false;
-  cz /= n; cy /= n;
-  let ymin = 1e9; for (let v = 1; v < zy.length; v += 2) ymin = Math.min(ymin, zy[v]);
-  for (let v = 0; v < pos.length / 3; v++) {   // colgajo plegado y apoyado sobre el piso de la fosa
-    const Z = zy[v * 2], Y = zy[v * 2 + 1];
-    pos[v * 3] = sx * Math.min(16.4, 1.6 + (Y - ymin) * 0.45); pos[v * 3 + 1] = 0.95; pos[v * 3 + 2] = Z;
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); planarUV(g);
-  const mesh = new THREE.Mesh(g, M.flap); mesh.userData = { key: 'flap' }; mesh.frustumCulled = false;
-  anatomy.add(mesh); meshes.push(mesh);
-  flaps.push({ mesh, sx, zy, cz, cy, ped, anim: null });
-  const area = n * st * st / 100;
-  toast(`Colgajo elevado: ${area.toFixed(1)} cm². ` + (ped ? 'Pedículo con la arteria septal posterior ✓.' : '⚠ No incluye la arteria septal posterior (sin pedículo para un Hadad).') + (olf ? ' ⚠ Incluiste la franja olfatoria superior: riesgo de hiposmia.' : ''), 8000, !ped || olf);
+  const pos = new Float32Array(rest), g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); planarUV(g);
+  const mesh = new THREE.Mesh(g, M.flap); mesh.frustumCulled = false;
+  const f = { mesh, sx, rest: new Float32Array(rest), pos, prev: new Float32Array(rest), st: stt, edges: new Int32Array(edges), rlen: null, cz, cy, ped, olf, grab: null, anim: null, rotated: null, area: n * st * st / 100 };
+  f.rlen = new Float32Array(edges.length / 2);
+  for (let e = 0; e < edges.length; e += 2) { const a = edges[e] * 3, b = edges[e + 1] * 3; f.rlen[e / 2] = Math.hypot(rest[a] - rest[b], rest[a + 1] - rest[b + 1], rest[a + 2] - rest[b + 2]); }
+  mesh.userData = { key: 'flap', flap: f };
+  anatomy.add(mesh); meshes.push(mesh); flaps.push(f);
+  toast(`Colgajo delimitado: ${f.area.toFixed(1)} cm². Pasá la Freer por toda el área para despegarlo. ` + (ped ? 'Incluye el pedículo de la arteria septal posterior ✓.' : '⚠ No incluye la arteria septal posterior.') + (olf ? ' ⚠ Incluye la franja olfatoria superior: riesgo de hiposmia.' : ''), 7000, !ped || olf);
+  return f;
 }
-function rotateFlap(target) {
-  const f = flaps[flaps.length - 1];
-  if (!f) { toast('Primero elevá un colgajo con la Freer.'); return; }
-  if (target === 'perf' && !perforation) { toast('No hay perforación: creala con "Crear perforación".'); return; }
-  const pa = f.mesh.geometry.attributes.position, from = pa.array.slice(), to = new Float32Array(from.length);
-  for (let v = 0; v < pa.count; v++) {
-    const z = f.zy[v * 2], y = f.zy[v * 2 + 1];
-    if (target === 'skull') { to[v * 3] = (z - f.cz) * 0.55; to[v * 3 + 1] = 31 + (y - f.cy) * 0.75; to[v * 3 + 2] = -84.2; }
-    else { to[v * 3] = f.sx * 0.98; to[v * 3 + 1] = perforation.y + (y - f.cy); to[v * 3 + 2] = perforation.z + (z - f.cz); }
-  }
-  f.anim = { t: 0, from, to }; f.rotated = target;
-  toast(target === 'skull'
-    ? (f.ped ? '✔ Colgajo nasoseptal rotado sobre el defecto selar / clival. El pedículo debe llegar sin tensión.' : '⚠ Colgajo rotado a la base de cráneo, pero sin pedículo de la septal posterior: necrosaría.')
-    : '✔ Colgajo llevado sobre la perforación septal.', 6000, target === 'skull' && !f.ped);
-}
-function updateFlaps(dt) {
+function flapAt(lp) {   // colgajo cuyo área contiene el punto (por su posición de reposo)
   for (const f of flaps) {
-    if (!f.anim) continue;
-    const a = f.anim; a.t = Math.min(1, a.t + dt / 1.6); const k = a.t * a.t * (3 - 2 * a.t);
-    const arr = f.mesh.geometry.attributes.position.array;
-    for (let i = 0; i < arr.length; i++) arr[i] = a.from[i] + (a.to[i] - a.from[i]) * k;
-    f.mesh.geometry.attributes.position.needsUpdate = true;
-    if (a.t >= 1) { f.mesh.geometry.computeVertexNormals(); f.mesh.geometry.computeBoundingSphere(); f.anim = null; }
+    if ((lp.x < 0 ? -1 : 1) !== f.sx) continue;
+    for (let v = 0; v < f.rest.length; v += 3) if (Math.abs(f.rest[v + 2] - lp.z) < 1.2 && Math.abs(f.rest[v + 1] - lp.y) < 1.2) return f;
+  }
+  return null;
+}
+function detFrac(f) { let a = 0, b = 0; for (let v = 0; v < f.st.length; v++) { if (f.st[v] === 2) continue; b++; if (f.st[v] !== 0) a++; } return b ? a / b : 0; }
+function dissect(lp) {   // Freer: despega los vértices adheridos cerca de la punta
+  let changed = 0;
+  for (const f of flaps) {
+    if ((lp.x < 0 ? -1 : 1) !== f.sx) continue;
+    for (let v = 0; v < f.st.length; v++) {
+      if (f.st[v] !== 0) continue;
+      const i = v * 3, d = Math.hypot(f.rest[i + 2] - lp.z, f.rest[i + 1] - lp.y);
+      if (d < 3.2) { f.st[v] = 1; f.pos[i] = f.prev[i] = f.sx * (0.86 + 0.9 * (1 - d / 3.2)); changed++; }
+    }
+    if (changed && !f.notified && detFrac(f) > 0.95) { f.notified = true; toast('Colgajo despegado. Tomalo con la pinza de agarre para moverlo, o usá los botones de rotar.', 5000); }
+  }
+  return changed;
+}
+function nearestVertex(f, lp, maxD) {
+  let best = -1, bd = maxD;
+  for (let v = 0; v < f.st.length; v++) { const i = v * 3, d = Math.hypot(f.pos[i] - lp.x, f.pos[i + 1] - lp.y, f.pos[i + 2] - lp.z); if (d < bd) { bd = d; best = v; } }
+  return best;
+}
+let flapGrab = null;
+function grabFlapAt(lp, f, depth) {
+  f = f || flaps.find(ff => nearestVertex(ff, lp, 3) >= 0);
+  if (!f) return false;
+  const v = nearestVertex(f, lp, 3); if (v < 0) return false;
+  if (f.st[v] === 0) { toast('Esa parte sigue adherida: despegala primero con la Freer.'); return false; }
+  if (f.st[v] === 2) { toast('Esa zona es el pedículo: queda unida.'); return false; }
+  f.st[v] = 1; flapGrab = { f, v, depth }; jawClose = 99; haptic(0.3, 40);
+  return true;
+}
+function releaseFlap() { if (flapGrab) { flapGrab = null; jawClose = 0; } }
+function placeFlap(target) {
+  const f = flaps[flaps.length - 1];
+  if (!f) { toast('Primero delimitá y despegá un colgajo.'); return; }
+  if (target !== 'rest' && detFrac(f) < 0.8) { toast('Despegá más el colgajo con la Freer antes de moverlo (' + Math.round(detFrac(f) * 100) + '% despegado).'); return; }
+  if (target === 'perf' && !perforation) { toast('No hay perforación: creala con "Crear perforación".'); return; }
+  const from = f.pos.slice(), to = f.pos.slice();
+  for (let v = 0; v < f.st.length; v++) {
+    if (f.st[v] === 2 || (target !== 'rest' && f.st[v] === 0)) continue;
+    const i = v * 3, z = f.rest[i + 2], y = f.rest[i + 1];
+    if (target === 'skull') { to[i] = (z - f.cz) * 0.55; to[i + 1] = 31 + (y - f.cy) * 0.75; to[i + 2] = -84.2; }
+    else if (target === 'perf') { to[i] = f.sx * 0.98; to[i + 1] = perforation.y + (y - f.cy); to[i + 2] = perforation.z + (z - f.cz); }
+    else { to[i] = f.rest[i]; to[i + 1] = y; to[i + 2] = z; }
+  }
+  f.anim = { t: 0, from, to, target }; releaseFlap();
+  toast(target === 'skull' ? (f.ped ? '✔ Colgajo nasoseptal rotado sobre el defecto selar / clival; el pedículo queda unido.' : '⚠ Colgajo rotado a la base de cráneo, pero sin pedículo de la septal posterior: necrosaría.')
+    : target === 'perf' ? '✔ Colgajo llevado sobre la perforación septal.' : 'Colgajo reposicionado sobre el tabique.', 6000, target === 'skull' && !f.ped);
+}
+const rotateFlap = placeFlap;
+let flapFrame = 0;
+function updateFlaps(dt) {
+  flapFrame++;
+  for (const f of flaps) {
+    const P = f.pos, R0 = f.rest, st = f.st, n = st.length;
+    if (f.anim) {
+      const a = f.anim; a.t = Math.min(1, a.t + dt / 1.4); const k = a.t * a.t * (3 - 2 * a.t);
+      for (let i = 0; i < P.length; i++) P[i] = a.from[i] + (a.to[i] - a.from[i]) * k;
+      f.prev.set(P);
+      if (a.t >= 1) {
+        for (let v = 0; v < n; v++) if (st[v] !== 2 && (a.target === 'rest' || st[v] !== 0)) st[v] = a.target === 'rest' ? 0 : 3;
+        if (a.target === 'rest') { f.notified = false; f.rotated = null; } else f.rotated = a.target;
+        f.anim = null;
+      }
+    } else {
+      let anyFree = false; for (let v = 0; v < n; v++) if (st[v] === 1) { anyFree = true; break; }
+      if (anyFree) {
+        // target del agarre (pinza de agarre)
+        let gT = null;
+        if (flapGrab && flapGrab.f === f) {
+          if (state.vr) gT = anatomy.worldToLocal(tipWorld.clone());
+          else { ray.setFromCamera(ndc, endoCam); gT = anatomy.worldToLocal(endoCam.position.clone().addScaledVector(ray.ray.direction, flapGrab.depth)); }
+        }
+        const gy = -18 * dt * dt, damp = 0.94, Pv = f.prev;
+        for (let v = 0; v < n; v++) {
+          if (st[v] !== 1) continue; const i = v * 3;
+          const vx = (P[i] - Pv[i]) * damp, vy = (P[i + 1] - Pv[i + 1]) * damp, vz = (P[i + 2] - Pv[i + 2]) * damp;
+          Pv[i] = P[i]; Pv[i + 1] = P[i + 1]; Pv[i + 2] = P[i + 2];
+          P[i] += vx; P[i + 1] += vy + gy; P[i + 2] += vz;
+        }
+        const E = f.edges, L = f.rlen, gv = gT ? flapGrab.v : -1;
+        for (let it = 0; it < 7; it++) {
+          if (gT) { const i = gv * 3; P[i] = gT.x; P[i + 1] = gT.y; P[i + 2] = gT.z; }
+          for (let e = 0; e < E.length; e += 2) {
+            const a = E[e], b = E[e + 1], fa = st[a] === 1 && a !== gv, fb = st[b] === 1 && b !== gv;
+            if (!fa && !fb) continue;
+            const ia = a * 3, ib = b * 3, dx = P[ib] - P[ia], dy = P[ib + 1] - P[ia + 1], dz = P[ib + 2] - P[ia + 2];
+            const d = Math.hypot(dx, dy, dz) || 1e-6, c = (d - L[e / 2]) / d;
+            const wa = fa && fb ? 0.5 : fa ? 1 : 0, wb = fa && fb ? 0.5 : fb ? 1 : 0;
+            P[ia] += dx * c * wa; P[ia + 1] += dy * c * wa; P[ia + 2] += dz * c * wa;
+            P[ib] -= dx * c * wb; P[ib + 1] -= dy * c * wb; P[ib + 2] -= dz * c * wb;
+          }
+          // choques simples: no atravesar el tabique (salvo por una ventana), el piso ni la pared lateral
+          for (let v = 0; v < n; v++) {
+            if (st[v] !== 1 || v === gv) continue; const i = v * 3, z = P[i + 2], y = P[i + 1];
+            if (f.sx * P[i] < 0.9 && septValid(z, y) && !isCut(_fp.set(0, y, z))) P[i] = f.sx * 0.9;
+            if (y < 0.6 && z > -96) P[i + 1] = 0.6;
+            if (z > -66 && Math.abs(P[i]) > 16.6) P[i] = Math.sign(P[i]) * 16.6;
+          }
+        }
+      }
+    }
+    const pa = f.mesh.geometry.attributes.position; pa.needsUpdate = true;
+    if (flapFrame % 2 === 0) f.mesh.geometry.computeVertexNormals();
+    if (flapFrame % 6 === 0) f.mesh.geometry.computeBoundingSphere();
   }
   guideGroup.visible = state.model === 'generic' && guideMode !== 'none';
 }
@@ -2303,6 +2408,7 @@ $('#btnGKillian').onclick = () => setGuide(guideMode === 'killian' ? 'none' : 'k
 $('#btnPerf').onclick = () => { if (!perforation) makePerforation(); };
 $('#btnRotSkull').onclick = () => rotateFlap('skull');
 $('#btnRotPerf').onclick = () => rotateFlap('perf');
+$('#btnRepos').onclick = () => placeFlap('rest');
 
 
 /* ============================== CIRUGÍA GUIADA ============================== */
@@ -2403,15 +2509,15 @@ const PROCS = {
   ] },
   septo: { name: 'Septoplastia', guide: 'killian', steps: [
     { t: 'Incisión de Killian', d: 'Monopolar en corte: incisión vertical ~1 cm por detrás del borde caudal, siguiendo la guía.', hl: 'septum', view: 26, tool: 'monopolar', mono: 'cut', check: { fn: () => { const p = incisions.filter(q => q.x > 0 && Math.abs(q.z + 4) < 3); if (p.length < 25) return false; let a = 99, b = -99; for (const q of p) { a = Math.min(a, q.y); b = Math.max(b, q.y); } return b - a > 15; } } },
-    { t: 'Elevá el colgajo mucopericóndrico', d: 'Con la Freer apoyada sobre la mucosa por detrás de la incisión.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.length > 0 } },
+    { t: 'Elevá el colgajo mucopericóndrico', d: 'Con la Freer, pasándola por detrás de la incisión, despegá la mucosa (≥ 50%) hasta ver el cartílago.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.some(f => detFrac(f) >= 0.5) } },
     { t: 'Resecá el cartílago desviado', d: 'Con pinza, en la zona central, conservando una L de ~1 cm dorsal y caudal.', hl: 'septcart', tool: 'pinza', check: CUT('septcart', box(-0.5, 0.5, 6, 26, -26, -8), 0.3) }
   ], finish: () => (fracCut(['septcart'], box(-0.5, 0.5, 0, 48, -3, 6)) > 0.1 || fracCut(['septcart'], box(-0.5, 0.5, 36, 48, -30, 6)) > 0.1) ? '⚠ Comprometiste la L de soporte (dorsal o caudal): riesgo de nariz en silla de montar.' : 'L de soporte conservada ✓.' },
   hadad: { name: 'Colgajo nasoseptal de Hadad', guide: 'hadad', steps: [
     { t: 'Incisión superior', d: 'Monopolar en corte, 1–1,5 cm por debajo del techo, desde el nivel del ostium esfenoidal hacia adelante (guía verde).', hl: 'septum', view: 25, tool: 'monopolar', mono: 'cut', check: { fn: () => guideCov(0) >= 0.75 } },
     { t: 'Incisión anterior', d: 'Vertical, del extremo anterior de la superior hasta el piso.', check: { fn: () => guideCov(1) >= 0.75 } },
     { t: 'Incisión inferior', d: 'Por el piso hasta la coana, subiendo por el borde posterior del septum.', check: { fn: () => guideCov(2) >= 0.75 } },
-    { t: 'Elevá el colgajo', d: 'Freer apoyada dentro del área: debe incluir el pedículo con la arteria septal posterior.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.some(f => f.ped) } },
-    { t: 'Rotalo a la base de cráneo', d: 'Botón "Rotar colgajo a base de cráneo" (panel Septum y colgajos).', check: { fn: () => flaps.some(f => f.rotated === 'skull') } }
+    { t: 'Despegá el colgajo', d: 'Pasá la Freer por toda el área delimitada (≥ 85%). Debe quedar unido por el pedículo de la arteria septal posterior.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.some(f => f.ped && detFrac(f) >= 0.85) } },
+    { t: 'Llevalo a la base de cráneo', d: 'Con la pinza de agarre tomá el borde anterior y llevalo hacia el esfenoides, o usá el botón "Rotar colgajo a base de cráneo".', tool: 'grasp', check: { fn: () => flaps.some(f => f.rotated === 'skull' || (() => { let s2 = 0, c = 0; for (let v = 0; v < f.st.length; v++) if (f.st[v] === 1) { s2 += f.pos[v * 3 + 2]; c++; } return c > 20 && s2 / c < -70; })()) } }
   ] },
   sella: { name: 'Abordaje transesfenoidal a la silla turca', prep: 'sphenoid', steps: [
     { t: 'Identificá la silla turca', d: 'Protuberancia selar en el centro de la pared posterior.', hl: 'sella', view: 19, tool: 'none', check: LOOK('sella') },
@@ -2560,7 +2666,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

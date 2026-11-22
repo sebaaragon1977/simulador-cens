@@ -124,7 +124,8 @@
     <div class="seg"><button id="btnGHadad">Guía Hadad</button><button id="btnGKillian">Guía Killian</button><button id="btnGPerf">Guía según perforación</button></div>
     <div class="mut">Perforación septal · sitio y tamaño</div>
     <div class="seg" id="perfSel"><button data-p="small">Pequeña &lt;1 cm</button><button data-p="mid">Mediana 1–2 cm</button><button data-p="ant">Anterior extrema</button><button data-p="large">Grande &gt;2 cm</button></div>
-    <div class="mut" id="perfAlg">Algoritmo (Alobid): &lt;1 cm → colgajos de avance bipediculados · 1–2 cm media/anterior → colgajo de arteria etmoidal anterior · anterior extrema (hasta la columela) → colgajo de arteria palatina mayor · &gt;2 cm → etmoidal anterior extendido. Verde = incisiones · naranja = pedículo.</div>
+    <div class="seg" style="margin-top:4px"><button data-p="antL">Grande anterior · racket-on-donut</button><button data-p="largeL">Grande · pared lateral</button></div>
+    <div class="mut" id="perfAlg">Algoritmo (Alobid): &lt;1 cm → colgajos de avance bipediculados · 1–2 cm media/anterior → colgajo de arteria etmoidal anterior · anterior extrema (hasta la columela) → colgajo de arteria palatina mayor · grande anterior → racket-on-donut (palatina mayor modificado + bordes invertidos) · &gt;2 cm → etmoidal anterior extendido o colgajo pediculado de pared lateral. Verde = incisiones · naranja = pedículo.</div>
     <div class="seg" style="margin-top:4px"><button id="btnRotSkull">Rotar colgajo a base de cráneo</button><button id="btnRotPerf">Llevar a la perforación</button><button id="btnRepos">Reposicionar colgajo</button></div>
     <div class="mut">Monopolar en <b>cortar</b> (tecla <kbd>M</kbd>): dibujá las incisiones manteniendo el clic. <b>Freer</b> apoyada y arrastrada adentro del área: despega el colgajo de a poco (queda unido por el pedículo). <b>Pinza de agarre</b> (<kbd>8</kbd>): tomalo del borde y movelo. <b>Porta-agujas</b> (<kbd>U</kbd>): clic sobre el borde del colgajo apoyado en el tabique = un punto que lo fija.</div></div>
   <div class="grp checks">
@@ -2139,7 +2140,7 @@ function updateToolAction(dt) {
     const now = performance.now(); if (now - lastFx > 250) { lastFx = now; thermalDanger(lp, true); checkDanger(lp, 0.45); haptic(0.08, 10); }
     return;
   }
-  if (state.tool === 'freer') { const q = state.vr ? anatomy.worldToLocal(tipWorld.clone()) : lp; if (Math.abs(q.x) < 3.5) dissect(V(q.x < 0 ? -0.8 : 0.8, q.y, q.z)); return; }
+  if (state.tool === 'freer') { const q = state.vr ? anatomy.worldToLocal(tipWorld.clone()) : lp; if (Math.abs(q.x) < 3.5) dissect(V(q.x < 0 ? -0.8 : 0.8, q.y, q.z)); else if (flaps.some(f => f.lat)) dissectLat(q); return; }
   if (state.tool === 'aspirador') { suctionOn = true; suctionTipL.copy(lp); return; }
   if (state.tool === 'bipolar' || state.tool === 'monopolar') {
     const isMono = state.tool === 'monopolar', now = performance.now();
@@ -2205,6 +2206,7 @@ function startFreerDesktop(e) {
     if (hk === 'flap' || flapAt(lp) || elevateFlap(lp)) { using = true; dissect(lp); }
     return;
   }
+  if (tipHit && latFreer(anatomy.worldToLocal(tipHit.point.clone()))) { using = true; return; }
   const k = hk ? turbKeyOf(hk) : null;
   if (!k) { toast('Apoyá la espátula sobre un cornete (para moverlo) o sobre el septum dentro de un colgajo delimitado (para elevarlo).'); return; }
   freerGrab = { k, x0: e.clientX, base: turbDisp[k] };
@@ -2219,6 +2221,7 @@ function moveFreerDesktop(e) {
 function startFreerVR() {
   if (state.model === 'ct') return;
   const lp = anatomy.worldToLocal(tipWorld.clone());
+  if (latFreer(lp)) { using = true; haptic(0.3, 40); return; }
   if (Math.abs(lp.x) < 3.5 && septValid(lp.z, lp.y)) { const q = V((lp.x < 0 ? -0.8 : 0.8), lp.y, lp.z); if (flapAt(q) || elevateFlap(q)) { using = true; dissect(q); haptic(0.3, 40); } return; }
   const em = (c, r) => Math.hypot((lp.x - c[0]) / r[0], (lp.y - c[1]) / r[1], (lp.z - c[2]) / r[2]);
   const dMT = em([6 + turbDisp.mt * 0.6, 26, -42], [2, 8, 18]), dIT = em([12 + turbDisp.it * 0.6, 10, -32], [5, 5.5, 26]);
@@ -2289,7 +2292,7 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
     const ci = Math.round((q.z - z0) / st), cj = Math.round((q.y - y0) / st);
     for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const i = ci + di, j = cj + dj; if (i >= 0 && j >= 0 && i < nz && j < ny) blocked[i + j * nz] = 1; }
   }
-  const pedBlk = new Uint8Array(N), useTpl = guideMode === 'perf' && !!perfTpl && !!perforation && sx === 1;
+  const pedBlk = new Uint8Array(N), useTpl = guideMode === 'perf' && !!perfTpl && !perfTpl.lat && !!perforation && sx === 1, hinge = useTpl && perfTpl.hingeHole;
   if (useTpl) {
     const mark = (arr, line) => { for (let s = 0; s < line.length - 1; s++) { const [za, ya] = line[s], [zb, yb] = line[s + 1], m = Math.max(1, Math.ceil(Math.hypot(zb - za, yb - ya) / 0.25));
       for (let k = 0; k <= m; k++) { const ci = Math.round((za + (zb - za) * k / m - z0) / st), cj = Math.round((ya + (yb - ya) * k / m - y0) / st);
@@ -2342,6 +2345,7 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
     for (const [dz, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const qz = z + dz, qy = y + dy;
       if (vid.has(qz + ',' + qy)) continue;
+      if (hinge && Math.hypot(qz - perforation.z, qy - perforation.y) < perforation.r + 0.4) { stt[v] = 2; break; }
       if (!isBlk(z + dz * 0.5, y + dy * 0.5) && !isBlk(qz, qy)) { stt[v] = 2; break; }
     }
   }
@@ -2355,6 +2359,11 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
   anatomy.add(mesh); meshes.push(mesh); flaps.push(f);
   if (useTpl) {
     f.tpl = perfTpl.id; let ok = true;
+    if (perfTpl.id === 'rod' && Math.hypot(cz - perforation.z, cy - perforation.y) < perforation.r + 5) {
+      f.tpl = 'rod_ie'; f.ped = stt.some(x => x === 2);
+      toast(`Colgajo de bordes invertidos ("dona") delimitado: ${f.area.toFixed(1)} cm². ` + (f.ped ? 'Queda unido al borde de la perforación (bisagra) ✓. ' : '⚠ Sin bisagra en el borde. ') + 'Despegalo con la Freer hacia el borde.', 6500, !f.ped);
+      return f;
+    }
     for (const c of perfTpl.pedC) { let hit = false; for (let v = 0; v < nv; v++) if (stt[v] === 2 && Math.hypot(rest[v * 3 + 2] - c[0], rest[v * 3 + 1] - c[1]) < 5) { hit = true; break; } if (!hit) ok = false; }
     f.ped = ok;
     toast(`Colgajo ${perfTpl.short} delimitado: ${f.area.toFixed(1)} cm². ` + (ok ? `Pedículo de la ${perfTpl.pedName} conservado ✓. ` : `⚠ El pedículo (${perfTpl.pedName}) quedó cortado: el colgajo no tendría irrigación. `) + 'Despegalo con la Freer en el plano subpericóndrico.', 7000, !ok);
@@ -2365,6 +2374,7 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
 }
 function flapAt(lp) {   // colgajo cuyo área contiene el punto (por su posición de reposo)
   for (const f of flaps) {
+    if (f.lat) continue;
     if ((lp.x < 0 ? -1 : 1) !== f.sx) continue;
     for (let v = 0; v < f.rest.length; v += 3) if (Math.abs(f.rest[v + 2] - lp.z) < 1.2 && Math.abs(f.rest[v + 1] - lp.y) < 1.2) return f;
   }
@@ -2374,7 +2384,7 @@ function detFrac(f) { let a = 0, b = 0; for (let v = 0; v < f.st.length; v++) { 
 function dissect(lp) {   // Freer: despega los vértices adheridos cerca de la punta
   let changed = 0;
   for (const f of flaps) {
-    if ((lp.x < 0 ? -1 : 1) !== f.sx) continue;
+    if (f.lat || (lp.x < 0 ? -1 : 1) !== f.sx) continue;
     for (let v = 0; v < f.st.length; v++) {
       if (f.st[v] !== 0) continue;
       const i = v * 3, d = Math.hypot(f.rest[i + 2] - lp.z, f.rest[i + 1] - lp.y);
@@ -2443,7 +2453,7 @@ function updateFlaps(dt) {
           if (state.vr) gT = anatomy.worldToLocal(tipWorld.clone());
           else { ray.setFromCamera(ndc, endoCam); gT = anatomy.worldToLocal(endoCam.position.clone().addScaledVector(ray.ray.direction, flapGrab.depth)); }
         }
-        const gy = -18 * dt * dt, damp = 0.94, Pv = f.prev;
+        const gy = f.lat ? 0 : -18 * dt * dt, damp = 0.94, Pv = f.prev;
         for (let v = 0; v < n; v++) {
           if (st[v] !== 1) continue; const i = v * 3;
           const vx = (P[i] - Pv[i]) * damp, vy = (P[i + 1] - Pv[i + 1]) * damp, vz = (P[i + 2] - Pv[i + 2]) * damp;
@@ -2484,7 +2494,9 @@ const PERF_PRESETS = {
   small: { z: -20, y: 17, r: 3.5, name: 'pequeña central (<1 cm)', tpl: 'adv' },
   mid: { z: -24, y: 17, r: 6.5, name: 'mediana, media-anterior (1–2 cm)', tpl: 'aea' },
   ant: { z: -7, y: 11, r: 4.5, name: 'anterior extrema (cerca de la columela)', tpl: 'gpa' },
-  large: { z: -26, y: 17, r: 10.5, name: 'grande (>2 cm)', tpl: 'eaea' }
+  large: { z: -26, y: 17, r: 10.5, name: 'grande (>2 cm)', tpl: 'eaea' },
+  antL: { z: -9, y: 13, r: 6.5, name: 'grande anterior (cerca de la columela)', tpl: 'rod' },
+  largeL: { z: -26, y: 17, r: 10.5, name: 'grande (>2 cm), para colgajo de pared lateral', tpl: 'plnw' }
 };
 let perfTpl = null;
 function arcPts(cz, cy, R, a0, a1, da = 10) { const o = []; for (let a = a0; a0 < a1 ? a <= a1 + 1e-6 : a >= a1 - 1e-6; a += (a0 < a1 ? da : -da)) { const t = a * Math.PI / 180; o.push([cz + R * Math.cos(t), cy + R * Math.sin(t)]); } return o; }
@@ -2519,6 +2531,34 @@ function buildPerfTpl(P, id) {
       ],
       ped: [[[end[0], end[1] + 0.6], [end[0], -0.3]]], free: [], pedC: [[(zF + end[0]) / 2, 0.5]] };
   }
+  if (id === 'rod') {   // racket-on-donut: palatina mayor modificado (raqueta) + bordes invertidos (dona)
+    const IF = -12, R = P.r + 1.5, zA = P.z - R, zP = P.z - P.r - 18, yS = 36, yB = P.y - 2, zF = IF + 10;
+    const diagY = z => yB + (0.3 - yB) * (z - zA) / (zF - zA);
+    const Rd = P.r + 3, a0 = Math.acos(Math.max(-1, Math.min(1, (zA - P.z) / Rd))) * 180 / Math.PI + 3;
+    let a1 = a0; for (let a = a0; a > -180; a -= 1) { const t = a * Math.PI / 180, z = P.z + Rd * Math.cos(t), y = P.y + Rd * Math.sin(t); if (a < 0 && z > zA && z < zF && y < diagY(z)) { a1 = a - 4; break; } }
+    return { id, short: 'racket-on-donut', pedName: 'arteria palatina mayor (piso, alrededor del conducto incisivo)', hingeHole: true,
+      cuts: [
+        { k: 'post', line: [[zP, yS], [zP, 0.3]], t: 'Incisión posterior de la raqueta', d: 'Monopolar en corte: desde 1 cm por debajo del neuroepitelio olfatorio hasta el piso, unos 2 cm por detrás del agujero incisivo. La raqueta debe ser un tercio más grande que la perforación.' },
+        { k: 'sup', line: [[zP, yS], [zA, yS]], t: 'Incisión superior', d: 'Paralela a la base de cráneo, uniendo la posterior con la anterior.' },
+        { k: 'ant', line: [[zA, yS], [zA, yB], [zF, 0.3]], t: 'Incisión anterior de la raqueta', d: 'Por el borde posterior de la perforación y bajando al piso, ~1 cm por delante del agujero incisivo (el pedículo de la palatina mayor queda en el piso, entre ambas).' },
+        { k: 'donut', line: arcPts(P.z, P.y, Rd, a0, a1, 6), t: 'Incisión en dona', d: 'Circunferencial alrededor de los bordes superior, anterior e inferior de la perforación. No refresques los bordes: esa mucosa es el colgajo de bordes invertidos.' }
+      ],
+      ped: [], free: [], pedC: [[IF, 0.5]] };
+  }
+  if (id === 'plnw') {   // colgajo pediculado de pared lateral (piso + meato inferior + cornete inferior)
+    const cols = [];
+    for (let z = -50; z <= -8; z++) cols.push({ z, pts: latPath(z) });
+    const c0 = cols[0], cE = cols[cols.length - 1], at = (c, k) => [c.pts[k][0], c.pts[k][1], c.z];
+    const NF = 15;
+    return { id, short: 'de pared lateral', pedName: 'arteria nasal lateral posterior (rama de la esfenopalatina)', lat: true, cols, NF,
+      cuts: [
+        { k: 'ant', line: cE.pts.map((p, k) => at(cE, k)), t: 'Incisión anterior', d: 'Monopolar en corte: vertical por delante de la cabeza del cornete inferior (cerca de la apertura piriforme), desde el piso hasta el borde superior del cornete.' },
+        { k: 'sup', line: cols.slice().reverse().map(c => at(c, c.pts.length - 1)), t: 'Incisión superior', d: 'Por el borde superior del cornete inferior (su inserción), de adelante hacia atrás hasta la cola.' },
+        { k: 'med', line: cols.slice().reverse().map(c => at(c, 0)), t: 'Incisión medial (piso)', d: 'En la unión del piso con el septum, de adelante hacia atrás: el piso forma parte del colgajo y le da el largo para llegar al tabique.' },
+        { k: 'post', line: c0.pts.slice(0, NF + 1).map((p, k) => at(c0, k)), t: 'Incisión posterior del piso', d: 'Transversal en el piso posterior, sin subir a la pared lateral: atrás y arriba queda el pedículo (naranja), en la cola del cornete inferior.' }
+      ],
+      ped: [c0.pts.slice(NF).map((p, k) => at(c0, k + NF))], free: [], pedC: [] };
+  }
   // avance bipediculado (perforaciones pequeñas)
   const h = P.r + 9, zL = P.z - h, zR = P.z + h, yS = Math.min(P.y + P.r + 12, 33);
   return { id: 'adv', short: 'de avance bipediculado', pedName: 'base anterior y posterior (bipediculado)',
@@ -2530,6 +2570,62 @@ function buildPerfTpl(P, id) {
     ped: [[[zL, yS + 0.8], [zL, 0.4]], [[zR, yS + 0.8], [zR, 0.4]]],
     free: [[[zL, P.y], [P.z - P.r - 0.2, P.y]], [[P.z + P.r + 0.2, P.y], [zR, P.y]]],
     pedC: [[zL, P.y], [zR, P.y]] };
+}
+function latPath(z) {   // corte transversal piso → pared lateral → cornete inferior (medial), a 0,35 mm de la superficie
+  const s = Math.sqrt(Math.max(0, 1 - ((z + 32) / 26) ** 2)), rx = 5 * s + 0.35, ry = 5.5 * s + 0.35, Pp = [];
+  for (let x = 1.5; x <= 16.65; x += 0.25) Pp.push([x, 0.35]);
+  const yAtt = 10 + ry * Math.sin(-10 * Math.PI / 180);
+  for (let y = 0.6; y <= yAtt; y += 0.25) Pp.push([16.65, y]);
+  for (let a = -10; a >= -270; a -= 2) { const t = a * Math.PI / 180; Pp.push([Math.min(16.65, 12 + rx * Math.cos(t)), 10 + ry * Math.sin(t)]); }
+  const out = [Pp[0]]; let acc = 0;
+  for (let i = 1; i < Pp.length; i++) { acc += Math.hypot(Pp[i][0] - Pp[i - 1][0], Pp[i][1] - Pp[i - 1][1]); if (acc >= 1) { out.push(Pp[i]); acc -= 1; } }
+  return out;
+}
+function makeLatFlap() {
+  const T = perfTpl, vid = new Map(), rest = [], uv = [];
+  T.cols.forEach((c, i) => c.pts.forEach((p, j) => { vid.set(i + ',' + j, rest.length / 3); rest.push(p[0], p[1], c.z); uv.push(c.z, j); }));
+  const nv = rest.length / 3, stt = new Uint8Array(nv), idx = [], edges = [];
+  for (const [key, v] of vid) {
+    const [i, j] = key.split(',').map(Number);
+    const r = vid.get((i + 1) + ',' + j), u = vid.get(i + ',' + (j + 1)), ru = vid.get((i + 1) + ',' + (j + 1)), lu = vid.get((i - 1) + ',' + (j + 1));
+    if (r !== undefined) edges.push(v, r); if (u !== undefined) edges.push(v, u); if (ru !== undefined) edges.push(v, ru); if (lu !== undefined) edges.push(v, lu);
+    if (r !== undefined && u !== undefined && ru !== undefined) idx.push(v, r, u, r, ru, u);
+    if (i === 0 && j >= T.NF) stt[v] = 2;
+  }
+  const pos = new Float32Array(rest), g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); planarUV(g);
+  const mesh = new THREE.Mesh(g, M.flap); mesh.frustumCulled = false;
+  const f = { mesh, sx: 1, rest: new Float32Array(rest), pos, prev: new Float32Array(rest), st: stt, edges: new Int32Array(edges), rlen: null, cz: -29, cy: 10, ped: true, olf: false, grab: null, anim: null, rotated: null, lat: true, tpl: 'plnw', uv: new Float32Array(uv), area: nv / 100 };
+  f.rlen = new Float32Array(edges.length / 2);
+  for (let e = 0; e < edges.length; e += 2) { const a = edges[e] * 3, b = edges[e + 1] * 3; f.rlen[e / 2] = Math.hypot(rest[a] - rest[b], rest[a + 1] - rest[b + 1], rest[a + 2] - rest[b + 2]); }
+  mesh.userData = { key: 'flap', flap: f };
+  anatomy.add(mesh); meshes.push(mesh); flaps.push(f);
+  toast(`Colgajo de pared lateral delimitado: ~${f.area.toFixed(1)} cm² (piso, meato y cornete inferior). Pedículo posterior en la cola del cornete ✓. Despegalo con la Freer.`, 6500);
+  return f;
+}
+function dissectLat(lp) {
+  let changed = 0;
+  for (const f of flaps) {
+    if (!f.lat) continue;
+    for (let v = 0; v < f.st.length; v++) {
+      if (f.st[v] !== 0) continue; const i = v * 3, d = Math.hypot(f.rest[i] - lp.x, f.rest[i + 1] - lp.y, f.rest[i + 2] - lp.z);
+      if (d < 3.4) { f.st[v] = 1; const k = 0.6 * (1 - d / 3.4), dx = 8 - f.rest[i], dy = 12 - f.rest[i + 1], n = Math.hypot(dx, dy) || 1; f.pos[i] = f.prev[i] = f.rest[i] + dx / n * k; f.pos[i + 1] = f.prev[i + 1] = f.rest[i + 1] + dy / n * k; changed++; }
+    }
+    if (changed && !f.notified && detFrac(f) > 0.95) { f.notified = true; toast('Colgajo de pared lateral despegado: llevalo al septum (pinza de agarre o "Llevar a la perforación").', 5000); }
+  }
+  return changed;
+}
+function latFreer(lp) {   // Freer sobre piso / pared lateral / cornete inferior con molde de pared lateral
+  if (!(guideMode === 'perf' && perfTpl && perfTpl.lat)) return false;
+  let near = false;
+  for (const c of perfTpl.cols) { if (Math.abs(c.z - lp.z) > 3.5) continue; for (const p of c.pts) if (Math.hypot(p[0] - lp.x, p[1] - lp.y) < 3.5) { near = true; break; } if (near) break; }
+  if (!near) return false;
+  if (!flaps.some(f => f.lat)) {
+    const miss = perfTpl.cuts.filter(c => perfCutCov(c.k, true) < 0.75);
+    if (miss.length) { toast('Completá primero las incisiones del colgajo de pared lateral: ' + miss.map(c => c.t.toLowerCase()).join(', ') + '.', 5000, true); return true; }
+    makeLatFlap();
+  }
+  dissectLat(lp); return true;
 }
 function makePerforation(kind = 'mid') {
   if (state.model !== 'generic') return;
@@ -2547,6 +2643,14 @@ function makePerforation(kind = 'mid') {
 function perfCutCov(k, complete) {   // fracción de la incisión guía recorrida; si llega al 75% se completa (el residente ya marcó el trazo)
   const c = perfTpl && perfTpl.cuts.find(c => c.k === k); if (!c) return 0;
   let n = 0, h = 0; const L = c.line;
+  if (L[0].length === 3) {
+    for (const p of L) { n++; const q = V(...p); if (incisions.some(pp => pp.distanceTo(q) < 1.9)) h++; }
+    const cov3 = n ? h / n : 0;
+    if (complete && cov3 >= 0.75 && !c.done) { c.done = true; state.prepping = true;
+      for (let i = 0; i < L.length - 1; i++) for (let q = 0; q < 3; q++) { const a = V(...L[i]).lerp(V(...L[i + 1]), q / 3); incisions.push(a); addCut(a, 0.6); }
+      state.prepping = false; }
+    return cov3;
+  }
   for (let i = 0; i < L.length - 1; i++) { const [z0, y0] = L[i], [z1, y1] = L[i + 1], m = Math.max(1, Math.ceil(Math.hypot(z1 - z0, y1 - y0)));
     for (let q = 0; q <= m; q++) { const z = z0 + (z1 - z0) * q / m, y = y0 + (y1 - y0) * q / m; if (!septValid(z, Math.max(0.05, y))) continue; n++; if (incisions.some(p => p.x > 0 && Math.abs(p.z - z) < 1.6 && Math.abs(p.y - y) < 1.6)) h++; } }
   const cov = n ? h / n : 0;
@@ -2558,13 +2662,13 @@ function perfCutCov(k, complete) {   // fracción de la incisión guía recorrid
   }
   return cov;
 }
-function perfCoverage() {
+function perfCoverage(side = 0) {
   if (!perforation) return 0;
   const { z: pz, y: py, r } = perforation, rr = r - 0.6; let n = 0, c = 0;
   for (let dz = -rr; dz <= rr; dz += 1) for (let dy = -rr; dy <= rr; dy += 1) {
     if (dz * dz + dy * dy > rr * rr) continue; n++;
     const z = pz + dz, y = py + dy; let hit = false;
-    for (const f of flaps) { const P = f.pos, st = f.st; for (let v = 0; v < st.length && !hit; v++) { if (st[v] === 0 || st[v] === 2) continue; const i = v * 3; if (Math.abs(P[i]) < 2.6 && Math.abs(P[i + 2] - z) < 0.95 && Math.abs(P[i + 1] - y) < 0.95) hit = true; } if (hit) break; }
+    for (const f of flaps) { const P = f.pos, st = f.st; for (let v = 0; v < st.length && !hit; v++) { if (st[v] === 0 || st[v] === 2) continue; const i = v * 3; if (side && P[i] * side <= 0) continue; if (Math.abs(P[i]) < 2.6 && Math.abs(P[i + 2] - z) < 0.95 && Math.abs(P[i + 1] - y) < 0.95) hit = true; } if (hit) break; }
     if (hit) c++;
   }
   return n ? c / n : 0;
@@ -2573,9 +2677,17 @@ function placeTplFlaps() {
   let moved = 0, short = false;
   for (const f of flaps) {
     if (!f.tpl || f.anim) continue;
-    if (detFrac(f) < 0.8) { short = true; continue; }
+    const df = detFrac(f); if (df < 0.8) { if (df > 0) short = true; continue; }
+    if (f.rotated === 'perf') continue;
     const to = f.pos.slice(), R0 = f.rest, st = f.st, n = st.length, P = perforation;
-    if (f.tpl === 'adv') {
+    if (f.tpl === 'rod_ie') {   // bordes invertidos: se dan vuelta sobre el borde y tapizan el lado contralateral
+      for (let v = 0; v < n; v++) { if (st[v] === 2 || st[v] === 0) continue; const i = v * 3, dz = R0[i + 2] - P.z, dy = R0[i + 1] - P.y, d = Math.hypot(dz, dy) || 1, d2 = Math.max(0.3, P.r - (d - P.r) * 1.1);
+        to[i] = -f.sx * 0.95; to[i + 1] = P.y + dy / d * d2; to[i + 2] = P.z + dz / d * d2; }
+    } else if (f.tpl === 'plnw') {   // de la pared lateral al septum, girando sobre el pedículo posterior
+      for (let v = 0; v < n; v++) { if (st[v] === 2 || st[v] === 0) continue; const i = v * 3, z = f.uv[v * 2], j = f.uv[v * 2 + 1], w = THREE.MathUtils.clamp((z + 50) / 7, 0, 1);
+        const tx = f.sx * 0.98, ty = Math.min(42, 0.6 + j * 0.85);
+        to[i] = R0[i] + (tx - R0[i]) * w; to[i + 1] = R0[i + 1] + (ty - R0[i + 1]) * w; to[i + 2] = z; }
+    } else if (f.tpl === 'adv') {
       const above = f.cy > P.y, hw = P.r + 9;
       for (let v = 0; v < n; v++) { if (st[v] === 2 || st[v] === 0) continue; const i = v * 3, w = Math.max(0, 1 - ((R0[i + 2] - P.z) / hw) ** 2);
         to[i] = f.sx * 0.98; to[i + 1] = R0[i + 1] + (above ? -1 : 1) * (P.r + 1.3) * w; to[i + 2] = R0[i + 2]; }
@@ -2639,7 +2751,7 @@ function setGuide(m) {
   guideMode = m; while (guideGroup.children.length) guideGroup.remove(guideGroup.children[0]);
   const sets = m === 'perf' ? (perfTpl ? [[perfTpl.cuts.map(c => c.line), 0x5cffb0, true], [perfTpl.ped, 0xffa94d, false], [perfTpl.free, 0x8fd3ff, true]] : []) : [[GUIDES[m] || [], 0x5cffb0, true]];
   for (const [lines, col, dash] of sets) for (const line of lines) {
-    const g = new THREE.BufferGeometry().setFromPoints(line.map(([z, y]) => V(1.05, Math.max(0.3, y), z)));
+    const g = new THREE.BufferGeometry().setFromPoints(line.map(p => p.length === 3 ? V(p[0], p[1] + 0.15, p[2]) : V(1.05, Math.max(0.3, p[1]), p[0])));
     const l = new THREE.Line(g, dash ? new THREE.LineDashedMaterial({ color: col, dashSize: 1.4, gapSize: 0.9 }) : new THREE.LineBasicMaterial({ color: col }));
     if (dash) l.computeLineDistances(); guideGroup.add(l);
   }
@@ -2648,7 +2760,7 @@ function setGuide(m) {
 $('#btnGHadad').onclick = () => setGuide(guideMode === 'hadad' ? 'none' : 'hadad');
 $('#btnGKillian').onclick = () => setGuide(guideMode === 'killian' ? 'none' : 'killian');
 $('#btnGPerf').onclick = () => { if (!perforation) { toast('Elegí primero el sitio de la perforación.'); return; } setGuide(guideMode === 'perf' ? 'none' : 'perf'); };
-document.querySelectorAll('#perfSel button').forEach(b => b.onclick = () => { if (state.model !== 'generic') setModel('generic'); if (perforation || flaps.length) resetCuts(); makePerforation(b.dataset.p); setGuide('perf'); goTo(PERF_VIEW); });
+document.querySelectorAll('#perfSel button').forEach(b => b.onclick = () => { if (state.model !== 'generic') setModel('generic'); if (perforation || flaps.length) resetCuts(); makePerforation(b.dataset.p); setGuide('perf'); goTo(['ant', 'antL'].includes(b.dataset.p) ? PERF_VIEW_ANT : PERF_VIEW); });
 $('#btnRotSkull').onclick = () => rotateFlap('skull');
 $('#btnRotPerf').onclick = () => rotateFlap('perf');
 $('#btnRepos').onclick = () => placeFlap('rest');
@@ -2786,18 +2898,30 @@ const PROCS = {
     { t: 'Aspirá la sangre', d: 'Aspirador sobre la sangre acumulada hasta dejar el campo limpio.', tool: 'aspirador', check: { fn: () => bleeds.length === 0 } }
   ] }
 };
-const PERF_VIEW = { pos: [8.5, 18, -2], target: [0.8, 17, -30], angle: 0 };
+const PERF_VIEW = { pos: [8.5, 18, -2], target: [0.8, 17, -30], angle: 0 }, PERF_VIEW_ANT = { pos: [8.5, 14, 5], target: [0.8, 12, -15], angle: 0 };
 function perfSteps(id) {
   const P0 = Object.values(PERF_PRESETS).find(p => p.tpl === id), T = buildPerfTpl(P0, id);
   const why = { adv: 'Perforación pequeña (<1 cm): bordes de mucosa vecina, avanzados desde arriba y abajo, alcanzan para cerrarla sin tensión.',
     aea: 'Perforación mediana (1–2 cm) media-anterior: colgajo septal posterior al defecto, pediculado en la arteria etmoidal anterior, que rota hacia adelante y abajo.',
     eaea: 'Perforación grande (>2 cm): se amplía el colgajo de etmoidal anterior incluyendo rostrum, arco coanal y piso (se sacrifica la septal posterior).',
-    gpa: 'Perforación anterior extrema (hasta la columela): colgajo pediculado en la palatina mayor (piso anterior / conducto incisivo), que rota hacia adelante y arriba.' }[id];
-  const steps = [{ t: 'Evaluá la perforación', d: why + ' Centrá la cruz sobre el tabique (anillo naranja = perforación).', hlp: () => [1, perforation.y, perforation.z], view: PERF_VIEW, tool: 'none', check: LOOK('septum') }];
-  T.cuts.forEach((c, i) => steps.push({ t: c.t, d: c.d, hlp: () => { const L = perfTpl.cuts[i].line, q = L[Math.floor(L.length / 2)]; return [1, Math.max(0.5, q[1]), q[0]]; }, tool: 'monopolar', mono: 'cut', check: { fn: () => perfCutCov(c.k, true) >= 0.75 } }));
-  steps.push({ t: id === 'adv' ? 'Despegá ambos colgajos' : 'Despegá el colgajo', d: 'Freer en el plano subpericóndrico / subperióstico: apoyala adentro del área y pasala por toda la superficie (≥ 85%). ' + (id === 'adv' ? 'Elevá el colgajo de arriba y el de abajo; quedan unidos adelante y atrás.' : 'Queda unido sólo por el pedículo naranja.'), tool: 'freer',
+    gpa: 'Perforación anterior extrema (hasta la columela): colgajo pediculado en la palatina mayor (piso anterior / conducto incisivo), que rota hacia adelante y arriba.',
+    rod: 'Perforación grande anterior: racket-on-donut (Alobid). La dona de mucosa alrededor del defecto se invierte y cierra el lado contralateral; la raqueta (palatina mayor modificado) rota hacia adelante y cierra este lado.',
+    plnw: 'Perforación grande: colgajo pediculado de pared lateral (piso, meato y cornete inferior) sobre la arteria nasal lateral posterior. Alobid y cols. estimaron que puede cubrir hasta ~84% del septum.' }[id];
+  const LAT_VIEW = { pos: [4, 13, 2], target: [12, 6, -30], angle: 0 };
+  const steps = [{ t: 'Evaluá la perforación', d: why + ' Centrá la cruz sobre el tabique (anillo naranja = perforación).', hlp: () => [1, perforation.y, perforation.z], view: id === 'rod' || id === 'gpa' ? PERF_VIEW_ANT : PERF_VIEW, tool: 'none', check: LOOK('septum') }];
+  T.cuts.forEach((c, i) => steps.push({ t: c.t, d: c.d, view: id === 'plnw' && i === 0 ? LAT_VIEW : undefined, hlp: () => { const L = perfTpl.cuts[i].line, q = L[Math.floor(L.length / 2)]; return q.length === 3 ? q : [1, Math.max(0.5, q[1]), q[0]]; }, tool: 'monopolar', mono: 'cut', check: { fn: () => perfCutCov(c.k, true) >= 0.75 } }));
+  if (id === 'rod') {
+    steps.push({ t: 'Elevá la dona (bordes invertidos)', d: 'Freer adentro del anillo entre la incisión en dona y la perforación, despegando hacia el borde (≥ 85%). Queda unida al borde como bisagra.', tool: 'freer', check: { fn: () => flaps.some(f => f.tpl === 'rod_ie' && detFrac(f) >= 0.85) } });
+    steps.push({ t: 'Invertí los bordes', d: 'Volcá la dona hacia la fosa contralateral (botón "Llevar a la perforación" o pinza de agarre): cierra el lado opuesto.', hlp: () => [1, perforation.y, perforation.z], tool: 'grasp', check: { fn: () => flaps.some(f => f.tpl === 'rod_ie' && f.rotated === 'perf') } });
+    steps.push({ t: 'Despegá la raqueta', d: 'Freer subpericóndrica / subperióstica desde la incisión superior hasta el piso (≥ 85%).', tool: 'freer', check: { fn: () => flaps.some(f => f.tpl === 'rod' && detFrac(f) >= 0.85) } });
+    steps.push({ t: 'Rotá la raqueta sobre el defecto', d: 'Rotala hacia adelante sobre el pedículo de la palatina mayor hasta cubrir la perforación de este lado (≥ 85%).', hlp: () => [1, perforation.y, perforation.z], tool: 'grasp', check: { fn: () => perfCoverage(1) >= 0.85 } });
+    steps.push({ t: 'Fijá con puntos', d: 'Porta-agujas: suturá la raqueta a la mucosa remanente con reabsorbible (≥ 3 puntos, 2 en el borde). Luego láminas de silicona fijadas a la columela 4 semanas, sin taponamiento.', tool: 'suture', check: { fn: () => state.stitches >= 3 && state.edgeStitches >= 2 } });
+    return steps;
+  }
+  if (id === 'plnw') steps.push({ t: 'Despegá el colgajo de pared lateral', d: 'Freer subperióstica sobre el piso, el meato y el cornete inferior (apoyala sobre el área marcada, ≥ 85%). Queda unido atrás por el pedículo.', view: LAT_VIEW, tool: 'freer', check: { fn: () => flaps.some(f => f.tpl === 'plnw' && detFrac(f) >= 0.85) } });
+  else steps.push({ t: id === 'adv' ? 'Despegá ambos colgajos' : 'Despegá el colgajo', d: 'Freer en el plano subpericóndrico / subperióstico: apoyala adentro del área y pasala por toda la superficie (≥ 85%). ' + (id === 'adv' ? 'Elevá el colgajo de arriba y el de abajo; quedan unidos adelante y atrás.' : 'Queda unido sólo por el pedículo naranja.'), tool: 'freer',
     check: { fn: () => id === 'adv' ? flaps.filter(f => f.tpl === 'adv' && detFrac(f) >= 0.85).length >= 2 : flaps.some(f => f.tpl === id && detFrac(f) >= 0.85) } });
-  steps.push({ t: id === 'adv' ? 'Avanzá los colgajos' : 'Rotá el colgajo sobre la perforación', d: (id === 'adv' ? 'Deslizalos hacia el centro hasta que se encuentren sobre el defecto' : 'Rotalo sobre su pedículo hasta cubrir el defecto') + ' (pinza de agarre o botón "Llevar a la perforación"). Cobertura ≥ 85%.', hlp: () => [1, perforation.y, perforation.z], tool: 'grasp', check: { fn: () => perfCoverage() >= 0.85 } });
+  steps.push({ t: id === 'adv' ? 'Avanzá los colgajos' : id === 'plnw' ? 'Llevá el colgajo al septum' : 'Rotá el colgajo sobre la perforación', view: id === 'plnw' ? PERF_VIEW : undefined, d: (id === 'adv' ? 'Deslizalos hacia el centro hasta que se encuentren sobre el defecto' : 'Rotalo sobre su pedículo hasta cubrir el defecto') + ' (pinza de agarre o botón "Llevar a la perforación"). Cobertura ≥ 85%.', hlp: () => [1, perforation.y, perforation.z], tool: 'grasp', check: { fn: () => perfCoverage() >= 0.85 } });
   steps.push({ t: 'Fijá con puntos', d: 'Porta-agujas con aguja curva (reabsorbible 4-0/5-0): clic sobre el borde del colgajo apoyado en el tabique. Al menos 3 puntos, 2 en el borde de la perforación.', hlp: () => [1, perforation.y, perforation.z], tool: 'suture', check: { fn: () => state.stitches >= 3 && state.edgeStitches >= 2 } });
   return steps;
 }
@@ -2810,7 +2934,9 @@ Object.assign(PROCS, {
   perf_adv: { name: 'Perforación pequeña · avance bipediculado (Alobid)', guide: 'perf', after: () => makePerforation('small'), steps: perfSteps('adv'), finish: perfFinish },
   perf_aea: { name: 'Perforación mediana · colgajo de etmoidal anterior (Alobid)', guide: 'perf', after: () => makePerforation('mid'), steps: perfSteps('aea'), finish: perfFinish },
   perf_gpa: { name: 'Perforación anterior · colgajo de palatina mayor (Alobid)', guide: 'perf', after: () => makePerforation('ant'), steps: perfSteps('gpa'), finish: perfFinish },
-  perf_eaea: { name: 'Perforación grande · etmoidal anterior extendido (Alobid)', guide: 'perf', after: () => makePerforation('large'), steps: perfSteps('eaea'), finish: perfFinish }
+  perf_eaea: { name: 'Perforación grande · etmoidal anterior extendido (Alobid)', guide: 'perf', after: () => makePerforation('large'), steps: perfSteps('eaea'), finish: perfFinish },
+  perf_rod: { name: 'Perforación grande anterior · racket-on-donut (Alobid)', guide: 'perf', after: () => makePerforation('antL'), steps: perfSteps('rod'), finish: perfFinish },
+  perf_plnw: { name: 'Perforación grande · colgajo de pared lateral (Alobid)', guide: 'perf', after: () => makePerforation('largeL'), steps: perfSteps('plnw'), finish: perfFinish }
 });
 $('#procSel').innerHTML = Object.entries(PROCS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
 const G = { on: false, proc: null, i: 0, t0: 0, hold: 0, wait: 0, done: false, chk: 0 };
@@ -3021,7 +3147,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

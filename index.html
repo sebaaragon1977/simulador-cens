@@ -141,6 +141,8 @@
   <div class="grp checks">
     <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
     <label><input type="checkbox" id="chkXray"> Estructuras de riesgo (transparencia)</label>
+    <label><input type="checkbox" id="chkSag"> Corte sagital (vista lateral)</label>
+    <div class="ctl" id="sagCtl" style="display:none"><span>Plano</span><input type="range" id="sagX" min="3" max="19" step="0.5" value="11"><b id="sagV">11 mm</b></div>
     <label><input type="checkbox" id="chkCollide" checked> Colisión del endoscopio</label>
     <label><input type="checkbox" id="chkViewMove" checked> Avanzar hacia donde mira la óptica</label>
   </div>
@@ -262,7 +264,7 @@ let cutVol = new Uint8Array(CV.nx * CV.ny * CV.nz);
 let cutTex = new THREE.Data3DTexture(cutVol, CV.nx, CV.ny, CV.nz);
 cutTex.format = THREE.RedFormat; cutTex.type = THREE.UnsignedByteType;
 cutTex.minFilter = cutTex.magFilter = THREE.LinearFilter; cutTex.unpackAlignment = 1; cutTex.needsUpdate = true;
-const cutU = { uCutVol: { value: cutTex }, uCutO: { value: CV.o }, uCutSize: { value: V(CV.nx * CV.vox, CV.ny * CV.vox, CV.nz * CV.vox) } };
+const cutU = { uSag: { value: 1e9 }, uCutVol: { value: cutTex }, uCutO: { value: CV.o }, uCutSize: { value: V(CV.nx * CV.vox, CV.ny * CV.vox, CV.nz * CV.vox) } };
 let cutDirty = false, nCuts = 0;
 function setCutVolume(o, size, vox) {
   CV.o.copy(o); CV.vox = vox;
@@ -291,9 +293,10 @@ function patchSurf(m, cut) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vLP;
-        uniform highp sampler3D uCutVol; uniform vec3 uCutO; uniform vec3 uCutSize;
+        uniform highp sampler3D uCutVol; uniform vec3 uCutO; uniform vec3 uCutSize; uniform float uSag;
         uniform vec4 uBlood[${FX_MAXB}]; uniform int uBloodN; uniform vec4 uBurn[${FX_MAXBURN}]; uniform int uBurnN;`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+        if (vLP.x > uSag) discard;
         ${cut ? `float cv = texture(uCutVol, (vLP - uCutO) / uCutSize).r;
         if (cv > 0.5) discard;
         float cutEdge = smoothstep(0.04, 0.5, cv);` : 'float cutEdge = 0.0;'}
@@ -382,7 +385,8 @@ const INFO = {
   latwall: ['Pared lateral nasal', 'Pared lateral de la fosa.'],
   it: ['Cornete inferior', 'Debajo está el meato inferior con la válvula de Hasner (desembocadura del conducto nasolagrimal), alrededor de 1 cm por detrás de la cabeza del cornete.'],
   mt: ['Cornete medio', 'Referencia clave: preservarlo y no fracturarlo. Su axila marca el agger nasi; su lamela basal separa etmoides anterior y posterior. Medial a él, la lámina cribosa.'],
-  mtatt: ['Inserción vertical del cornete medio', 'Se fija en la lamela lateral de la lámina cribosa: no traccionar ni torsionar (riesgo de fístula de LCR).'],
+  mtatt: ['Inserción vertical del cornete medio', 'Segmento anterior de la inserción, en el plano sagital: se fija en la lamela lateral de la lámina cribosa. No traccionar ni torsionar (riesgo de fístula de LCR). Hacia atrás se continúa con la lamela basal.'],
+  mtpost: ['Inserción horizontal del cornete medio', 'Segmento posterior de la inserción: horizontal, se fija a la pared lateral (cresta etmoidal del palatino). Justo por detrás y arriba está el foramen esfenopalatino.'],
   st: ['Cornete superior', 'El ostium esfenoidal está medial a su borde inferior, en el receso esfenoetmoidal (≈1–1,5 cm por encima de la coana).'],
   unc: ['Apófisis unciforme', 'Lámina en media luna que oculta el ostium natural del seno maxilar. Primer paso de la CENS: uncinectomía. Su borde libre posterior limita el hiato semilunar. Con el palpador bolita se medializa desde el hiato y se corta con la pinza retrógrada.'],
   maxost: ['Ostium natural del seno maxilar', 'Se ve tras la uncinectomía con óptica de 30°–45° rotada a lateral. Ampliar hacia posterior/inferior (fontanela); hacia anterior está el conducto nasolagrimal.'],
@@ -390,7 +394,7 @@ const INFO = {
   accost: ['Ostium accesorio (fontanela posterior)', 'Unirlo al ostium natural durante la antrostomía para evitar recirculación de moco.'],
   maxsin: ['Seno maxilar (interior)', 'Techo = piso de la órbita, con el nervio infraorbitario.'],
   bulla: ['Bulla etmoidal', 'La mayor celda etmoidal anterior. Detrás está la lamela basal del cornete medio; por encima, el receso suprabullar y la arteria etmoidal anterior.'],
-  basal: ['Lamela basal del cornete medio', 'Separa etmoides anterior y posterior. Abrirla en su porción inferomedial para entrar al etmoides posterior.'],
+  basal: ['Lamela basal del cornete medio', 'Segmento medio de la inserción del cornete medio: va de la lamela vertical a la lámina papirácea, oblicua en el plano sagital (arriba más anterior, abajo más posterior). Separa etmoides anterior y posterior. Abrirla en su porción inferomedial para entrar al etmoides posterior.'],
   axila: ['Axila del cornete medio', 'Inserción anterosuperior del cornete medio en la pared lateral: su borde anterior se continúa hacia arriba y adelante con el relieve del agger nasi. Es la puerta de entrada al receso frontal (colgajo axilar).'],
   agger: ['Agger nasi', 'Celda etmoidal más anterior, por encima de la axila del cornete medio. Su pared medial la forma la porción superior de la unciforme (barra vertical). Su techo es el piso del receso frontal: al abrirla se ve el techo y, posterior y medial, el ostium frontal.'],
   ifac_sac: ['Celda supra agger (SAC)', 'IFAC, grupo anterior: celda anterolateral por encima del agger nasi que no se extiende al seno frontal. Desplaza la vía de drenaje hacia posterior y medial.'],
@@ -640,7 +644,7 @@ function buildAnatomy() {
   add(ellipsoid([12, 10, -32], [5, 5.5, 26]), M.turb, 'it', { map: { t: 'e', c: [12, 10, -32], r: [5, 5.5, 26], col: '#e07a72', n: 'CI' } });
   add(ellipsoid([6, 26, -42], [2, 8, 18]), M.turb, 'mt', { map: { t: 'e', c: [6, 26, -42], r: [2, 8, 18], col: '#e07a72', n: 'CM' } });
   add(ellipsoid([6.2, 27, -27.5], [2.7, 6, 5.5]), M.turb, 'mt');
-  add(quad([6, 32, -27], [6, 32, -40], [6, 46.5, -27], 0.15), M.turb, 'mtatt');
+  add(quad([6, 32, -27], [6, 32, -43], [6, 46.5, -27], 0.15), M.turb, 'mtatt');   // segmento anterior: vertical (sagital) a la lamela lateral de la cribosa
   add(ellipsoid([6.5, 37, -58], [1.8, 4, 7]), M.turb, 'st', { map: { t: 'e', c: [6.5, 37, -58], r: [1.8, 4, 7], col: '#e07a72', n: 'CS' } });
   // Apófisis unciforme (lámina en media luna)
   add(uncinateGeom(), M.unc, 'unc', { map: { t: 'unc', col: '#f0a090' } });
@@ -660,13 +664,16 @@ function buildAnatomy() {
   const AX = [[6.1, 27.5, -28], [6.5, 28.8, -24], [7.8, 29, -19.5], [10, 28.6, -15.8], [13, 28.2, -13.3], [16.4, 28, -11.8]];
   add(sweep(AX, u => 2.0 + 1.1 * Math.sin(Math.PI * Math.min(1, u * 1.3))), M.turbC, 'axila', { map: { t: 'poly', pts: AX, col: '#e07a72' } });
   // Bulla etmoidal: su pared anterior queda 2–4 mm por delante de la arteria etmoidal anterior
-  add(ellipsoid([13.6, 28.6, -33.2], [4.7, 5.6, 4.9]), M.bulla, 'bulla', { map: { t: 'e', c: [13.6, 28.6, -33.2], r: [4.7, 5.6, 4.9], col: '#f2c26b', n: 'B' } });
+  add(ellipsoid([13.6, 30, -34.6], [4.8, 6.4, 6.2]), M.bulla, 'bulla', { map: { t: 'e', c: [13.6, 30, -34.6], r: [4.8, 6.4, 6.2], col: '#f2c26b', n: 'B' } });
   add(bullaLamGeom(FRV.bl), M.cell, 'bullam', { tag: 'bullam', map: { t: 'lineZ', z: -28.4, y: [33, 45], x: [9.2, 18.5], c: '#f2c26b' } });
   add(uncSupGeom(FRV.unc), M.unc, 'uncsup', { tag: 'uncsup' });
   add(beakGeom(8.3, -20.3, 3.4), M.mucC, 'beak', { tag: 'beakr' });
-  for (const [c, r] of [[[14.2, 37, -43], 3.9], [[13.8, 39.6, -35.6], 3.6]])
+  for (const [c, r] of [[[15, 40.6, -41.4], 2.6], [[13.8, 40.2, -36.2], 3.3]])
     add(ellipsoid(c, [r, r, r], 32), M.cell, 'antcell', { map: { t: 'e', c, r: [r, r, r], col: '#c9a070' } });
-  add(quad([8, 16, -48], [18.5, 16, -48], [8, 45, -48], 0.2), M.cell, 'basal', { map: { t: 'lineZ', z: -48, y: [16, 44], x: [8, 18.5], c: '#ffd36e' } });
+  // Lamela basal: segmento medio de la inserción del cornete medio, oblicuo en el plano sagital (arriba más anterior), de la lamela vertical a la lámina papirácea
+  add(sheet((u, v) => { const y = 18 + (yr(-43) - 0.3 - 18) * v, z = -50 + 7 * v - 1.2 * Math.sin(Math.PI * v); return [7.2 + 11.3 * u, y, z - 0.8 * Math.sin(Math.PI * u)]; }, 12, 16), M.cell, 'basal', { map: { t: 'poly', pts: [[12, 18, -50], [12, 31, -47.8], [12, 44, -43]], col: '#ffd36e' } });
+  // Segmento posterior: horizontal, a la pared lateral (cresta etmoidal), por delante del foramen esfenopalatino
+  add(sheet((u, v) => [6.6 + 10.3 * u, 19.2 + 1.8 * u + 0.5 * Math.sin(Math.PI * u), -49.5 - 8.5 * v], 10, 8), M.turb, 'mtpost');
   // Mucosa que cubre el laberinto etmoidal (medial a las celdas)
   add(quad([9.2, 30.5, -24], [9.2, 30.5, -48], [9.2, 46, -24], 0.25), M.mucC, 'ethmuc');
   add(quad([8.8, 22, -48], [8.8, 22, -64], [8.8, 44, -48], 0.25), M.mucC, 'ethmuc');
@@ -747,8 +754,8 @@ function uncSupGeom(t) {   // porción superior de la unciforme según su inserc
   return sheet((u, v) => [11 + 7.4 * u, 29.6 + 2.6 * u + 0.9 * Math.sin(Math.PI * u), -22.6 - 3.2 * v + 1.2 * u], 12, 6);
 }
 function bullaLamGeom(t) {   // pared anterior de la bulla, desde su techo hacia la base de cráneo
-  const top = t === 'sb' ? yr(-28.4) - 0.2 : 37.8;
-  return sheet((u, v) => { const x = 9.4 + 9.1 * u, y = 32.6 + (top - 32.6) * v; return [x, y, -28.4 - 0.9 * Math.sin(Math.PI * u) * (1 - v) - 0.3 * v]; }, 12, 10);
+  const top = t === 'sb' ? yr(-28.4) - 0.2 : 39.2;
+  return sheet((u, v) => { const x = 9.4 + 9.1 * u, y = 34.5 + (top - 34.5) * v; return [x, y, -28.4 - 0.9 * Math.sin(Math.PI * u) * (1 - v) - 0.3 * v]; }, 12, 10);
 }
 function beakGeom(ox, oz, orr) {   // pico frontal: engrosamiento óseo en el margen anterior del ostium frontal
   const g = new THREE.SphereGeometry(1, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), p = g.attributes.position;
@@ -793,8 +800,8 @@ for (const m of [...anatomy.children]) {   // fosa contralateral (modelo bilater
 /* ============================== ANCLAS DE ETIQUETAS ============================== */
 const ANCHORS = [
   ['septum', [0.9, 18, -14]], ['beak', [9, 42.6, -15.6]], ['frontsept', [0.2, 56, -16]], ['psa', [7, 21.6, -65.4]], ['it', [7.1, 10, -16]], ['mt', [4.1, 26, -32]], ['unc', [11.2, 26, -24]],
-  ['bulla', [9.1, 28.6, -33.2]], ['bullam', [10.2, 39.5, -28.6]], ['uncsup', [11.6, 31.4, -23.6]], ['maxost', [16.8, 20, -30]], ['accost', [16.8, 15, -44]], ['agger', [13.6, 37.5, -18.5]], ['vbar', [10.25, 34.5, -18.5]], ['ifac_sac', [13.2, 38.1, -16.8]], ['ifac_safc', [13, 42, -15]], ['ifac_sbc', [11.5, 37.3, -27]], ['ifac_sbfc', [11, 41.4, -23.2]], ['ifac_soec', [16.2, 46, -29]], ['ifac_fsc', [2.2, 45.6, -16.5]],
-  ['frontost', [8.3, 45, -20.3]], ['axila', [8.5, 31.6, -18]], ['basal', [10, 22, -47.8]], ['postcell', [7.6, 31, -54]], ['st', [4.8, 37, -58]],
+  ['bulla', [9.1, 30, -34.6]], ['bullam', [10.2, 39.5, -28.6]], ['uncsup', [11.6, 31.4, -23.6]], ['maxost', [16.8, 20, -30]], ['accost', [16.8, 15, -44]], ['agger', [13.6, 37.5, -18.5]], ['vbar', [10.25, 34.5, -18.5]], ['ifac_sac', [13.2, 38.1, -16.8]], ['ifac_safc', [13, 42, -15]], ['ifac_sbc', [11.5, 37.3, -27]], ['ifac_sbfc', [11, 41.4, -23.2]], ['ifac_soec', [16.2, 46, -29]], ['ifac_fsc', [2.2, 45.6, -16.5]],
+  ['frontost', [8.3, 45, -20.3]], ['axila', [8.5, 31.6, -18]], ['basal', [10, 24, -48.8]], ['mtpost', [8.5, 20.4, -53]], ['mtatt', [6.2, 40, -36]], ['postcell', [7.6, 31, -54]], ['st', [4.8, 37, -58]],
   ['sphost', [3.2, 33, -65.7]], ['lamina', [18.4, 34, -42]], ['roof', [12, yr(-42) - 0.2, -42]],
   ['aea', [12, 44, -30]], ['pea', [12, 41.5, -55.5]], ['spa', [15.8, 20.5, -62]], ['optic', [16, 37.2, -77]],
   ['ica_pc', [13, 19, -88.6]], ['ica_ps', [14.6, 30.8, -82.5]], ['ica_pcl', [14.9, 38.2, -71.6]], ['ocr', [16.7, 36.4, -70.5]], ['sella', [0, 31, -85.6]],
@@ -1199,10 +1206,10 @@ const TOUR = [
     text: 'Cortá la apófisis unciforme con la pinza (clic sobre ella), de arriba hacia abajo. Detrás, en la pared lateral, queda el ostium maxilar.' },
   { name: '4 · Ostium maxilar y fontanela (30°–45°)', pos: [9.5, 19, -23], target: [17, 19, -31], angle: 45, roll: -90,
     text: 'Con óptica angulada rotada a lateral se ve el ostium natural. Ampliá hacia posterior/inferior por la fontanela, uniendo el ostium accesorio. No te extiendas hacia anterior (conducto nasolagrimal).' },
-  { name: '5 · Bulla etmoidal', pos: [8.3, 25, -22], target: [13.6, 28.6, -33.2], angle: 0,
+  { name: '5 · Bulla etmoidal', pos: [8.3, 25, -22], target: [13.6, 30, -34.6], angle: 0,
     text: 'Abrí la bulla por su cara medial e inferior. Sus restos laterales llegan a la lámina papirácea: cuidado. Su pared anterior (lamela bullar) es el límite posterior del receso frontal; por detrás y arriba corre la arteria etmoidal anterior.' },
-  { name: '6 · Lamela basal', pos: [9.5, 27, -35], target: [12, 28, -48], angle: 0,
-    text: 'Tras la bulla aparece la lamela basal del cornete medio (pared vertical). Abrila en su porción inferomedial para pasar al etmoides posterior.' },
+  { name: '6 · Lamela basal', pos: [9.5, 27, -37], target: [12, 27, -49], angle: 0,
+    text: 'Tras la bulla aparece la lamela basal del cornete medio: segmento medio de su inserción, oblicuo (arriba más anterior). Abrila en su porción inferomedial para pasar al etmoides posterior. Activá "Corte sagital" para ver las tres porciones de la inserción: vertical (cribosa), lamela basal (lámina papirácea) y horizontal (pared lateral).' },
   { name: '7 · Agger nasi, barra vertical y receso frontal (45°–70°)', pos: [5.4, 27.5, -11], target: [9.5, 41, -20], angle: 70, roll: 0,
     text: 'Con 70° mirando hacia arriba: la <b>axila</b> del cornete medio, por encima el <b>agger nasi</b> y su pared medial, la <b>barra vertical</b> (porción superior de la unciforme). Resecá la barra vertical para abrir el agger y ver su <b>techo</b>; el <b>ostium frontal</b> queda posterior y medial a la barra, con el <b>pico frontal</b> por delante y la <b>lamela bullar</b> por detrás.' },
   { name: '8 · Etmoides posterior', pos: [9.5, 30, -43], target: [12.5, 32, -57], angle: 0,
@@ -2054,6 +2061,7 @@ function placeScopeStart() {
   scope.pos.copy(anatomy.localToWorld(CT.entry[state.side].clone())); scope.q.identity(); sliceKey = '';
 }
 function setModel(m) {
+  if (m !== 'generic' && $('#chkSag')) { $('#chkSag').checked = false; $('#sagCtl').style.display = 'none'; cutU.uSag.value = 1e9; if (!state.vr) hemi.visible = false; }
   if (m === 'ct' && !CT.mesh) { $('#ctBox').style.display = 'block'; segOn('model', 'ct'); toast('Cargá la TC con los botones de carpeta o archivos.'); return; }
   state.model = m; segOn('model', m);
   $('#ctBox').style.display = m === 'ct' || !CT.mesh ? ($('#ctBox').style.display) : 'none';
@@ -3006,7 +3014,7 @@ const PROCS = {
     { t: 'Identificá la bulla etmoidal', d: 'Detrás del lugar de la unciforme.', hl: 'bulla', view: 4, tool: 'none', check: LOOK('bulla') },
     { t: 'Abrí la bulla', d: 'Resecá la bulla etmoidal con pinza, por su cara medial e inferior.', hl: 'bulla', tool: 'pinza', check: CUT('bulla', null, 0.55, 1) },
     { t: 'Identificá la lamela basal', d: 'La pared vertical que queda detrás de la bulla.', hl: 'basal', view: 5, tool: 'none', check: LOOK('basal') },
-    { t: 'Abrí la lamela basal', d: 'Perforala en su porción inferomedial para entrar al etmoides posterior.', hl: 'basal', tool: 'pinza', check: CUT('basal', box(7, 19, 16, 30, -49, -47), 0.35, 1) },
+    { t: 'Abrí la lamela basal', d: 'Perforala en su porción inferomedial para entrar al etmoides posterior.', hl: 'basal', tool: 'pinza', check: CUT('basal', box(7, 19, 16, 30, -51.5, -46), 0.35, 1) },
     { t: 'Etmoidectomía posterior', d: 'Resecá las celdas posteriores respetando la lámina papirácea (lateral) y la base de cráneo (arriba).', hl: 'postcell', view: 7, check: CUT('postcell', null, 0.4, 1) },
     { t: 'Identificá el ostium esfenoidal', d: 'En el receso esfenoetmoidal, medial al cornete superior.', hl: 'sphost', view: 8, tool: 'none', check: LOOK(['sphost', 'sphface']) },
     { t: 'Esfenoidotomía', d: 'Ampliá el ostium esfenoidal hacia medial e inferior.', hl: 'sphost', tool: 'pinza', check: CUT(['sphface', 'sphost'], box(0.5, 12, 24, 40, -67, -65), 0.4, 1) },
@@ -3293,6 +3301,14 @@ document.querySelectorAll('.ifac button').forEach(b => b.onclick = () => {
   }
 });
 $('#chkDrain').onchange = () => updateDrain();
+function setSag(on) {
+  const x = +$('#sagX').value; $('#sagCtl').style.display = on ? 'flex' : 'none'; $('#sagV').textContent = x + ' mm';
+  cutU.uSag.value = on && state.model === 'generic' ? x : 1e9;
+  if (!state.vr) { hemi.visible = !!(on && state.model === 'generic'); hemi.intensity = on ? 1.6 : 1.1; }
+  if (on && state.model === 'generic') { goTo({ pos: [x + 30, 28, -36], target: [0, 28, -36], angle: 0 }); toast(`Corte sagital a ${x} mm del septum: se ve la inserción del cornete medio — vertical a la cribosa, lamela basal oblicua y horizontal a la pared lateral — con la bulla y el receso frontal por delante y el etmoides posterior por detrás. Mové el plano con el control.`, 8000); }
+}
+$('#chkSag').onchange = e => setSag(e.target.checked);
+$('#sagX').oninput = () => { if ($('#chkSag').checked) { cutU.uSag.value = +$('#sagX').value; $('#sagV').textContent = $('#sagX').value + ' mm'; } };
 const FR_TXT = {
   lp: 'Unciforme insertada en la lámina papirácea (lo más frecuente): por detrás del agger se curva a lateral y cierra el infundíbulo (recessus terminalis). El frontal drena MEDIAL a la unciforme, directo al meato medio.',
   sb: 'Unciforme insertada en la base de cráneo: sube medial al agger hasta el techo. El frontal drena LATERAL a ella, dentro del infundíbulo etmoidal (el ostium queda más lateral y se ve recién al resecarla).',

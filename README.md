@@ -20,8 +20,10 @@ Abrí `index.html` en un navegador moderno (Chrome, Edge o el navegador del Meta
 - Flechas o arrastre: orientar · `Z`/`X`: rotar óptica angulada · `O`: cambiar óptica (0°/30°/45°/70°)
 - Modo *Explorar*: clic sobre un punto → el endoscopio viaja hasta ahí · `T`: viajar al centro de la cruz
 - `M`: monopolar en modo corte/coagulación
-- Instrumentos (`1`–`8`): explorar, pinza cortante, drill, bipolar, monopolar, aspirador, espátula de Freer y pinza de agarre
+- Instrumentos (`1`–`0`, `U`): explorar, pinza cortante, drill, bipolar, monopolar, aspirador, espátula de Freer, pinza de agarre, pinza retrógrada, palpador bolita y porta-agujas con aguja curva (sutura)
 - Colgajos: incisiones con monopolar en corte → la Freer despega la mucosa progresivamente (queda unida por el pedículo) → la pinza de agarre toma el colgajo y lo mueve (simulación de lámina blanda); botones para rotar a base de cráneo, a una perforación o reposicionar
+- Perforaciones septales (algoritmo de Alobid): elegir sitio/tamaño → guía de incisiones (verde) y pedículo (naranja): <1 cm avance bipediculado, 1–2 cm colgajo de arteria etmoidal anterior, anterior extrema colgajo de palatina mayor, >2 cm etmoidal anterior extendido. Llevar el colgajo a la perforación y fijarlo con puntos (porta-agujas)
+- Receso frontal: barra vertical de Stamm (unciforme como pared medial del agger), variantes IFAC (agger, supra agger, supra agger frontal, supra bulla, supra bulla frontal, supraorbitaria, septal frontal) con vía de drenaje
 - Lesionar la etmoidal anterior/posterior o la esfenopalatina produce un sangrado pulsátil: coagular con bipolar (o monopolar, con riesgo térmico cerca de órbita y base de cráneo) y aspirar
 - Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados para medializar/lateralizar · `Espacio`: lavado-aspiración general
 

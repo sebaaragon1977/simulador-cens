@@ -105,6 +105,12 @@
       <div class="ctl"><span>Malla</span><select id="res"><option value="0.6">Alta (escritorio) · 0,6 mm</option><option value="0.8" selected>Media · 0,8 mm</option><option value="quest">Quest 2 (liviana)</option></select></div>
       <div class="row"><button id="btnRebuild">Reconstruir</button></div>
       <div id="ctStatus" class="mut">Sin estudio cargado. Todo se procesa en esta computadora: las imágenes no se suben a ningún lado.</div>
+    </div>
+    <div id="caseBox" style="margin-top:6px">
+      <div class="mut" style="margin-bottom:3px">Casos guardados</div>
+      <div class="row"><select id="caseSel" style="flex:1;min-width:0"></select><button id="btnCaseLoad">Abrir</button></div>
+      <div class="row"><button id="btnCaseFile">📦 Abrir archivo de caso</button><button id="btnCaseDel" title="Borrar de este dispositivo">🗑</button></div>
+      <input type="file" id="inCase" accept=".zip" hidden>
     </div></div>
   <div class="grp"><label>Óptica</label>
     <div class="seg" id="optic"><button data-v="0" class="on">0°</button><button data-v="30">30°</button><button data-v="45">45°</button><button data-v="70">70°</button></div></div>
@@ -155,6 +161,10 @@
   </div>
   <div id="ctPanel" style="display:none">
     <div class="row"><button id="btnWin">Ventana: hueso</button><button id="btnMark">Marcar estructura</button></div>
+    <div class="ctl"><span>Nombre del caso</span><input id="caseName" placeholder="p. ej. Keros III + Onodi" style="flex:1;min-width:0"></div>
+    <div class="ctl"><span>Descripción</span><input id="caseDesc" placeholder="variante, objetivo docente…" style="flex:1;min-width:0"></div>
+    <div class="row"><button id="btnCaseSave">💾 Guardar caso (anonimizado)</button></div>
+    <div class="mut">Guarda sólo el volumen recortado a fosas, senos y base de cráneo, <b>sin encabezados DICOM</b> y sin piel ni partes blandas superficiales de la cara, más las marcas. Queda en "Mis casos" de este dispositivo y se descarga el archivo: para sumarlo a la biblioteca compartida, mandáselo al responsable del repositorio.</div>
     <div class="ctl"><span>Tipo de marca</span><select id="lmType"></select></div>
     <small>Axial</small><canvas id="ctAx" width="480" height="400"></canvas>
     <small>Coronal</small><canvas id="ctCo" width="480" height="400"></canvas>
@@ -1964,11 +1974,12 @@ $('#btnWin').onclick = () => { CT.win = CT.win === 'bone' ? 'soft' : 'bone'; $('
 $('#btnMark').onclick = () => { CT.mark = !CT.mark; $('#btnMark').classList.toggle('mk', CT.mark); $('#btnMark').textContent = CT.mark ? 'Marcando… (clic en un corte)' : 'Marcar estructura'; };
 
 /* ---------- carga y cambio de modelo ---------- */
-async function loadCT(files) {
+async function loadCT(files, pre) {
   try {
-    if (!files || !files.length) return;
+    if (!pre && (!files || !files.length)) return;
+    if (!pre) CT.src = null;
     $('#btnRebuild').disabled = true; state.busy = true;
-    const bufs = await readInputs(files);
+    const bufs = pre || await readInputs(files);
     ctStatus(`Interpretando ${bufs.length} archivos DICOM…`); await tick();
     const { slices, compressed } = parseSlices(bufs);
     if (!slices.length) throw new Error(compressed ? `las imágenes están comprimidas (${compressed} archivos). Exportá la serie como DICOM sin compresión (Explicit/Implicit VR Little Endian) desde Horos, RadiAnt o el PACS.` : 'no encontré imágenes DICOM válidas');
@@ -1978,7 +1989,8 @@ async function loadCT(files) {
     Object.assign(CT, cr);
     CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = []; renderLmList();
     await rebuildCT();
-    ctStatus(`✔ ${vol.nSlices} cortes · vóxel ${vol.dsp.map(v => v.toFixed(2)).join(' × ')} mm${vol.oblique ? ' · ⚠ serie oblicua (aproximada)' : ''}<br>${CT.status}`);
+    if (CT.src) $('#caseName').value = CT.src.label;
+    ctStatus((CT.src ? `<b>${CT.src.label}</b> — ${CT.src.cita} (${CT.src.lic})<br>` : '') + `✔ ${vol.nSlices} cortes · vóxel ${vol.dsp.map(v => v.toFixed(2)).join(' × ')} mm${vol.oblique ? ' · ⚠ serie oblicua (aproximada)' : ''}<br>${CT.status}`);
     setModel('ct');
   } catch (e) {
     console.error(e); ctStatus('⚠ No se pudo cargar: ' + e.message);
@@ -2031,6 +2043,136 @@ $('#iso').oninput = e => { $('#isoV').textContent = e.target.value; };
 $('#iso').onchange = e => { CT.iso = +e.target.value; };
 $('#btnRebuild').onclick = async () => { if (!CT.C) { toast('Primero cargá una TC.'); return; } $('#btnRebuild').disabled = true; state.busy = true; CT.iso = +$('#iso').value; try { await rebuildCT(); } finally { state.busy = false; $('#btnRebuild').disabled = false; } };
 renderLmList();
+
+/* ---------- casos guardados: exportar (anonimizado), biblioteca compartida (casos/) y "Mis casos" (este dispositivo) ---------- */
+function chamfer(mask, dd, h) {   // distancia (mm) de cada vóxel al vóxel "true" más cercano (chamfer 3D, dos pasadas)
+  const [nx, ny, nz] = dd, N = nx * ny * nz, D = new Float32Array(N), sy = nx, sz = nx * ny;
+  for (let i = 0; i < N; i++) D[i] = mask[i] ? 0 : 1e9;
+  const nb = [];
+  for (let dz = -1; dz <= 0; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    if (dz === 0 && (dy > 0 || (dy === 0 && dx >= 0))) continue;
+    nb.push([dx, dy, dz, Math.hypot(dx * h[0], dy * h[1], dz * h[2])]);
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const sg = pass ? -1 : 1;
+    for (let k0 = 0; k0 < nz; k0++) { const k = pass ? nz - 1 - k0 : k0;
+      for (let j0 = 0; j0 < ny; j0++) { const j = pass ? ny - 1 - j0 : j0;
+        for (let i0 = 0; i0 < nx; i0++) { const i = pass ? nx - 1 - i0 : i0, id = i + j * sy + k * sz; let d = D[id];
+          for (const [dx, dy, dz, w] of nb) { const a = i + sg * dx, b = j + sg * dy, c = k + sg * dz; if (a < 0 || b < 0 || c < 0 || a >= nx || b >= ny || c >= nz) continue; const v = D[a + b * sy + c * sz] + w; if (v < d) d = v; }
+          D[id] = d; } } }
+  }
+  return D;
+}
+async function defaceQ(Q, dd, g) {   // quita piel y partes blandas superficiales de la cara (deja hueso y fosas)
+  const cf = g.map(x => Math.max(1, Math.round(1.2 / x))), cd = dd.map((n, a) => Math.ceil(n / cf[a])), h = g.map((x, a) => x * cf[a]);
+  const [cx, cy, cz] = cd, NC = cx * cy * cz, M = new Uint8Array(NC);
+  const at = (i, j, k) => Q[Math.min(dd[0] - 1, i) + Math.min(dd[1] - 1, j) * dd[0] + Math.min(dd[2] - 1, k) * dd[0] * dd[1]];
+  for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) for (let i = 0; i < cx; i++) M[i + j * cx + k * cx * cy] = at(i * cf[0] + (cf[0] >> 1), j * cf[1] + (cf[1] >> 1), k * cf[2] + (cf[2] >> 1)) > 60 ? 1 : 0;   // > -400 HU
+  ctStatus('Anonimizando: cerrando narinas y boca…'); await tick();
+  const R = 6, dOut = chamfer(M, cd, h), Dl = new Uint8Array(NC); for (let i = 0; i < NC; i++) Dl[i] = dOut[i] > R ? 1 : 0;   // fuera de la dilatación
+  const dE = chamfer(Dl, cd, h), closed = new Uint8Array(NC); for (let i = 0; i < NC; i++) closed[i] = dE[i] > R ? 1 : 0;
+  ctStatus('Anonimizando: separando el exterior…'); await tick();
+  const out = new Uint8Array(NC), st = [];
+  for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) for (let i = 0; i < cx; i++) if ((i === 0 || j === 0 || k === 0 || i === cx - 1 || j === cy - 1 || k === cz - 1)) { const id = i + j * cx + k * cx * cy; if (!closed[id] && !out[id]) { out[id] = 1; st.push(id); } }
+  while (st.length) { const id = st.pop(), i = id % cx, j = ((id / cx) | 0) % cy, k = (id / (cx * cy)) | 0;
+    for (const [a, b, c] of [[i + 1, j, k], [i - 1, j, k], [i, j + 1, k], [i, j - 1, k], [i, j, k + 1], [i, j, k - 1]]) { if (a < 0 || b < 0 || c < 0 || a >= cx || b >= cy || c >= cz) continue; const q = a + b * cx + c * cx * cy; if (!out[q] && !closed[q]) { out[q] = 1; st.push(q); } } }
+  ctStatus('Anonimizando: retirando piel y partes blandas superficiales…'); await tick();
+  const dIn = chamfer(out, cd, h), B = 7;
+  let removed = 0;
+  for (let k = 0; k < dd[2]; k++) for (let j = 0; j < dd[1]; j++) for (let i = 0; i < dd[0]; i++) {
+    const c = Math.floor(i / cf[0]) + Math.floor(j / cf[1]) * cx + Math.floor(k / cf[2]) * cx * cy, id = i + j * dd[0] + k * dd[0] * dd[1];
+    if (out[c] || (dIn[c] <= B && Q[id] < 125)) { if (Q[id] > 0) removed++; Q[id] = 0; }   // < 250 HU → aire; el hueso se conserva
+  }
+  return removed;
+}
+const slugify = t => (t || 'caso').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'caso';
+async function buildCaseZip() {
+  const g = CT.cs.map(x => Math.max(x, 0.6)), ext = CT.cd.map((n, a) => (n - 1) * CT.cs[a]);
+  const dd = ext.map((e, a) => Math.floor(e / g[a]) + 1), [nx, ny, nz] = dd, Q = new Uint8Array(nx * ny * nz);
+  for (let k = 0; k < nz; k++) {
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const hu = sampleCtri(CT.cO.x + i * g[0], CT.cO.y + j * g[1], CT.cO.z + k * g[2]); Q[i + j * nx + k * nx * ny] = Math.max(0, Math.min(255, Math.round((hu + 1000) / 10))); }
+    if (k % 20 === 0) { ctStatus(`Preparando el caso… ${Math.round(k / nz * 100)}%`); await tick(); }
+  }
+  await defaceQ(Q, dd, g);
+  const meta = { format: 'cens-case', version: 1, name: ($('#caseName').value || 'Caso sin nombre').trim(), desc: ($('#caseDesc').value || '').trim(), created: new Date().toISOString().slice(0, 10),
+    dims: dd, spacing: g, origin: CT.cO.toArray(), cx: CT.cx, tipP: CT.tipP, tipS: CT.tipS, iso: CT.iso, hu: { scale: 10, offset: -1000 }, anonymized: { dicomHeaders: false, defaced: true },
+    landmarks: CT.landmarks.map(l => ({ type: l.type, p: l.p.toArray().map(v => +v.toFixed(2)) })) };
+  if (CT.src) meta.credit = `${CT.src.label}. ${CT.src.cita} Licencia ${CT.src.lic}: uso docente no comercial; no redistribuir versiones modificadas.`;
+  const zip = new JSZip(); zip.file('case.json', JSON.stringify(meta, null, 1)); zip.file('vol.bin', Q);
+  return { meta, blob: await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }) };
+}
+// "Mis casos": IndexedDB del navegador
+const idb = () => new Promise((res, rej) => { const r = indexedDB.open('cens-casos', 1); r.onupgradeneeded = () => r.result.createObjectStore('casos', { keyPath: 'id' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+async function idbDo(mode, fn) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction('casos', mode), st = tx.objectStore('casos'), r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); }); }
+const CASES = { lib: [], mine: [], ext: null };
+async function refreshCases() {
+  try { const r = await fetch('casos/index.json', { cache: 'no-cache' }); CASES.lib = r.ok ? (await r.json()).casos || [] : []; } catch (e) { CASES.lib = []; }
+  try { CASES.mine = (await idbDo('readonly', st => st.getAll())) || []; } catch (e) { CASES.mine = []; }
+  if (!CASES.ext) try { const r = await fetch('casos/ctscope.json', { cache: 'no-cache' }); if (r.ok) CASES.ext = await r.json(); } catch (e) { }
+  const opt = (v, t) => `<option value="${v}">${t.replace(/</g, '&lt;')}</option>`;
+  $('#caseSel').innerHTML = (CASES.lib.length ? '<optgroup label="Biblioteca compartida">' + CASES.lib.map((c, i) => opt('lib:' + i, c.name)).join('') + '</optgroup>' : '')
+    + (CASES.ext ? `<optgroup label="CT-SCOPE · TC reales (externa, ${CASES.ext.licencia})">` + CASES.ext.pacientes.map((c, i) => opt('ext:' + i, `${c.id} · ${c.grupo} · ${c.files.length} cortes`)).join('') + '</optgroup>' : '')
+    + (CASES.mine.length ? '<optgroup label="Mis casos (este dispositivo)">' + CASES.mine.map(c => opt('mine:' + c.id, c.name + ' · ' + c.created)).join('') + '</optgroup>' : '')
+    || '<option value="">(todavía no hay casos guardados)</option>';
+}
+async function loadCaseZip(data) {
+  try {
+    state.busy = true; ctStatus('Abriendo el caso…'); await tick();
+    const z = await JSZip.loadAsync(data), jf = z.file('case.json'), vf = z.file('vol.bin');
+    if (!jf || !vf) throw new Error('no es un archivo de caso del simulador (falta case.json / vol.bin)');
+    const meta = JSON.parse(await jf.async('string')), Q = await vf.async('uint8array');
+    if (meta.format !== 'cens-case' || Q.length !== meta.dims[0] * meta.dims[1] * meta.dims[2]) throw new Error('archivo de caso dañado o de otra versión');
+    const C = new Int16Array(Q.length), sc = meta.hu.scale, of = meta.hu.offset; for (let i = 0; i < Q.length; i++) C[i] = Q[i] * sc + of;
+    Object.assign(CT, { C, cd: meta.dims, cs: meta.spacing, cO: V(...meta.origin), cx: meta.cx, tipP: meta.tipP, tipS: meta.tipS, caseMeta: meta });
+    if (meta.iso) { CT.iso = meta.iso; $('#iso').value = meta.iso; $('#isoV').textContent = meta.iso; }
+    CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = [];
+    await rebuildCT();
+    for (const l of meta.landmarks || []) if (LM_TYPES[l.type]) addLandmark(l.type, V(...l.p));
+    $('#caseName').value = meta.name || ''; $('#caseDesc').value = meta.desc || '';
+    setModel('ct');
+    ctStatus(`✔ Caso: <b>${(meta.name || '').replace(/</g, '&lt;')}</b>${meta.desc ? ' — ' + meta.desc.replace(/</g, '&lt;') : ''}${meta.credit ? '<br><small>' + meta.credit.replace(/</g, '&lt;') + '</small>' : ''}<br>${CT.status}`);
+    toast('Caso cargado: ' + meta.name, 4000);
+  } catch (e) { console.error(e); ctStatus('⚠ No se pudo abrir el caso: ' + e.message); toast('No se pudo abrir el caso: ' + e.message, 5000, true); }
+  finally { state.busy = false; last = performance.now(); }
+}
+$('#btnCaseSave').onclick = async () => {
+  if (!CT.C) { toast('Primero cargá una TC.'); return; }
+  const b = $('#btnCaseSave'); b.disabled = true; state.busy = true;
+  try {
+    const { meta, blob } = await buildCaseZip();
+    const id = Date.now().toString(36), file = slugify(meta.name) + '.cens.zip';
+    try { await idbDo('readwrite', st => st.put({ id, name: meta.name, desc: meta.desc, created: meta.created, blob })); } catch (e) { console.warn(e); }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    await refreshCases();
+    ctStatus(`✔ Caso guardado (${(blob.size / 1048576).toFixed(1)} MB, anonimizado) en "Mis casos" y descargado como <b>${file}</b>.<br>${CT.status}`);
+    toast(CT.src ? 'Caso guardado en este dispositivo. Es de CT-SCOPE (licencia sin obras derivadas): usalo para docencia, pero no lo subas a la biblioteca pública.' : 'Caso guardado en este dispositivo y descargado. Para compartirlo con todos, mandá el archivo al responsable del repositorio.', 7000, !!CT.src);
+  } catch (e) { console.error(e); toast('No se pudo guardar el caso: ' + e.message, 5000, true); }
+  finally { b.disabled = false; state.busy = false; last = performance.now(); }
+};
+$('#btnCaseLoad').onclick = async () => {
+  const v = $('#caseSel').value; if (!v) { toast('No hay casos para abrir.'); return; }
+  const [src, k] = v.split(':');
+  if (src === 'lib') { const c = CASES.lib[+k]; try { ctStatus('Descargando el caso…'); const r = await fetch('casos/' + c.file); if (!r.ok) throw new Error('HTTP ' + r.status); await loadCaseZip(await r.arrayBuffer()); } catch (e) { ctStatus('⚠ No se pudo descargar el caso: ' + e.message); } }
+  else if (src === 'ext') {
+    const E = CASES.ext, c = E.pacientes[+k], bufs = new Array(c.files.length); let done = 0, i0 = 0, fail = 0;
+    state.busy = true; $('#ctBox').style.display = 'block';
+    const worker = async () => { while (i0 < c.files.length) { const i = i0++; try { const r = await fetch(E.base + encodeURI(c.dir + c.files[i])); if (!r.ok) throw 0; bufs[i] = new Uint8Array(await r.arrayBuffer()); } catch (e) { fail++; } if (++done % 10 === 0) ctStatus(`Descargando ${c.id} desde el repositorio de CT-SCOPE… ${done}/${c.files.length}`); } };
+    try { await Promise.all(Array.from({ length: 8 }, worker)); } finally { state.busy = false; }
+    if (fail > c.files.length * 0.1) { ctStatus(`⚠ No se pudieron descargar ${fail} cortes de ${c.id}. Revisá la conexión.`); return; }
+    CT.src = { label: 'CT-SCOPE ' + c.id + ' (' + c.grupo + ')', cita: E.cita, lic: E.licencia };
+    await loadCT(null, bufs.filter(Boolean));
+  }
+  else { const c = CASES.mine.find(x => x.id === k); if (c) await loadCaseZip(c.blob); }
+};
+$('#btnCaseDel').onclick = async () => {
+  const v = $('#caseSel').value; if (!v.startsWith('mine:')) { toast('Sólo se pueden borrar los casos de "Mis casos" (los de la biblioteca compartida se manejan en el repositorio).'); return; }
+  const id = v.slice(5), c = CASES.mine.find(x => x.id === id);
+  if ($('#btnCaseDel').dataset.arm !== id) { $('#btnCaseDel').dataset.arm = id; toast(`Tocá 🗑 otra vez para borrar "${c ? c.name : ''}" de este dispositivo.`, 4000, true); return; }
+  delete $('#btnCaseDel').dataset.arm; await idbDo('readwrite', st => st.delete(id)); await refreshCases(); toast('Caso borrado de este dispositivo.');
+};
+$('#btnCaseFile').onclick = () => $('#inCase').click();
+$('#inCase').onchange = e => { const f = e.target.files[0]; if (f) loadCaseZip(f); e.target.value = ''; };
+refreshCases();
 
 
 /* ============================== SANGRADO, CAUTERIO, ASPIRACIÓN Y FREER ============================== */
@@ -3147,7 +3289,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

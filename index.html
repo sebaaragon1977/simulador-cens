@@ -96,7 +96,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="generic" class="on">Genérico</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -141,6 +141,7 @@
   <div class="grp checks">
     <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
     <label><input type="checkbox" id="chkXray"> Estructuras de riesgo (transparencia)</label>
+    <label><input type="checkbox" id="chkAtlas"> Colores de atlas (celdas y lamelas)</label>
     <label><input type="checkbox" id="chkSag"> Corte sagital (vista lateral)</label>
     <div class="ctl" id="sagCtl" style="display:none"><span>Plano</span><input type="range" id="sagX" min="3" max="19" step="0.5" value="11"><b id="sagV">11 mm</b></div>
     <label><input type="checkbox" id="chkCollide" checked> Colisión del endoscopio</label>
@@ -485,6 +486,7 @@ function planarUV(g) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 }
 function add(geom, material, key, opt = {}) {
+  warpGeom(geom);
   if (!geom.attributes.normal) geom.computeVertexNormals();
   planarUV(geom);
   const m = new THREE.Mesh(geom, material);
@@ -578,12 +580,30 @@ function disc(c, sx, sy, facing) { // facing: 'x-' (pared lateral vista desde me
   g.translate(...c); return g;
 }
 function overlay(geom, color, op = 0.55) {
+  warpGeom(geom);
   const m = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
   m.renderOrder = 20; m.visible = false; anatomy.add(m); overlays.push(m); return m;
 }
 
 /* ============================== ANATOMÍA (fosa derecha, mm) ==============================
    x = lateral (septum en x=0, lámina papirácea x=18.5) · y = cefálico (piso y=0) · z = anterior (+) / posterior (−)  */
+/* Fantoma 2 · proporciones del promedio de TC normales (CT-SCOPE: P31, P36, P33, P35) y regla 24-12-6.
+   Se mantienen nariz, agger, receso frontal, bulla anterior y arteria etmoidal anterior; se acorta el etmoides
+   (bulla grande con receso retrobullar corto, lamela basal a ~11 mm de la cara del esfenoides) y todo lo posterior
+   (esfenoides, silla, carótida, seno cavernoso, fosas pterigopalatina e infratemporal) se adelanta 14,5 mm. */
+const PH2 = new URLSearchParams(location.search).get('fantoma') === '2';
+const WZK = PH2 ? [[-28, -28], [-40.8, -39.4], [-43, -40.5], [-50, -45.5], [-66, -51.5]] : null;
+function WZ(z) {   // coordenada de diseño → fantoma
+  if (!WZK || z >= WZK[0][0]) return z;
+  for (let i = 1; i < WZK.length; i++) if (z >= WZK[i][0]) { const [a0, b0] = WZK[i - 1], [a1, b1] = WZK[i]; return b0 + (z - a0) * (b1 - b0) / (a1 - a0); }
+  const [a, b] = WZK[WZK.length - 1]; return z + (b - a);
+}
+function WZi(z) {  // fantoma → diseño
+  if (!WZK || z >= WZK[0][1]) return z;
+  for (let i = 1; i < WZK.length; i++) if (z >= WZK[i][1]) { const [a0, b0] = WZK[i - 1], [a1, b1] = WZK[i]; return a0 + (z - b0) * (a1 - a0) / (b1 - b0); }
+  const [a, b] = WZK[WZK.length - 1]; return z - (b - a);
+}
+function warpGeom(g) { if (!PH2) return g; const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, WZ(p.getZ(i))); p.needsUpdate = true; g.computeVertexNormals(); return g; }
 const yr = z => 46 + (z + 24) * 0.0952;     // altura del techo etmoidal (desciende hacia posterior)
 const AEA = [[18.8, 44.6, -31.5], [12, 44.85, -30], [5, 45.1, -28.5]];
 const PEA = [[18.8, 42.0, -56.5], [12, 42.2, -55.5], [6, 42.4, -54.5]];
@@ -813,6 +833,7 @@ const ANCHORS = [
   ['ptplate', [26.1, 20, -75]], ['maxpost', [24, 16, -53.9]], ['sphlat', [18.4, 24, -84]], ['sphfloor', [8, 19.1, -80]], ['latpost', [16.9, 18, -56]], ['nld', [16.7, 3.4, -16]],
   ['torus', [13, 10, -84]], ['np', [4, 9, -78]], ['septsph', [6, 30, -73]]
 ].map(([k, p]) => ({ key: k, p: V(...p), el: null }));
+if (PH2) ANCHORS.forEach(a => a.p.z = WZ(a.p.z));
 
 /* ============================== RIESGOS ============================== */
 function distSeg(p, a, b) { const ab = b.clone().sub(a), t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1); return p.distanceTo(a.clone().addScaledVector(ab, t)); }
@@ -861,8 +882,8 @@ function checkDanger(lp, r) {
   const now = performance.now();
   if (state.prepping) return;
   if (state.model === 'ct') { checkDangerCT(lp, r); return; }
-  const pm = V(Math.abs(lp.x), lp.y, lp.z), sx = lp.x < 0 ? -1 : 1;
-  for (const d of DANGERS) if (d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
+  const pm = V(Math.abs(lp.x), lp.y, WZi(lp.z)), sx = lp.x < 0 ? -1 : 1;
+  for (const d of DANGERS) if (d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; q.z = WZ(q.z); addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
 }
 function reportDanger(d) {
   const now = performance.now();
@@ -1180,12 +1201,13 @@ const PREP = {
 };
 function runPrep(name) {
   state.prepping = true;
-  try { PREP[name]((x, y, z, r) => addCut(V(x, y, z), r)); } finally { state.prepping = false; }
+  try { PREP[name]((x, y, z, r) => addCut(V(x, y, WZ(z)), r)); } finally { state.prepping = false; }
 }
 function goTo(p) {
   if (p.prep && state.model === 'generic') runPrep(p.prep);
   if (state.model === 'generic') { if (p.perf && !perforation) makePerforation(); if (p.guide) setGuide(p.guide); if (p.tool) setTool(p.tool); if (p.mono) setMono(p.mono); }
-  const P = anatomy.localToWorld(V(...p.pos)), T = anatomy.localToWorld(V(...p.target));
+  const gz = state.model === 'generic' ? WZ : (z => z);
+  const P = anatomy.localToWorld(V(p.pos[0], p.pos[1], gz(p.pos[2]))), T = anatomy.localToWorld(V(p.target[0], p.target[1], gz(p.target[2])));
   setAngle(p.angle || 0);
   const roll = (p.roll || 0) * D2R * -state.side;
   const L = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(P, T, V(0, 1, 0)));
@@ -1524,7 +1546,7 @@ function identify() {
       const dO = ctFatDist(lp), dS = ctLmDist(lp, 'skull');
       $('#dLam').innerHTML = fmt(dO, dO < 12); $('#dSkull').innerHTML = fmt(dS, dS < 40);
     } else {
-      const dl = 18.5 - Math.abs(lp.x), ds = yr(THREE.MathUtils.clamp(lp.z, -66, -24)) - lp.y;
+      const dl = 18.5 - Math.abs(lp.x), ds = yr(THREE.MathUtils.clamp(WZi(lp.z), -66, -24)) - lp.y;
       $('#dLam').innerHTML = fmt(dl, lp.z < -18 && lp.z > -66 && lp.y > 22);
       $('#dSkull').innerHTML = fmt(ds, lp.z < -20 && lp.z > -68);
     }
@@ -1565,10 +1587,10 @@ function updateLabels() {
 }
 const mapS = $('#mapS').getContext('2d'), mapA = $('#mapA').getContext('2d');
 function drawMaps() {
-  const lp = anatomy.worldToLocal(scope.pos.clone());
+  const lp = anatomy.worldToLocal(scope.pos.clone()); lp.z = WZi(lp.z);
   const vd = V(0, 0, -1).applyQuaternion(endoCam.quaternion);
-  const lpd = anatomy.worldToLocal(scope.pos.clone().addScaledVector(vd, 14 * state.S));
-  const tp = (state.tool !== 'none' && (tipHit || state.vr)) ? anatomy.worldToLocal(tipWorld.clone()) : null;
+  const lpd = anatomy.worldToLocal(scope.pos.clone().addScaledVector(vd, 14 * state.S)); lpd.z = WZi(lpd.z);
+  const tp = (state.tool !== 'none' && (tipHit || state.vr)) ? anatomy.worldToLocal(tipWorld.clone()) : null; if (tp) tp.z = WZi(tp.z);
   drawMap(mapS, 440, 270, p => [(12 - p.z) * 4.0, (74 - p.y) * 3.55], 'yz', lp, lpd, tp);
   drawMap(mapA, 440, 230, p => [(12 - p.z) * 4.0, (p.x + 16) * 3.8], 'xz', lp, lpd, tp);
 }
@@ -2081,9 +2103,10 @@ function setModel(m) {
   resetCuts(); setXray(state.xray); placeAnatomy(); lookKey = '__';
   if (m === 'ct') placeScopeStart(); else goTo(TOUR[0]);
 }
-function segOn(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
 document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
+  else if ((b.dataset.v === 'ph2') !== PH2) { const u = new URL(location.href); if (PH2) u.searchParams.delete('fantoma'); else u.searchParams.set('fantoma', '2'); location.href = u.toString(); }
   else setModel('generic');
 });
 $('#btnFolder').onclick = () => $('#inFolder').click();
@@ -2358,7 +2381,7 @@ function thermalDanger(lp, isMono) {
   lp = V(Math.abs(lp.x), lp.y, lp.z);
   if (isMono && lp.x > 15.5 && lp.y > 24 && lp.z < -18 && lp.z > -66)
     reportDanger({ id: 'th_lam', msg: 'Monopolar junto a la lámina papirácea: riesgo de lesión térmica orbitaria. Preferí el bipolar.' });
-  if (isMono && lp.z < -24 && lp.z > -66 && yr(lp.z) - lp.y < 3)
+  if (isMono && WZi(lp.z) < -24 && WZi(lp.z) > -66 && yr(WZi(lp.z)) - lp.y < 3)
     reportDanger({ id: 'th_skull', msg: 'Monopolar junto a la base de cráneo: riesgo de lesión térmica y fístula de LCR. Usá bipolar.' });
   if (distPoly(lp, OPTIC) < (isMono ? 5 : 2.6)) reportDanger({ id: 'th_optic', msg: '¡Calor junto al nervio óptico! Riesgo de lesión térmica y amaurosis.' });
   if (distPoly(lp, CAROTID) < (isMono ? 5 : 2.6)) reportDanger({ id: 'th_car', msg: '¡Calor junto a la carótida interna! Riesgo de lesión vascular grave.' });
@@ -2467,8 +2490,8 @@ function monoCut(lp, dirL) {
   lastInc = lp.clone();
   if (Math.random() < 0.35) spawnSmoke(lp);
 }
-function septRoof(z) { if (z > -14) return 22 + (4 - z) * (22 / 18); if (z > -24) return 44; return yr(z); }
-function septValid(z, y) { if (z > 6 || z < -71 || y < 0) return false; if (z < -66) return y < 14; return y < septRoof(z) - 0.3; }
+function septRoof(z) { z = WZi(z); if (z > -14) return 22 + (4 - z) * (22 / 18); if (z > -24) return 44; return yr(z); }
+function septValid(z, y) { z = WZi(z); if (z > 6 || z < -71 || y < 0) return false; if (z < -66) return y < 14; return y < septRoof(z) - 0.3; }
 const FG = { z0: -71, y0: 0, st: 0.5, nz: 155, ny: 97 };
 function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo deja adherido; la Freer lo despega de a poco
   if (state.model !== 'generic') return null;
@@ -2615,7 +2638,7 @@ function placeFlap(target) {
   for (let v = 0; v < f.st.length; v++) {
     if (f.st[v] === 2 || (target !== 'rest' && f.st[v] === 0)) continue;
     const i = v * 3, z = f.rest[i + 2], y = f.rest[i + 1];
-    if (target === 'skull') { to[i] = (z - f.cz) * 0.55; to[i + 1] = 31 + (y - f.cy) * 0.75; to[i + 2] = -84.2; }
+    if (target === 'skull') { to[i] = (z - f.cz) * 0.55; to[i + 1] = 31 + (y - f.cy) * 0.75; to[i + 2] = WZ(-84.2); }
     else if (target === 'perf') { to[i] = f.sx * 0.98; to[i + 1] = perforation.y + (y - f.cy); to[i + 2] = perforation.z + (z - f.cz); }
     else { to[i] = f.rest[i]; to[i + 1] = y; to[i + 2] = z; }
   }
@@ -2777,7 +2800,7 @@ function latPath(z) {   // corte transversal piso → pared lateral → cornete 
 }
 function makeLatFlap() {
   const T = perfTpl, vid = new Map(), rest = [], uv = [];
-  T.cols.forEach((c, i) => c.pts.forEach((p, j) => { vid.set(i + ',' + j, rest.length / 3); rest.push(p[0], p[1], c.z); uv.push(c.z, j); }));
+  T.cols.forEach((c, i) => c.pts.forEach((p, j) => { vid.set(i + ',' + j, rest.length / 3); rest.push(p[0], p[1], WZ(c.z)); uv.push(c.z, j); }));
   const nv = rest.length / 3, stt = new Uint8Array(nv), idx = [], edges = [];
   for (const [key, v] of vid) {
     const [i, j] = key.split(',').map(Number);
@@ -2812,7 +2835,7 @@ function dissectLat(lp) {
 function latFreer(lp) {   // Freer sobre piso / pared lateral / cornete inferior con molde de pared lateral
   if (!(guideMode === 'perf' && perfTpl && perfTpl.lat)) return false;
   let near = false;
-  for (const c of perfTpl.cols) { if (Math.abs(c.z - lp.z) > 3.5) continue; for (const p of c.pts) if (Math.hypot(p[0] - lp.x, p[1] - lp.y) < 3.5) { near = true; break; } if (near) break; }
+  for (const c of perfTpl.cols) { if (Math.abs(c.z - WZi(lp.z)) > 3.5) continue; for (const p of c.pts) if (Math.hypot(p[0] - lp.x, p[1] - lp.y) < 3.5) { near = true; break; } if (near) break; }
   if (!near) return false;
   if (!flaps.some(f => f.lat)) {
     const miss = perfTpl.cuts.filter(c => perfCutCov(c.k, true) < 0.75);
@@ -2830,6 +2853,7 @@ function makePerforation(kind = 'mid') {
   for (let dz = -R; dz <= R + 1e-6; dz += 0.8) for (let dy = -R; dy <= R + 1e-6; dy += 0.8) if (dz * dz + dy * dy <= R * R + 0.3) addCut(V(0, P.y + dy, P.z + dz), 1.6);
   state.prepping = false;
   perfTpl = buildPerfTpl(P, P.tpl);
+  if (PH2) { const mp = l => l.map(q => q.length === 3 ? [q[0], q[1], WZ(q[2])] : [WZ(q[0]), q[1]]); perfTpl.cuts.forEach(c => c.line = mp(c.line)); perfTpl.ped = perfTpl.ped.map(mp); perfTpl.free = perfTpl.free.map(mp); perfTpl.pedC = mp(perfTpl.pedC); }
   if (guideMode === 'perf') setGuide('perf');
   document.querySelectorAll('#perfSel button').forEach(b => b.classList.toggle('on', b.dataset.p === kind));
   toast(`Perforación ${P.name} (~${Math.round(P.r * 2)} mm). Técnica sugerida (Alobid): colgajo ${perfTpl.short}. Activá "Guía según perforación" para ver las incisiones.`, 7000);
@@ -2880,7 +2904,7 @@ function placeTplFlaps() {
     } else if (f.tpl === 'plnw') {   // de la pared lateral al septum, girando sobre el pedículo posterior
       for (let v = 0; v < n; v++) { if (st[v] === 2 || st[v] === 0) continue; const i = v * 3, z = f.uv[v * 2], j = f.uv[v * 2 + 1], w = THREE.MathUtils.clamp((z + 50) / 7, 0, 1);
         const tx = f.sx * 0.98, ty = Math.min(42, 0.6 + j * 0.85);
-        to[i] = R0[i] + (tx - R0[i]) * w; to[i + 1] = R0[i + 1] + (ty - R0[i + 1]) * w; to[i + 2] = z; }
+        to[i] = R0[i] + (tx - R0[i]) * w; to[i + 1] = R0[i + 1] + (ty - R0[i + 1]) * w; to[i + 2] = WZ(z); }
     } else if (f.tpl === 'adv') {
       const above = f.cy > P.y, hw = P.r + 9;
       for (let v = 0; v < n; v++) { if (st[v] === 2 || st[v] === 0) continue; const i = v * 3, w = Math.max(0, 1 - ((R0[i + 2] - P.z) / hw) ** 2);
@@ -2941,6 +2965,7 @@ const GUIDES = {
   hadad: [[[-66.5, 31], [-40, 33.5], [-20, 33.5], [-3, 33.5]], [[-3, 33.5], [-3, 1.2]], [[-3, 1.2], [-66, 1.2], [-66, 12]]],
   killian: [[[-4, 30], [-4, 1.2]]]
 };
+if (PH2) for (const k in GUIDES) GUIDES[k] = GUIDES[k].map(l => l.map(([z, y]) => [WZ(z), y]));
 function setGuide(m) {
   guideMode = m; while (guideGroup.children.length) guideGroup.remove(guideGroup.children[0]);
   const sets = m === 'perf' ? (perfTpl ? [[perfTpl.cuts.map(c => c.line), 0x5cffb0, true], [perfTpl.ped, 0xffa94d, false], [perfTpl.free, 0x8fd3ff, true]] : []) : [[GUIDES[m] || [], 0x5cffb0, true]];
@@ -2989,7 +3014,7 @@ function guideCov(seg) {   // fracción de la guía de Hadad recorrida con incis
   }
   return c / n;
 }
-const box = (x0, x1, y0, y1, z0, z1) => [x0, x1, y0, y1, z0, z1];
+const box = (x0, x1, y0, y1, z0, z1) => [x0, x1, y0, y1, WZ(z0), WZ(z1)];
 const LOOK = (keys) => ({ look: [].concat(keys) });
 const CUT = (keys, b, thr, side = 0) => ({ cut: { keys: [].concat(keys), box: b, thr, side } });
 Object.assign(PREP, {
@@ -3273,7 +3298,7 @@ function rebuildRecess() {
   ost = gv.o;
   for (const m of anatomy.children) {
     const t = m.userData && m.userData.tag; if (!t || !gv[t]) continue;
-    const g = m.userData.mirror ? mirrorGeom(g0[t]) : gv[t].clone();
+    const g = warpGeom(m.userData.mirror ? mirrorGeom(g0[t]) : gv[t].clone());
     if (!g.attributes.normal) g.computeVertexNormals();
     planarUV(g); m.geometry.dispose(); m.geometry = g;
   }
@@ -3287,7 +3312,7 @@ function rebuildRecess() {
   const va = ANCHORS.find(a => a.key === 'vbar'); if (va) va.p.set(ifacOn.has('aggerbig') ? 8.2 : 10.25, 34.5, -18.5);
   for (const k in KEYV) delete KEYV[k];
   for (const m of meshes) { const k = m.userData.key; if (!k) continue; (KEYV[k] = KEYV[k] || []).push(m.geometry.attributes.position.array); }
-  resetCuts(); updateDrain();
+  resetCuts(); updateDrain(); setAtlas(state.atlas);
 }
 document.querySelectorAll('.ifac button').forEach(b => b.onclick = () => {
   if (state.model !== 'generic') return;
@@ -3301,6 +3326,20 @@ document.querySelectorAll('.ifac button').forEach(b => b.onclick = () => {
   }
 });
 $('#chkDrain').onchange = () => updateDrain();
+const ATLAS = { agger: '#f5c542', vbar: '#ff8fb1', unc: '#ff8fb1', uncsup: '#ff6f9f', bulla: '#ff9f43', bullam: '#ffb877', antcell: '#ffd08a', basal: '#ffe066',
+  postcell: '#b08060', ifac_sac: '#7bd389', ifac_safc: '#3fb27f', ifac_sbc: '#5aa9e6', ifac_sbfc: '#3a7bd5', ifac_soec: '#9b6dd6', ifac_fsc: '#e86f9a',
+  mt: '#e05a5a', mtatt: '#e05a5a', mtpost: '#e05a5a', axila: '#e05a5a', it: '#c94c4c', st: '#d46a6a', frontsin: '#8ecae6', frontfloor: '#8ecae6', frontost: '#5fb4dc',
+  maxsin: '#a7e3a1', sphsin: '#c9a7eb', sphface: '#c9a7eb', lamina: '#f1e3c6', roof: '#aeb6dd', beak: '#e9d9c4', ethmuc: '#e7a49a', font: '#9fd8c2' };
+const atlasMats = {};
+function setAtlas(on) {
+  state.atlas = !!on; if ($('#chkAtlas')) $('#chkAtlas').checked = state.atlas;
+  for (const m of anatomy.children) {
+    if (!m.isMesh || !m.userData) continue; const k = m.userData.key, c = ATLAS[k]; if (!c) continue;
+    if (!m.userData.mat0) m.userData.mat0 = m.material;
+    m.material = state.atlas ? (atlasMats[c] = atlasMats[c] || mat(c, { cut: !!m.userData.mat0.userData.cut, map: false, rough: 0.55 })) : m.userData.mat0;
+  }
+}
+$('#chkAtlas').onchange = e => setAtlas(e.target.checked);
 function setSag(on) {
   const x = +$('#sagX').value; $('#sagCtl').style.display = on ? 'flex' : 'none'; $('#sagV').textContent = x + ' mm';
   cutU.uSag.value = on && state.model === 'generic' ? x : 1e9;
@@ -3344,6 +3383,7 @@ addEventListener('resize', onResize); onResize();
 let last = performance.now(), frameN = 0;
 placeAnatomy();
 goTo(TOUR[0]); state.anim.t = 1;
+if (PH2) { segOn('model', 'generic'); setAtlas(true); $('h1').textContent = 'Simulador CENS · Fantoma 2'; setTimeout(() => toast('Fantoma 2: proporciones del promedio de TC normales. Etmoides más corto (bulla grande, receso retrobullar corto, lamela basal oblicua a ~11 mm del esfenoides) y arterias etmoidales según la regla 24-12-6. Colores de atlas activados (podés pasar a mucosa).', 9000), 800); }
 renderer.setAnimationLoop(() => {
   if (state.busy && !state.vr) return;   // durante la carga de la TC se pausa el render para acelerar
   const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;

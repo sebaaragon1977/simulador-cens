@@ -33,3 +33,6 @@ Botón **Entrar en VR**. Control izquierdo = endoscopio (gatillo: viajar al punt
 
 ## Aviso
 Herramienta de docencia. No es un sistema de navegación quirúrgica ni de diagnóstico.
+
+## Fantoma 2 (promedio de TC normales)
+Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas estructuras, cirugías guiadas y variantes que el genérico, con las proporciones anteroposteriores medidas en TC normales del dataset CT-SCOPE (P31, P36, P33, P35) y la regla 24-12-6 para las arterias etmoidales: etmoides más corto, bulla grande con receso retrobullar corto, lamela basal oblicua a ~11 mm de la cara del esfenoides, y esfenoides, silla y fosas adelantados 14,5 mm. Se usan sólo medidas, no imágenes del dataset. Arranca con **colores de atlas** (celdas y lamelas por color), que también se pueden activar en el genérico.

@@ -396,7 +396,7 @@ const INFO = {
   maxsin: ['Seno maxilar (interior)', 'Techo = piso de la órbita, con el nervio infraorbitario.'],
   bulla: ['Bulla etmoidal', 'La mayor celda etmoidal anterior. Detrás está la lamela basal del cornete medio; por encima, el receso suprabullar y la arteria etmoidal anterior.'],
   basal: ['Lamela basal del cornete medio', 'Segmento medio de la inserción del cornete medio: va de la lamela vertical a la lámina papirácea, oblicua en el plano sagital (arriba más anterior, abajo más posterior). Separa etmoides anterior y posterior. Abrirla en su porción inferomedial para entrar al etmoides posterior.'],
-  axila: ['Axila del cornete medio', 'Inserción anterosuperior del cornete medio en la pared lateral: su borde anterior se continúa hacia arriba y adelante con el relieve del agger nasi. Es la puerta de entrada al receso frontal (colgajo axilar).'],
+  axila: ['Axila del cornete medio', 'Inserción anterosuperior del cornete medio en la pared lateral: su borde anterior se continúa hacia arriba y adelante con el relieve del agger nasi. Por encima de la axila, la inserción sube hasta el techo y oculta el receso frontal en la visión anterior con 0°: al receso se entra desde el meato medio, por detrás y debajo de la axila, con óptica angulada, o abriendo la axila (colgajo axilar / Draf I).'],
   agger: ['Agger nasi', 'Celda etmoidal más anterior, por encima de la axila del cornete medio. Su pared medial la forma la porción superior de la unciforme (barra vertical). Su techo es el piso del receso frontal: al abrirla se ve el techo y, posterior y medial, el ostium frontal.'],
   ifac_sac: ['Celda supra agger (SAC)', 'IFAC, grupo anterior: celda anterolateral por encima del agger nasi que no se extiende al seno frontal. Desplaza la vía de drenaje hacia posterior y medial.'],
   ifac_safc: ['Celda supra agger frontal (SAFC)', 'IFAC, grupo anterior: celda anterolateral que se extiende dentro del seno frontal. Empuja la vía de drenaje hacia posterior y medial y la estrecha.'],
@@ -637,7 +637,7 @@ function buildAnatomy() {
   add(quad([0, 0, 6], [17, 0, 6], [0, 0, -70]), M.floor, 'floor');
   add(quad([0, 0, 6], [17, 0, 6], [0, 22, 6]), M.muc, 'vest');
   add(quad([0, 22, 6], [17, 22, 6], [0, 44, -14]), M.muc, 'roofant');
-  add(holedRect(0, 17, -14, -24, [[8.3, -20.3, 3.4]], 44), M.mucC, 'beak', { tag: 'cap' });
+  add(holedRect(0, 17, -14, -24, [[9.2, -20.3, 3.0]], 44), M.mucC, 'beak', { tag: 'cap' });
   add(quad([0, 44, -24], [18.5, 44, -24], [0, 46.1, -24], 0.1), M.mucC, 'beak');
   // Pared lateral
   add(quad([17, 0, 6], [17, 0, -80], [17, 11, 6]), M.muc, 'latwall');
@@ -655,9 +655,9 @@ function buildAnatomy() {
   add(quad([0, yr(-24), -24], [18.5, yr(-24), -24], [0, yr(-66), -66], 0.12), M.bone, 'roof', { map: { t: 'roof', c: '#8fa0ff' } });
   add(quad([0, yr(-24) + 1.7, -24], [18.5, yr(-24) + 1.7, -24], [0, yr(-66) + 1.7, -66], 0.2), M.dura, 'dura');
   // Receso y seno frontal
-  add(new THREE.CylinderGeometry(3.4, 3.4, 4.4, 28, 2, true).translate(8.3, 46.2, -20.3), M.mucC, 'frontost', { tag: 'duct' });
+  add(new THREE.CylinderGeometry(3.0, 3.0, 4.4, 28, 2, true).translate(9.2, 46.2, -20.3), M.mucC, 'frontost', { tag: 'duct' });
   openBox([0, 24], [48, 70], [-26, -6], ['y0', 'x0'], M.sinus, 'frontsin');
-  add(holedRect(0, 24, -6, -26, [[8.3, -20.3, 3.4]], 48), M.sinusC, 'frontfloor', { tag: 'floor' });
+  add(holedRect(0, 24, -6, -26, [[9.2, -20.3, 3.0]], 48), M.sinusC, 'frontfloor', { tag: 'floor' });
   add(quad([0, 48, -26], [0, 48, -6], [0, 70, -26], 0.2), M.bone, 'frontsept', { noMirror: true });
   map2d.push({ t: 'box', x: [0, 24], y: [48, 70], z: [-26, -6], c: '#b98' , n: 'Frontal'});
   // Cornetes
@@ -683,11 +683,16 @@ function buildAnatomy() {
   // Axila del cornete medio: pliegue que continúa el borde anterosuperior del cornete medio hasta el agger nasi
   const AX = [[6.1, 27.5, -28], [6.5, 28.8, -24], [7.8, 29, -19.5], [10, 28.6, -15.8], [13, 28.2, -13.3], [16.4, 28, -11.8]];
   add(sweep(AX, u => 2.0 + 1.1 * Math.sin(Math.PI * Math.min(1, u * 1.3))), M.turbC, 'axila', { map: { t: 'poly', pts: AX, col: '#e07a72' } });
+  // Inserción anterior del cornete medio por encima de la axila: desde la axila sube hasta el techo y tapa el receso frontal visto desde anterior
+  { const W = new THREE.CatmullRomCurve3([[6.0, 0, -28], [6.0, 0, -22], [6.2, 0, -17], [7.6, 0, -14.3], [10.5, 0, -12.9], [14, 0, -12.2], [16.8, 0, -11.8]].map(p => V(...p)));
+    const ytop = z => (z > -14 ? Math.min(44, 22 + (6 - z) * 1.1) : 44) - 0.25;
+    add(sheet((u, v) => { const c = W.getPointAt(u), w = THREE.MathUtils.smoothstep(u, 0.35, 0.6), y0 = 29.6, y = y0 + (ytop(c.z) - y0) * v;
+      return [c.x + 0.4 * w * Math.sin(Math.PI * v), y, c.z + 0.9 * w * Math.sin(Math.PI * v)]; }, 22, 10), M.turbC, 'axila', { tag: 'axsup' }); }
   // Bulla etmoidal: su pared anterior queda 2–4 mm por delante de la arteria etmoidal anterior
   add(ellipsoid([13.6, 30, -34.6], [4.8, 6.4, 6.2]), M.bulla, 'bulla', { map: { t: 'e', c: [13.6, 30, -34.6], r: [4.8, 6.4, 6.2], col: '#f2c26b', n: 'B' } });
   add(bullaLamGeom(FRV.bl), M.cell, 'bullam', { tag: 'bullam', map: { t: 'lineZ', z: -28.4, y: [33, 45], x: [9.2, 18.5], c: '#f2c26b' } });
   add(uncSupGeom(FRV.unc), M.unc, 'uncsup', { tag: 'uncsup' });
-  add(beakGeom(8.3, -20.3, 3.4), M.mucC, 'beak', { tag: 'beakr' });
+  add(beakGeom(9.2, -20.3, 3.0), M.mucC, 'beak', { tag: 'beakr' });
   for (const [c, r] of [[[15, 40.6, -41.4], 2.6], [[13.8, 40.2, -36.2], 3.3]])
     add(ellipsoid(c, [r, r, r], 32), M.cell, 'antcell', { map: { t: 'e', c, r: [r, r, r], col: '#c9a070' } });
   // Lamela basal: segmento medio de la inserción del cornete medio, oblicuo en el plano sagital (arriba más anterior), de la lamela vertical a la lámina papirácea
@@ -821,7 +826,7 @@ for (const m of [...anatomy.children]) {   // fosa contralateral (modelo bilater
 const ANCHORS = [
   ['septum', [0.9, 18, -14]], ['beak', [9, 42.6, -15.6]], ['frontsept', [0.2, 56, -16]], ['psa', [7, 21.6, -65.4]], ['it', [7.1, 10, -16]], ['mt', [4.1, 26, -32]], ['unc', [11.2, 26, -24]],
   ['bulla', [9.1, 30, -34.6]], ['bullam', [10.2, 39.5, -28.6]], ['uncsup', [11.6, 31.4, -23.6]], ['maxost', [16.8, 20, -30]], ['accost', [16.8, 15, -44]], ['agger', [13.6, 37.5, -18.5]], ['vbar', [10.25, 34.5, -18.5]], ['ifac_sac', [13.2, 38.1, -16.8]], ['ifac_safc', [13, 42, -15]], ['ifac_sbc', [11.5, 37.3, -27]], ['ifac_sbfc', [11, 41.4, -23.2]], ['ifac_soec', [16.2, 46, -29]], ['ifac_fsc', [2.2, 45.6, -16.5]],
-  ['frontost', [8.3, 45, -20.3]], ['axila', [8.5, 31.6, -18]], ['basal', [10, 24, -48.8]], ['mtpost', [8.5, 20.4, -53]], ['mtatt', [6.2, 40, -36]], ['postcell', [7.6, 31, -54]], ['st', [4.8, 37, -58]],
+  ['frontost', [9.2, 45, -20.3]], ['axila', [8.5, 31.6, -18]], ['basal', [10, 24, -48.8]], ['mtpost', [8.5, 20.4, -53]], ['mtatt', [6.2, 40, -36]], ['postcell', [7.6, 31, -54]], ['st', [4.8, 37, -58]],
   ['sphost', [3.2, 33, -65.7]], ['lamina', [18.4, 34, -42]], ['roof', [12, yr(-42) - 0.2, -42]],
   ['aea', [12, 44, -30]], ['pea', [12, 41.5, -55.5]], ['spa', [15.8, 20.5, -62]], ['optic', [16, 37.2, -77]],
   ['ica_pc', [13, 19, -88.6]], ['ica_ps', [14.6, 30.8, -82.5]], ['ica_pcl', [14.9, 38.2, -71.6]], ['ocr', [16.7, 36.4, -70.5]], ['sella', [0, 31, -85.6]],
@@ -1232,7 +1237,7 @@ const TOUR = [
     text: 'Abrí la bulla por su cara medial e inferior. Sus restos laterales llegan a la lámina papirácea: cuidado. Su pared anterior (lamela bullar) es el límite posterior del receso frontal; por detrás y arriba corre la arteria etmoidal anterior.' },
   { name: '6 · Lamela basal', pos: [9.5, 27, -37], target: [12, 27, -49], angle: 0,
     text: 'Tras la bulla aparece la lamela basal del cornete medio: segmento medio de su inserción, oblicuo (arriba más anterior). Abrila en su porción inferomedial para pasar al etmoides posterior. Activá "Corte sagital" para ver las tres porciones de la inserción: vertical (cribosa), lamela basal (lámina papirácea) y horizontal (pared lateral).' },
-  { name: '7 · Agger nasi, barra vertical y receso frontal (45°–70°)', pos: [5.4, 27.5, -11], target: [9.5, 41, -20], angle: 70, roll: 0,
+  { name: '7 · Agger nasi, barra vertical y receso frontal (45°–70°)', pos: [10, 26.5, -25.5], target: [11, 42, -17], angle: 70, roll: 0,
     text: 'Con 70° mirando hacia arriba: la <b>axila</b> del cornete medio, por encima el <b>agger nasi</b> y su pared medial, la <b>barra vertical</b> (porción superior de la unciforme). Resecá la barra vertical para abrir el agger y ver su <b>techo</b>; el <b>ostium frontal</b> queda posterior y medial a la barra, con el <b>pico frontal</b> por delante y la <b>lamela bullar</b> por detrás.' },
   { name: '8 · Etmoides posterior', pos: [9.5, 30, -43], target: [12.5, 32, -57], angle: 0,
     text: 'Celdas posteriores: lateral, la lámina papirácea; arriba, la base de cráneo más baja y horizontal. La arteria etmoidal posterior corre por el techo.' },
@@ -1246,7 +1251,7 @@ const TOUR = [
     text: 'Siguiendo el piso: coana, rinofaringe y torus tubario. El ostium esfenoidal está ≈1–1,5 cm por encima del borde superior de la coana.' },
   { name: '13 · Meato inferior: válvula de Hasner', pos: [9, 2.5, -7], target: [16.9, 3.4, -16], angle: 30, roll: -90,
     text: 'Debajo del cornete inferior, en la pared lateral, desemboca el conducto nasolagrimal. Es el límite anterior de la antrostomía maxilar.' },
-  { name: '14 · Draf I', pos: [6.5, 27, -13], target: [11, 41, -21], angle: 45,
+  { name: '14 · Draf I', pos: [10, 26.5, -25.5], target: [11.5, 41, -17], angle: 45,
     text: 'Resección de las celdas que obstruyen el receso frontal (agger nasi, celdas del receso) <b>sin tocar el ostium frontal</b>. Pinza o drill sobre el agger, con 45°.' },
   { name: '15 · Draf IIa', pos: [8, 34, -14.5], target: [11, 47, -20], angle: 45,
     text: 'Con <b>drill</b>: ampliar el ostium resecando el <b>piso del seno frontal entre la lámina papirácea y el cornete medio</b>. Límites: lámina papirácea a lateral, AEA y base de cráneo a posterior.' },
@@ -3019,7 +3024,7 @@ const LOOK = (keys) => ({ look: [].concat(keys) });
 const CUT = (keys, b, thr, side = 0) => ({ cut: { keys: [].concat(keys), box: b, thr, side } });
 Object.assign(PREP, {
   ethmoid: B => { for (let x = 9; x <= 17; x += 1.6) for (let y = 30; y <= 44.5; y += 1.8) for (let z = -24; z >= -39; z -= 1.8) B(x, y, z, 1.6); },
-  draf1done: B => { for (let y = 30; y <= 37; y += 1.2) for (let z = -15; z >= -22; z -= 1.2) B(10.3, y, z, 1.3); for (let x = 8; x <= 17; x += 1.6) for (let y = 28; y <= 42.5; y += 1.6) for (let z = -13; z >= -26.8; z -= 1.6) B(x, y, z, 1.6); },
+  draf1done: B => { for (let y = 30; y <= 37; y += 1.2) for (let z = -15; z >= -22; z -= 1.2) B(10.3, y, z, 1.3); for (let x = 8; x <= 17; x += 1.6) for (let y = 28; y <= 42.5; y += 1.6) for (let z = -11.4; z >= -26.8; z -= 1.6) B(x, y, z, 1.6); },
   draf2a: B => { PREP.draf1done(B); for (let x = 7; x <= 17; x += 1.5) for (let y = 43; y <= 49.5; y += 1.5) for (let z = -13.5; z >= -24.5; z -= 1.5) B(x, y, z, 1.7); },
   draf2b: B => { PREP.draf2a(B); for (let x = 1.2; x <= 7; x += 1.5) for (let y = 43; y <= 49.5; y += 1.5) for (let z = -13.5; z >= -24.5; z -= 1.5) B(x, y, z, 1.7); },
   sphen1: B => { for (let x = 1; x <= 12; x += 1.6) for (let y = 24; y <= 40; y += 1.6) { B(x, y, -66, 1.7); B(x, y, -67.5, 1.7); } },
@@ -3254,11 +3259,11 @@ const IFAC = {
   aggerbig:  { d: [-1.3, -0.5], dr: -0.6 }
 };
 const ifacOn = new Set(), ifacCells = [];
-let ost = { x: 8.3, z: -20.3, r: 3.4 };
+let ost = { x: 9.2, z: -20.3, r: 3.0 };
 function ostiumFor(set) {
-  let x = 8.3 + (FRV.unc === 'sb' ? 2.1 : FRV.unc === 'mt' ? 1.7 : 0), z = -20.3, r = 3.4;
+  let x = 9.2 + (FRV.unc === 'sb' ? 1.8 : FRV.unc === 'mt' ? 1.4 : 0), z = -20.3, r = 3.0;
   for (const k of set) { const c = IFAC[k]; x += c.d[0]; z += c.d[1]; r += c.dr; }
-  return { x: THREE.MathUtils.clamp(x, 6.4, 13), z: THREE.MathUtils.clamp(z, -23.6, -15.2), r: Math.max(1.8, r) };
+  return { x: THREE.MathUtils.clamp(x, 8.4, 13), z: THREE.MathUtils.clamp(z, -23.6, -15.2), r: Math.max(1.8, r) };
 }
 function pierce(set, y, rect) {   // orificios donde las celdas atraviesan una placa horizontal
   const h = [];
@@ -3365,7 +3370,7 @@ document.querySelectorAll('#bulIns button').forEach(b => b.onclick = () => {
   FRV.bl = b.dataset.b; document.querySelectorAll('#bulIns button').forEach(x => x.classList.toggle('on', x === b));
   rebuildRecess(); toast(FR_TXT[FRV.bl + '_b'], 7000);
 });
-$('#btnIfacView').onclick = () => goTo({ pos: [5.4, 27.5, -11], target: [9.5, 41, -20], angle: 70, roll: 0 });
+$('#btnIfacView').onclick = () => goTo({ pos: [10, 26.5, -25.5], target: [11, 42, -17], angle: 70, roll: 0 });
 $('#btnIfacReset').onclick = () => { ifacOn.clear(); document.querySelectorAll('.ifac button').forEach(x => x.classList.remove('on')); FRV.unc = 'lp'; FRV.bl = 'sb'; document.querySelectorAll('#uncIns button').forEach(x => x.classList.toggle('on', x.dataset.u === 'lp')); document.querySelectorAll('#bulIns button').forEach(x => x.classList.toggle('on', x.dataset.b === 'sb')); rebuildRecess(); toast('Anatomía estándar del receso frontal.'); };
 updateDrain();
 

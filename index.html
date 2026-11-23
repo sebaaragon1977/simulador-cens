@@ -662,10 +662,10 @@ function buildAnatomy() {
   map2d.push({ t: 'box', x: [0, 24], y: [48, 70], z: [-26, -6], c: '#b98' , n: 'Frontal'});
   // Cornetes
   add(ellipsoid([12, 10, -32], [5, 5.5, 26]), M.turb, 'it', { map: { t: 'e', c: [12, 10, -32], r: [5, 5.5, 26], col: '#e07a72', n: 'CI' } });
-  add(ellipsoid([6, 26, -42], [2, 8, 18]), M.turb, 'mt', { map: { t: 'e', c: [6, 26, -42], r: [2, 8, 18], col: '#e07a72', n: 'CM' } });
-  add(ellipsoid([6.2, 27, -27.5], [2.7, 6, 5.5]), M.turb, 'mt');
-  add(quad([6, 32, -27], [6, 32, -43], [6, 46.5, -27], 0.15), M.turb, 'mtatt');   // segmento anterior: vertical (sagital) a la lamela lateral de la cribosa
-  add(ellipsoid([6.5, 37, -58], [1.8, 4, 7]), M.turb, 'st', { map: { t: 'e', c: [6.5, 37, -58], r: [1.8, 4, 7], col: '#e07a72', n: 'CS' } });
+  add(ellipsoid([6, 26, -42], [2, 8, 18]), M.turbC, 'mt', { map: { t: 'e', c: [6, 26, -42], r: [2, 8, 18], col: '#e07a72', n: 'CM' } });
+  add(ellipsoid([6.2, 27, -27.5], [2.7, 6, 5.5]), M.turbC, 'mt');
+  add(quad([6, 32, -27], [6, 32, -43], [6, 46.5, -27], 0.15), M.turbC, 'mtatt');   // segmento anterior: vertical (sagital) a la lamela lateral de la cribosa
+  add(ellipsoid([6.5, 37, -58], [1.8, 4, 7]), M.turbC, 'st', { map: { t: 'e', c: [6.5, 37, -58], r: [1.8, 4, 7], col: '#e07a72', n: 'CS' } });
   // Apófisis unciforme (lámina en media luna)
   add(uncinateGeom(), M.unc, 'unc', { map: { t: 'unc', col: '#f0a090' } });
   // Ostium maxilar, ostium accesorio y válvula de Hasner
@@ -698,7 +698,7 @@ function buildAnatomy() {
   // Lamela basal: segmento medio de la inserción del cornete medio, oblicuo en el plano sagital (arriba más anterior), de la lamela vertical a la lámina papirácea
   add(sheet((u, v) => { const y = 18 + (yr(-43) - 0.3 - 18) * v, z = -50 + 7 * v - 1.2 * Math.sin(Math.PI * v); return [7.2 + 11.3 * u, y, z - 0.8 * Math.sin(Math.PI * u)]; }, 12, 16), M.cell, 'basal', { map: { t: 'poly', pts: [[12, 18, -50], [12, 31, -47.8], [12, 44, -43]], col: '#ffd36e' } });
   // Segmento posterior: horizontal, a la pared lateral (cresta etmoidal), por delante del foramen esfenopalatino
-  add(sheet((u, v) => [6.6 + 10.3 * u, 19.2 + 1.8 * u + 0.5 * Math.sin(Math.PI * u), -49.5 - 8.5 * v], 10, 8), M.turb, 'mtpost');
+  add(sheet((u, v) => [6.6 + 10.3 * u, 19.2 + 1.8 * u + 0.5 * Math.sin(Math.PI * u), -49.5 - 8.5 * v], 10, 8), M.turbC, 'mtpost');
   // Mucosa que cubre el laberinto etmoidal (medial a las celdas)
   add(quad([9.2, 30.5, -24], [9.2, 30.5, -48], [9.2, 46, -24], 0.25), M.mucC, 'ethmuc');
   add(quad([8.8, 22, -48], [8.8, 22, -64], [8.8, 44, -48], 0.25), M.mucC, 'ethmuc');
@@ -3341,7 +3341,8 @@ function setAtlas(on) {
   for (const m of anatomy.children) {
     if (!m.isMesh || !m.userData) continue; const k = m.userData.key, c = ATLAS[k]; if (!c) continue;
     if (!m.userData.mat0) m.userData.mat0 = m.material;
-    m.material = state.atlas ? (atlasMats[c] = atlasMats[c] || mat(c, { cut: !!m.userData.mat0.userData.cut, map: false, rough: 0.55 })) : m.userData.mat0;
+    const cu = !!m.userData.mat0.userData.cut, ck = c + (cu ? 'c' : '');
+    m.material = state.atlas ? (atlasMats[ck] = atlasMats[ck] || mat(c, { cut: cu, map: false, rough: 0.55 })) : m.userData.mat0;
   }
 }
 $('#chkAtlas').onchange = e => setAtlas(e.target.checked);
@@ -3416,7 +3417,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

@@ -96,7 +96,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -365,7 +365,7 @@ const M = {
   artery: mat('#a4121b', { rough: 0.28 }), optic: mat('#efe5c6', { map: false }), carotid: mat('#c57487'),
   sella: mat('#dbae9b'), sellaC: mat('#e0c0a8', { cut: true }), duraC: mat('#a3a8c8', { cut: true, map: false }),
   gland: mat('#e7a96f', { rough: 0.45 }), nerve: mat('#f2e9c4', { map: false, rough: 0.5 }), cs: mat('#4b2b5e', { rough: 0.3 }),
-  fatC: mat('#efc94e', { cut: true, map: false, rough: 0.45 }), muscle: mat('#a9463d'),
+  fatC: mat('#efc94e', { cut: true, map: false, rough: 0.45 }), muscle: mat('#a9463d'), sacC: mat('#c98aa8', { cut: true }), boneN: mat('#d9b49a', { map: false }), globe: mat('#f2efe8', { map: false, rough: 0.3 }),
   dark: patchCut(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })),
   darkN: patchSurf(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide }), false)
 };
@@ -469,9 +469,24 @@ const INFO = {
   ct_fat: ['Grasa por detrás — ¿órbita?', 'Densidad grasa detrás de la pared: probable lámina papirácea fina o dehiscente con la órbita detrás. ¡Precaución!'],
   np: ['Rinofaringe', 'Por detrás de la coana.'],
   torus: ['Torus tubario', 'Rodete del orificio faríngeo de la trompa de Eustaquio.'],
-  nld: ['Válvula de Hasner (conducto nasolagrimal)', 'El conducto corre en la pared lateral por delante del ostium maxilar: no extender la antrostomía hacia anterior.']
+  nld: ['Válvula de Hasner (conducto nasolagrimal)', 'El conducto corre en la pared lateral por delante del ostium maxilar: no extender la antrostomía hacia anterior.'],
+  dcrmuc: ['Mucosa de la pared lateral (ventana de DCR)', 'Por delante de la axila del cornete medio y de la unciforme. Se levanta un colgajo de ~1,5 × 2 cm para exponer el hueso que cubre el saco lagrimal.'],
+  lacbone: ['Hueso lagrimal', 'Posterior y muy delgado: se fractura y retira con pinza o Kerrison. Por detrás está el saco lagrimal; más atrás, la lámina papirácea y la órbita.'],
+  fpmax: ['Apófisis frontal del maxilar', 'Anterior y gruesa (cresta lagrimal anterior): se fresa para exponer el saco en toda su altura, incluido el fondo, que sube ~8–10 mm por encima de la axila.'],
+  lacfossa: ['Fosa lagrimal', 'Lecho óseo del saco lagrimal.'],
+  sac: ['Saco lagrimal', 'Se proyecta sobre la pared lateral por delante de la axila del cornete medio. En la DCR se abre su pared medial con una incisión vertical y se marsupializa a la fosa nasal.'],
+  nlduct: ['Conducto nasolagrimal', 'Baja del saco por un conducto óseo y desemboca en el meato inferior (válvula de Hasner), por delante del ostium maxilar.'],
+  canal: ['Canalículo común', 'Entra en la pared lateral del saco, en su tercio superior. Por acá aparece la sonda de Bowman pasada por el punto lagrimal: confirma que abriste el saco correcto.'],
+  orbfat: ['Grasa orbitaria', 'Rodea a los músculos y al nervio óptico dentro de la órbita.'],
+  globe: ['Globo ocular', 'Por delante; los rectos se insertan en la esclera.'],
+  mrect: ['Músculo recto medial', 'Corre pegado a la pared medial de la órbita, del anillo de Zinn al globo: es lo primero que aparece al retirar la lámina papirácea y la grasa. Su lesión produce diplopía y estrabismo.'],
+  irect: ['Músculo recto inferior', 'Sobre el piso de la órbita (techo del seno maxilar).'],
+  srect: ['Músculo recto superior', 'Bajo el techo orbitario, con el elevador del párpado por encima.'],
+  lrect: ['Músculo recto lateral', 'Pared lateral de la órbita.'],
+  sobl: ['Músculo oblicuo superior', 'Superomedial, entre el techo y la pared medial; se dirige a la tróclea.'],
+  opticorb: ['Nervio óptico intraorbitario', 'Dentro del cono muscular, superolateral al recto medial. Seguilo hacia atrás: en el ápex entra al conducto óptico y hace la prominencia en la pared superolateral del seno esfenoidal, por encima del receso opticocarotídeo.']
 };
-const DANGER_KEYS = new Set(['cs', 'n3', 'n4', 'v1', 'n6', 'v2', 'v3', 'vid', 'ima', 'dpa', 'ioa', 'psaa', 'basilar', 'ica_pc', 'ica_ps', 'ica_pcl', 'pituitary', 'stalk', 'psa', 'ct_fat', 'lamina', 'orbit', 'roof', 'dura', 'aea', 'pea', 'spa', 'optic', 'carotid', 'nld', 'cribr']);
+const DANGER_KEYS = new Set(['mrect', 'irect', 'srect', 'lrect', 'sobl', 'opticorb', 'globe', 'cs', 'n3', 'n4', 'v1', 'n6', 'v2', 'v3', 'vid', 'ima', 'dpa', 'ioa', 'psaa', 'basilar', 'ica_pc', 'ica_ps', 'ica_pcl', 'pituitary', 'stalk', 'psa', 'ct_fat', 'lamina', 'orbit', 'roof', 'dura', 'aea', 'pea', 'spa', 'optic', 'carotid', 'nld', 'cribr']);
 
 /* ============================== GEOMETRÍA ============================== */
 const meshes = [], overlays = [], map2d = [];
@@ -609,6 +624,14 @@ const AEA = [[18.8, 44.6, -31.5], [12, 44.85, -30], [5, 45.1, -28.5]];
 const PEA = [[18.8, 42.0, -56.5], [12, 42.2, -55.5], [6, 42.4, -54.5]];
 const SPA = [[17.6, 22, -61], [16, 20.5, -62], [14.5, 19, -63]];
 const OPTIC = [[18.3, 38.8, -67.5], [16.2, 39.3, -77], [12.5, 39.6, -87]];
+// Órbita: nervio óptico intraorbitario (del polo posterior del globo al conducto óptico) y músculos rectos desde el anillo de Zinn
+const OPTORB = [[31.4, 38.8, -9.5], [29.6, 39.2, -20], [27.4, 39.8, -32], [24.8, 40.4, -44], [22.6, 40.2, -54], [20.4, 39.3, -63.5], [18.3, 38.8, -67.5]];
+const MRECT = [[22.4, 35.8, -64], [22.6, 35.6, -50], [23.3, 36.4, -36], [23.6, 37.6, -22], [23.4, 38.2, -10], [24.2, 38.4, -4]];
+const IRECT = [[23, 36, -64], [25, 34.4, -54], [27, 30.4, -40], [28.6, 29.2, -24], [30, 30.4, -8]];
+const SRECT = [[22.8, 42.2, -64], [25.5, 46.2, -48], [28.5, 48.2, -30], [30.5, 48.6, -14], [31.5, 48, -5]];
+const LRECT = [[23.6, 38, -64], [29.5, 38, -45], [32.4, 38.2, -25], [33.2, 38.4, -10]];
+const SOBL = [[21.4, 40.8, -64], [21.8, 44.4, -40], [22.4, 45.6, -20], [23.2, 45.8, -8]];
+const GLOBE_C = [33, 38.5, 4], GLOBE_R = 12;
 const CAROTID = [[15, 6, -98], [13, 14, -93], [13, 24, -91.5], [14.5, 28.5, -89.4], [17.3, 30.5, -84], [18.0, 32, -77], [18.4, 34.5, -71], [17.6, 38.2, -71.5], [15, 42.5, -74]];
 // Seno cavernoso: pares craneales (pared lateral III, IV, V1, V2; VI libre junto a la carótida)
 const N3 = [[18.5, 39, -100], [20.8, 38.5, -88], [20.5, 38.8, -76.5]];
@@ -641,16 +664,56 @@ function buildAnatomy() {
   add(quad([0, 44, -24], [18.5, 44, -24], [0, 46.1, -24], 0.1), M.mucC, 'beak');
   // Pared lateral
   add(quad([17, 0, 6], [17, 0, -80], [17, 11, 6]), M.muc, 'latwall');
-  add(quad([17, 11, 6], [17, 11, -22], [17, 25, 6]), M.muc, 'latwall');
   add(quad([17, 11, -22], [17, 11, -52], [17, 25, -22], 0.25), M.mucC, 'font');
   add(quad([17, 11, -52], [17, 11, -66], [17, 25, -52]), M.mucC, 'latpost');
   add(quad([17, 11, -66], [17, 11, -80], [17, 19, -66]), M.muc, 'latwall');
-  add(quad([17, 25, 6], [17, 25, -18], [17, 46, 6]), M.muc, 'latwall');
+  // Pared lateral anterior con la ventana de la DCR (y 18–36, z −2 a −12, por delante de la axila y por debajo del techo nasal anterior):
+  // mucosa resecable, apófisis frontal del maxilar (anterior, gruesa) y hueso lagrimal (posterior, fino)
+  add(quad([17, 11, 6], [17, 11, -22], [17, 18, 6]), M.muc, 'latwall');
+  add(quad([17, 18, 6], [17, 18, -2], [17, 25, 6]), M.muc, 'latwall');
+  add(quad([17, 18, -12], [17, 18, -22], [17, 25, -12]), M.muc, 'latwall');
+  add(quad([17, 25, 6], [17, 25, -2], [17, 36, 6]), M.muc, 'latwall');
+  add(quad([17, 25, -12], [17, 25, -18], [17, 36, -12]), M.muc, 'latwall');
+  add(quad([17, 36, 6], [17, 36, -18], [17, 46, 6]), M.muc, 'latwall');
+  add(quad([17, 18, -2], [17, 18, -12], [17, 36, -2], 0.15), M.mucC, 'dcrmuc');
+  add(quad([17.6, 18, -2], [17.6, 18, -6.5], [17.6, 36, -2], 0.2), M.bone, 'fpmax');
+  add(quad([17.5, 19.5, -6.5], [17.5, 19.5, -12], [17.5, 35, -6.5], 0.1), M.lamina, 'lacbone');
+  add(quad([17.6, 18, -6.5], [17.6, 18, -12], [17.6, 19.5, -6.5], 0.1), M.bone, 'fpmax');
+  add(quad([17.6, 35, -6.5], [17.6, 35, -12], [17.6, 36, -6.5], 0.1), M.bone, 'fpmax');
+  // fosa lagrimal (hueso por detrás del saco) y saco, conducto nasolagrimal y canalículo común
+  add(quad([23.2, 16, 1], [23.2, 16, -14], [23.2, 38, 1], 0.3), M.boneN, 'lacfossa');
+  add(quad([17.6, 16, 1], [23.2, 16, 1], [17.6, 16, -14], 0.1), M.boneN, 'lacfossa');
+  add(quad([17.6, 38, 1], [23.2, 38, 1], [17.6, 38, -14], 0.1), M.boneN, 'lacfossa');
+  add(quad([17.6, 16, 1], [23.2, 16, 1], [17.6, 38, 1], 0.1), M.boneN, 'lacfossa');
+  add(quad([17.6, 16, -14], [23.2, 16, -14], [17.6, 38, -14], 0.1), M.boneN, 'lacfossa');
+  add(ellipsoid([19.7, 28, -8], [1.9, 6.8, 2.4], 36), M.sacC, 'sac', { map: { t: 'e', c: [19.7, 28, -8], r: [1.9, 6.8, 2.4], col: '#c98aa8', n: 'SL' } });
+  add(tube([[19.6, 21.6, -8.2], [19.3, 15, -8.8], [18.6, 9, -10.5], [17.4, 4.4, -14.6]], 1.5), M.sacC, 'nlduct');
+  add(tube([[21.4, 31, -8], [23.2, 31.3, -7.4], [24.4, 31.6, -6.2]], 0.55), M.sacC, 'canal');
+  add(disc([21.35, 31, -8], 0.7, 0.6, 'x-'), M.dark, 'canal');
   add(quad([17, 25, -18], [17, 25, -66], [18.5, 25, -18], 0.1), M.muc, 'latwall');
   add(quad([17, 25, -18], [18.5, 25, -18], [17, 46, -18], 0.1), M.muc, 'latwall');
   // Lámina papirácea + órbita
   add(quad([18.5, 25, -18], [18.5, 25, -66], [18.5, 47, -18], 0.15), M.lamina, 'lamina', { map: { t: 'lineX', x: 18.5, y: [25, 46], z: [-18, -66], c: '#e8c060' } });
-  add(quad([20.2, 26.5, -15], [20.2, 26.5, -69], [20.2, 49, -15], 0.4), M.fat, 'orbit');
+  add(quad([20.2, 26.5, -15], [20.2, 26.5, -69], [20.2, 49, -15], 0.4), M.fatC, 'orbit');
+  // Cavidad orbitaria (grasa profunda, no resecable) con músculos extraoculares, globo y nervio óptico
+  add(quad([36, 26.6, 2], [36, 26.6, -66], [36, 51.5, 2], 0.3), M.fat, 'orbfat');
+  add(quad([18.5, 26.6, -14], [36, 26.6, -14], [18.5, 26.6, -54], 0.2), M.fat, 'orbfat');
+  add(quad([23.2, 26.6, 2], [36, 26.6, 2], [23.2, 26.6, -14], 0.1), M.fat, 'orbfat');   // por delante, lateral a la fosa lagrimal
+  add(quad([18.5, 26.6, -54], [36, 26.6, -54], [18.5, 32.3, -54], 0.1), M.fat, 'orbfat');
+  add(quad([18.5, 32.3, -54], [36, 32.3, -54], [18.5, 32.3, -66], 0.1), M.fat, 'orbfat');
+  add(quad([18.5, 51.5, -26], [36, 51.5, -26], [18.5, 51.5, -66], 0.2), M.fat, 'orbfat');
+  add(quad([18.5, 47.4, 2], [24, 47.4, 2], [18.5, 47.4, -26], 0.1), M.fat, 'orbfat');
+  add(quad([24, 51.5, 2], [36, 51.5, 2], [24, 51.5, -26], 0.1), M.fat, 'orbfat');
+  add(quad([24, 47.4, -26], [24, 51.5, -26], [24, 47.4, 2], 0.1), M.fat, 'orbfat');
+  add(quad([18.5, 47.4, -26], [24, 47.4, -26], [18.5, 51.5, -26], 0.1), M.fat, 'orbfat');
+  add(quad([18.5, 32.3, -66], [36, 32.3, -66], [18.5, 51.5, -66], 0.1), M.fat, 'orbfat');
+  add(ellipsoid(GLOBE_C, [GLOBE_R, GLOBE_R, GLOBE_R], 40), M.globe, 'globe');
+  add(tube(MRECT, 2.0, 60), M.muscle, 'mrect', { map: { t: 'poly', pts: MRECT, col: '#c0503f' } });
+  add(tube(IRECT, 2.0, 50), M.muscle, 'irect');
+  add(tube(SRECT, 1.9, 50), M.muscle, 'srect');
+  add(tube(LRECT, 2.0, 50), M.muscle, 'lrect');
+  add(tube(SOBL, 1.1, 40), M.muscle, 'sobl');
+  add(tube(OPTORB, 2.1, 70), M.optic, 'opticorb', { map: { t: 'poly', pts: OPTORB, col: '#fff3b0' } });
   // Base de cráneo
   add(quad([0, yr(-24), -24], [18.5, yr(-24), -24], [0, yr(-66), -66], 0.12), M.bone, 'roof', { map: { t: 'roof', c: '#8fa0ff' } });
   add(quad([0, yr(-24) + 1.7, -24], [18.5, yr(-24) + 1.7, -24], [0, yr(-66) + 1.7, -66], 0.2), M.dura, 'dura');
@@ -835,7 +898,8 @@ const ANCHORS = [
   ['n6', [17.6, 31.2, -88]], ['v2', [20.4, 25.6, -86]], ['vid', [16.5, 16.5, -78]], ['frotundum', [22, 24, -65.7]], ['vidcanal', [18.6, 18, -65.7]],
   ['ppg', [19.5, 20, -61.6]], ['ima', [24, 21.5, -58.9]], ['dpa', [20.4, 14, -58.4]], ['ioa', [24.6, 26.3, -56.4]], ['psaa', [30, 15, -55.9]],
   ['ppf', [25.8, 14, -60]], ['itf', [44, 20, -70]], ['lpt', [35, 26, -64.1]], ['mpt', [28.5, 12, -69.1]], ['v3', [31.4, 26, -79.7]], ['fovale', [30, 37.7, -84]],
-  ['ptplate', [26.1, 20, -75]], ['maxpost', [24, 16, -53.9]], ['sphlat', [18.4, 24, -84]], ['sphfloor', [8, 19.1, -80]], ['latpost', [16.9, 18, -56]], ['nld', [16.7, 3.4, -16]],
+  ['ptplate', [26.1, 20, -75]], ['maxpost', [24, 16, -53.9]], ['sphlat', [18.4, 24, -84]], ['sphfloor', [8, 19.1, -80]], ['latpost', [16.9, 18, -56]], ['nld', [16.7, 3.4, -16]], ['dcrmuc', [16.9, 27, -7]], ['lacbone', [17.4, 28, -9.5]], ['fpmax', [17.5, 28, -4]], ['sac', [17.9, 28, -8]], ['nlduct', [18.3, 12, -9.5]], ['canal', [21.3, 31, -8]],
+  ['mrect', [21.4, 36.4, -36]], ['irect', [26.4, 29.6, -34]], ['srect', [27.5, 46.4, -34]], ['sobl', [21.9, 44.6, -34]], ['opticorb', [24.9, 39.9, -46]], ['globe', [21.2, 38.5, 1]],
   ['torus', [13, 10, -84]], ['np', [4, 9, -78]], ['septsph', [6, 30, -73]]
 ].map(([k, p]) => ({ key: k, p: V(...p), el: null }));
 if (PH2) ANCHORS.forEach(a => a.p.z = WZ(a.p.z));
@@ -879,8 +943,13 @@ const DANGERS = [
   { id: 'spa', test: (p, r) => distPoly(p, SPA) < 0.8 + r * 0.6, msg: 'Lesión de la arteria esfenopalatina: sangrado arterial posterior.', art: SPA, name: 'A. esfenopalatina', rate: 3.0, max: 18 },
   { id: 'optic', test: (p, r) => distPoly(p, OPTIC) < 2.2 + r * 0.6, msg: '¡Lesión del nervio óptico! Riesgo de amaurosis.', bad: 3 },
   { id: 'carotid', test: (p, r) => distPoly(p, CAROTID) < 3.0 + r * 0.6, msg: '¡Lesión de la carótida interna! Hemorragia masiva: complicación catastrófica.', art: CAROTID, name: 'Carótida interna', rate: 9, max: 34, bad: 3 },
-  { id: 'nld', test: (p, r) => p.x > 15.5 && p.z > -21 - r * 0.5 && p.z < -11 && p.y > 0 && p.y < 30,
-    msg: 'Lesión del conducto nasolagrimal: riesgo de epífora. No ampliar la antrostomía hacia anterior.' }
+  { id: 'nld', test: (p, r) => p.x > 15.5 && p.z > -21 - r * 0.5 && p.z < -11 && p.y > 0 && p.y < 17.5,
+    msg: 'Lesión del conducto nasolagrimal: riesgo de epífora. No ampliar la antrostomía hacia anterior.' },
+  { id: 'opticorb', test: (p, r) => distPoly(p, OPTORB) < 2.1 + r * 0.6, msg: '¡Lesión del nervio óptico intraorbitario! Riesgo de amaurosis.', bad: 3 },
+  { id: 'mrect', test: (p, r) => distPoly(p, MRECT) < 2.0 + r * 0.6, msg: 'Lesión del recto medial: diplopía y estrabismo.', bad: 2 },
+  { id: 'irect', test: (p, r) => distPoly(p, IRECT) < 2.0 + r * 0.6, msg: 'Lesión del recto inferior: diplopía.', bad: 2 },
+  { id: 'srect', test: (p, r) => distPoly(p, SRECT) < 1.9 + r * 0.6 || distPoly(p, SOBL) < 1.1 + r * 0.6, msg: 'Lesión del recto superior / oblicuo superior: diplopía.', bad: 2 },
+  { id: 'globe', test: (p, r) => Math.hypot(p.x - GLOBE_C[0], p.y - GLOBE_C[1], p.z - GLOBE_C[2]) < GLOBE_R + r * 0.5, msg: 'Contacto con el globo ocular.', bad: 3 }
 ];
 const lastDanger = {};
 function checkDanger(lp, r) {
@@ -1184,6 +1253,14 @@ function tryMove(delta) {
   scope.pos.add(delta);
 }
 const PREP = {
+  orbitapp: B => {   // etmoidectomía completa y esfenoidotomía (sin pasar el techo)
+    for (let z = -24; z >= -64; z -= 1.8) { const top = Math.min(44, yr(z) - 1.8); for (let x = 9; x <= 17.4; x += 1.6) for (let y = 26; y <= top; y += 1.8) B(x, y, z, 1.7); }
+    for (let x = 2; x <= 16; x += 1.6) for (let y = 22; y <= 40; y += 1.6) { B(x, y, -66, 1.7); B(x, y, -67.5, 1.7); }
+  },
+  orbitopen: B => {   // + lámina papirácea y grasa orbitaria retiradas
+    PREP.orbitapp(B);
+    for (let z = -28; z >= -64; z -= 1.5) for (let y = 29; y <= Math.min(44, yr(z) - 1); y += 1.5) { B(18.6, y, z, 1.5); B(20.3, y, z, 1.3); }
+  },
   sphenoid: B => {
     for (let x = -1.6; x <= 1.6; x += 1.6) for (let y = 16; y <= 40; y += 1.6) for (let z = -50; z >= -67; z -= 1.6) B(x, y, z, 1.7);
     for (let x = -14; x <= 14; x += 1.6) for (let y = 21; y <= 41; y += 1.6) { B(x, y, -66, 1.7); B(x, y, -67.5, 1.7); }
@@ -1280,7 +1357,13 @@ const TOUR = [
   { name: '27 · Septoplastia: incisión de Killian', pos: [8.5, 16, 5], target: [0.8, 16, -14], angle: 0, guide: 'killian', tool: 'monopolar', mono: 'cut',
     text: 'Incisión vertical ~1 cm por detrás del borde caudal (<b>Killian</b>) o en el borde caudal (hemitransfixión). Con la <b>Freer</b> elevá el colgajo mucopericóndrico para ver el <b>cartílago cuadrangular</b>; resecá la parte desviada con la pinza conservando una <b>L de ~1 cm</b> dorsal y caudal.' },
   { name: '28 · Cierre de perforación septal', pos: [9, 17, 0], target: [0.8, 15, -20], angle: 0, perf: true, guide: 'none', tool: 'monopolar', mono: 'cut',
-    text: 'Se crea una <b>perforación septal</b> de ~12 mm. Diseñá con el monopolar un colgajo vecino (de base inferior, de avance o bipediculado), elevalo con la <b>Freer</b> y usá <b>Rotar a la perforación</b>. En la práctica se cierra por ambos lados, idealmente con interposición.' }
+    text: 'Se crea una <b>perforación septal</b> de ~12 mm. Diseñá con el monopolar un colgajo vecino (de base inferior, de avance o bipediculado), elevalo con la <b>Freer</b> y usá <b>Rotar a la perforación</b>. En la práctica se cierra por ambos lados, idealmente con interposición.' },
+  { name: '29 · DCR: saco lagrimal', pos: [8, 23, 1], target: [17.3, 27.5, -7.5], angle: 0,
+    text: 'Por delante de la <b>axila</b> del cornete medio y de la unciforme, la pared lateral cubre el <b>saco lagrimal</b>: atrás el <b>hueso lagrimal</b> (fino, con pinza) y adelante la <b>apófisis frontal del maxilar</b> (gruesa, con drill). El fondo del saco sube ~8–10 mm por encima de la axila. Hacé la DCR guiada en "Cirugía guiada".' },
+  { name: '30 · Órbita: recto medial y nervio óptico', prep: 'orbitopen', pos: [10.5, 37, -38], target: [22, 38.5, -47], angle: 0,
+    text: 'Etmoidectomía completa con la <b>lámina papirácea</b> y la <b>grasa</b> retiradas: pegado a la pared medial corre el <b>recto medial</b>; por encima, el <b>oblicuo superior</b>; abajo, el <b>recto inferior</b>. Dentro del cono, superolateral al recto medial, el <b>nervio óptico</b>.' },
+  { name: '31 · Nervio óptico: ápex y prominencia en el esfenoides', prep: 'orbitopen', pos: [9, 37, -54], target: [19.5, 39, -67], angle: 30, roll: 0,
+    text: 'Siguiendo el <b>nervio óptico</b> hacia atrás llega al <b>ápex</b>, entra al conducto óptico y hace su <b>prominencia</b> en la pared superolateral del <b>seno esfenoidal</b>, por encima del <b>receso opticocarotídeo</b> y de la carótida.' }
 ];
 const tourEl = $('#tour');
 TOUR.forEach((p, i) => { const b = document.createElement('button'); b.textContent = p.name; b.onclick = () => goTo(p); tourEl.appendChild(b); });
@@ -2110,6 +2193,7 @@ function setModel(m) {
 }
 function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
 document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
+  if (b.dataset.v === 'ph1') { location.href = 'basico.html'; return; }
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
   else if ((b.dataset.v === 'ph2') !== PH2) { const u = new URL(location.href); if (PH2) u.searchParams.delete('fantoma'); else u.searchParams.set('fantoma', '2'); location.href = u.toString(); }
   else setModel('generic');
@@ -3116,6 +3200,23 @@ const PROCS = {
     { t: 'Identificá V2', d: 'Plano posterior, superolateral.', hl: 'v2', check: LOOK('v2') },
     { t: 'Identificá el agujero redondo', d: 'En la pared posterior de la fosa, por donde sale V2.', hl: 'frotundum', view: 23, check: LOOK(['frotundum', 'pterygbase']) },
     { t: 'Identificá el conducto vidiano', d: 'Inferomedial al agujero redondo.', hl: 'vidcanal', check: LOOK(['vidcanal', 'vid']) }
+  ] },
+  dcr: { name: 'Dacriocistorrinostomía endoscópica (DCR)', steps: [
+    { t: 'Identificá la axila del cornete medio', d: 'Reparo de la DCR: el saco se proyecta en la pared lateral por delante de la axila y de la unciforme; su fondo sube ~8–10 mm por encima de la axila.', hl: 'axila', view: { pos: [8, 23, 1], target: [17.3, 27.5, -7.5], angle: 0 }, tool: 'none', check: LOOK(['axila', 'dcrmuc', 'latwall']) },
+    { t: 'Levantá el colgajo mucoso', d: 'Con la pinza (o el monopolar en corte) retirá la mucosa por delante de la axila: ventana de ~1,5 × 2 cm.', hl: 'dcrmuc', tool: 'pinza', check: CUT('dcrmuc', [16.5, 17.5, 19, 31, -11.5, -2.5], 0.5, 1) },
+    { t: 'Resecá el hueso lagrimal', d: 'Posterior y delgado: se fractura y retira con la pinza (en quirófano, Kerrison). Detrás aparece el saco.', hl: 'lacbone', tool: 'pinza', check: CUT('lacbone', [17, 18, 20, 31, -11.5, -7], 0.5, 1) },
+    { t: 'Fresá la apófisis frontal del maxilar', d: 'Anterior y gruesa: con el drill, hasta exponer el saco en toda su altura, con el fondo incluido.', hl: 'fpmax', tool: 'drill', check: CUT('fpmax', [17, 18, 19, 31, -6.5, -2.5], 0.45, 1) },
+    { t: 'Identificá el saco lagrimal', d: 'Pared medial del saco expuesta, del fondo al inicio del conducto nasolagrimal.', hl: 'sac', tool: 'none', check: LOOK('sac') },
+    { t: 'Abrí el saco lagrimal', d: 'Incisión vertical en la pared medial y apertura amplia (marsupialización).', hl: 'sac', tool: 'pinza', check: CUT('sac', [17.5, 20, 22, 34, -10.5, -5.5], 0.25, 1) },
+    { t: 'Identificá el canalículo común', d: 'En la pared lateral del saco abierto: por ahí sale la sonda de Bowman pasada por el punto lagrimal.', hl: 'canal', tool: 'none', check: LOOK('canal') }
+  ] },
+  orbita: { name: 'Órbita: recto medial y nervio óptico (anatomía)', prep: 'orbitapp', steps: [
+    { t: 'Identificá la lámina papirácea', d: 'Con la etmoidectomía completa, la pared lateral es la lámina papirácea (pared medial de la órbita).', hl: 'lamina', view: { pos: [10.5, 37, -38], target: [22, 38.5, -47], angle: 0 }, tool: 'none', check: LOOK('lamina') },
+    { t: 'Resecá la lámina papirácea', d: 'Con la pinza, entre las arterias etmoidales y el ápex, sin pasar el techo. Aparece la periórbita con la grasa.', hl: 'lamina', tool: 'pinza', check: CUT('lamina', [17.5, 19.5, 30, 42, -60, -30], 0.3, 1) },
+    { t: 'Retirá la grasa orbitaria', d: 'En cirugía se preserva; acá se retira para estudiar la anatomía. Hacelo superficial: más profundo están los músculos.', hl: 'orbit', tool: 'pinza', check: CUT('orbit', [19.5, 21, 30, 44, -60, -30], 0.25, 1) },
+    { t: 'Identificá el recto medial', d: 'Corre pegado a la pared medial, del anillo de Zinn (atrás) al globo (adelante).', hl: 'mrect', tool: 'none', check: LOOK('mrect') },
+    { t: 'Identificá el nervio óptico', d: 'Dentro del cono muscular, superolateral al recto medial. Seguilo hacia atrás, hacia el ápex.', hl: 'opticorb', view: { pos: [9, 37, -54], target: [19.5, 39, -67], angle: 30, roll: 0 }, check: LOOK('opticorb') },
+    { t: 'Seguilo hasta el esfenoides', d: 'Entra al conducto óptico y hace la prominencia en la pared superolateral del seno esfenoidal, por encima del receso opticocarotídeo.', hl: 'optic', check: LOOK(['optic', 'ocr']) }
   ] },
   hemo: { name: 'Control de sangrado de la etmoidal anterior', prep: 'hemo', after: () => addBleed('aea1', 'A. etmoidal anterior', V(12, 44.85, -30), 2.6, 16), steps: [
     { t: 'Coagulá la arteria', d: 'Bipolar sobre el punto que sangra en el techo etmoidal (si no lo ves, aspirá primero).', hl: 'aea', view: 10, tool: 'bipolar', check: { fn: () => !bleeds.some(b => b.active) } },

@@ -43,4 +43,5 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - **DCR endoscópica** como cirugía guiada (7 pasos) y parada 29 del recorrido.
 - **Órbita**: grasa resecable, recto medial, inferior, superior y lateral, oblicuo superior, globo y nervio óptico intraorbitario continuo con su prominencia en el seno esfenoidal. Alertas por lesión de músculos, nervio óptico o globo.
 - Cirugía guiada "Órbita: recto medial y nervio óptico (anatomía)" y paradas 30–31 del recorrido.
+- **Modo TC: "Marcar receso frontal (guiado)"**: se marcan axila, agger, barra vertical, ostium frontal y bulla sobre la TC del paciente y se dibuja la vía de drenaje animada, medial o lateral a la unciforme.
 

@@ -173,6 +173,10 @@
     <div class="row"><button id="btnCaseSave">💾 Guardar caso (anonimizado)</button></div>
     <div class="mut">Guarda sólo el volumen recortado a fosas, senos y base de cráneo, <b>sin encabezados DICOM</b> y sin piel ni partes blandas superficiales de la cara, más las marcas. Queda en "Mis casos" de este dispositivo y se descarga el archivo: para sumarlo a la biblioteca compartida, mandáselo al responsable del repositorio.</div>
     <div class="ctl"><span>Tipo de marca</span><select id="lmType"></select></div>
+    <div class="row"><button id="btnFRGuide">Marcar receso frontal (guiado)</button></div>
+    <div class="seg" id="ctUnc"><button data-u="med" class="on">Drenaje medial a la unciforme</button><button data-u="lat">Lateral (infundíbulo)</button></div>
+    <div class="checks"><label><input type="checkbox" id="chkCtDrain" checked> Mostrar vía de drenaje frontal</label></div>
+    <div class="mut" id="frTxt">Marcá en la TC la axila, el agger nasi, la barra vertical y el ostium frontal: el simulador dibuja la vía de drenaje del frontal sobre la anatomía del paciente.</div>
     <small>Axial</small><canvas id="ctAx" width="480" height="400"></canvas>
     <small>Coronal</small><canvas id="ctCo" width="480" height="400"></canvas>
     <small>Sagital</small><canvas id="ctSa" width="480" height="400"></canvas>
@@ -1759,7 +1763,10 @@ const LM_TYPES = {
   lamina: ['Lámina papirácea', 2.0, 0xffd040, 'Lámina papirácea perforada: riesgo de hematoma orbitario y lesión del recto medial.', 0],
   nld: ['Conducto nasolagrimal', 1.6, 0x60c0ff, 'Lesión del conducto nasolagrimal: riesgo de epífora.', 0],
   maxost: ['Ostium maxilar', 0, 0x5cffb0, '', 0], frontost: ['Ostium frontal', 0, 0x5cffb0, '', 0],
-  sphost: ['Ostium esfenoidal', 0, 0x5cffb0, '', 0], other: ['Marca docente', 0, 0xffffff, '', 0]
+  sphost: ['Ostium esfenoidal', 0, 0x5cffb0, '', 0],
+  axila: ['Axila del cornete medio', 0, 0xff70c0, '', 0], agger: ['Agger nasi', 0, 0x40d080, '', 0],
+  vbar: ['Barra vertical (unciforme superior)', 0, 0xb0ff90, '', 0], bulla: ['Bulla etmoidal', 0, 0x4a8cff, '', 0],
+  other: ['Marca docente', 0, 0xffffff, '', 0]
 };
 $('#lmType').innerHTML = Object.entries(LM_TYPES).map(([k, v]) => `<option value="${k}">${v[0]}${v[1] ? ' (riesgo)' : ''}</option>`).join('');
 const ctMat = patchCut(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.38, metalness: 0, side: THREE.DoubleSide, map: mucoTex, bumpMap: bumpTex, bumpScale: 1.0 }));
@@ -2108,7 +2115,7 @@ function sliceClick(k, ev) {
   if (k === 'co') { L = O.x + a * cs[0]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   if (k === 'sa') { P = O.y + a * cs[1]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   const p = V(L, S, -P);
-  if (CT.mark) { addLandmark($('#lmType').value, p); return; }
+  if (CT.mark) { addLandmark($('#lmType').value, p); if (window.__ctDrainReady && FR.on) frNext(); return; }
   if (sampleGL(L, P, S) > CT.iso) { toast('Ese punto es tejido: elegí un punto con aire (negro) para ubicar el endoscopio.'); return; }
   state.fly = null; scope.pos.copy(anatomy.localToWorld(p)); sliceKey = '';
 }
@@ -2123,6 +2130,7 @@ function addLandmark(type, p) {
   toast('Marca agregada: ' + T[0] + (T[1] ? ' — queda como estructura de riesgo.' : ''));
 }
 function renderLmList() {
+  if (window.__ctDrainReady) updateCtDrain();
   $('#lmList').innerHTML = CT.landmarks.map(l => `<div><span style="color:#${LM_TYPES[l.type][2].toString(16).padStart(6, '0')}">●</span> ${l.name}<button data-id="${l.id}">✕</button></div>`).join('') || '<span class="mut">Sin marcas todavía.</span>';
   $('#lmList').querySelectorAll('button').forEach(b => b.onclick = () => {
     const i = CT.landmarks.findIndex(l => l.id === +b.dataset.id); const l = CT.landmarks[i];
@@ -2184,6 +2192,7 @@ function setModel(m) {
   $('#flapGrp').style.display = m === 'ct' ? 'none' : 'block';
   $('#ifacGrp').style.display = m === 'ct' ? 'none' : 'block';
   ifacCells.forEach(c => c.visible = m === 'generic'); drainLine.visible = m === 'generic' && $('#chkDrain').checked;
+  if (window.__ctDrainReady) updateCtDrain();
   $('#stepText').style.display = 'none';
   $('#lLam').textContent = m === 'ct' ? 'Punta → grasa orbitaria' : 'Punta → lámina papirácea';
   $('#lSkull').textContent = m === 'ct' ? 'Punta → base de cráneo (marcas)' : 'Punta → base de cráneo';
@@ -3476,6 +3485,67 @@ $('#btnIfacView').onclick = () => goTo({ pos: [10, 26.5, -25.5], target: [11, 42
 $('#btnIfacReset').onclick = () => { ifacOn.clear(); document.querySelectorAll('.ifac button').forEach(x => x.classList.remove('on')); FRV.unc = 'lp'; FRV.bl = 'sb'; document.querySelectorAll('#uncIns button').forEach(x => x.classList.toggle('on', x.dataset.u === 'lp')); document.querySelectorAll('#bulIns button').forEach(x => x.classList.toggle('on', x.dataset.b === 'sb')); rebuildRecess(); toast('Anatomía estándar del receso frontal.'); };
 updateDrain();
 
+/* ============================== RECESO FRONTAL EN LA TC DEL PACIENTE ============================== */
+const FR_STEPS = [
+  { type: 'axila', d: '<b>1 · Axila del cornete medio.</b> En el coronal más anterior donde el cornete medio se une a la pared lateral, marcá ese ángulo.' },
+  { type: 'agger', d: '<b>2 · Agger nasi.</b> La primera celda etmoidal: abomba la pared lateral por delante y encima de la axila (coronal y sagital). Marcá su centro.' },
+  { type: 'vbar', d: '<b>3 · Barra vertical.</b> La pared medial del agger, formada por la porción superior de la unciforme (coronal). Marcala.' },
+  { type: 'frontost', d: '<b>4 · Ostium frontal.</b> En el sagital, el punto más estrecho entre el seno frontal y el receso: posterior y medial al agger.' },
+  { type: 'bulla', d: '<b>5 · Bulla etmoidal (opcional).</b> Detrás del receso; si llega a la base de cráneo es su pared posterior. Tocá "Terminar marcado" para cerrar.' }
+];
+const FR = { on: false, i: 0, lat: false };
+function frShow() {
+  const st = FR_STEPS[FR.i]; if (!st) return;
+  $('#lmType').value = st.type; CT.mark = true; $('#btnMark').classList.add('mk'); $('#btnMark').textContent = 'Marcando… (clic en un corte)';
+  $('#frTxt').innerHTML = st.d + ' <span class="mut">(clic en el corte que corresponda)</span>';
+}
+function frNext() { FR.i++; if (FR.i >= FR_STEPS.length) frEnd(); else frShow(); }
+function frEnd() { FR.on = false; CT.mark = false; $('#btnMark').classList.remove('mk'); $('#btnMark').textContent = 'Marcar estructura'; $('#btnFRGuide').textContent = 'Marcar receso frontal (guiado)'; updateCtDrain(); }
+$('#btnFRGuide').onclick = () => {
+  if (!CT.C) { toast('Primero cargá una TC.'); return; }
+  if (FR.on) { frEnd(); return; }
+  FR.on = true; FR.i = 0; $('#btnFRGuide').textContent = 'Terminar marcado'; frShow();
+};
+const ctDrainTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 4; const g = c.getContext('2d');
+  g.fillStyle = '#0a5c8a'; g.fillRect(0, 0, 64, 4); g.fillStyle = '#7fe6ff'; g.fillRect(0, 0, 26, 4); g.fillStyle = '#d8fbff'; g.fillRect(20, 0, 6, 4);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
+const ctDrain = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ map: ctDrainTex, depthTest: false, depthWrite: false, transparent: true, opacity: 0.85 }));
+ctDrain.renderOrder = 32; ctDrain.visible = false;
+const ctDrainHead = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.8, 14), new THREE.MeshBasicMaterial({ color: 0x7fe6ff, depthTest: false, depthWrite: false, transparent: true, opacity: 0.9 }));
+ctDrainHead.renderOrder = 33; ctDrain.add(ctDrainHead);
+function lmOf(t) { const l = [...CT.landmarks].reverse().find(l => l.type === t); return l ? l.p.clone() : null; }
+function updateCtDrain() {
+  if (ctDrain.parent !== ctGroup) ctGroup.add(ctDrain);
+  const F = lmOf('frontost'), Vb = lmOf('vbar') || lmOf('agger'), A = lmOf('axila');
+  if (!F || !Vb || !A) {
+    ctDrain.visible = false;
+    if (CT.C && !FR.on) $('#frTxt').innerHTML = 'Marcá en la TC la axila, el agger nasi, la barra vertical y el ostium frontal: el simulador dibuja la vía de drenaje del frontal sobre la anatomía del paciente.' + (F || Vb || A ? ' <span class="mut">Faltan: ' + [!A && 'axila', !Vb && 'barra vertical / agger', !F && 'ostium frontal'].filter(Boolean).join(', ') + '.</span>' : '');
+    return;
+  }
+  const m = Math.sign(CT.cx - Vb.x) || 1, below = Math.min(A.y, Vb.y) - 3;
+  const P = (b, dx, dy, dz) => V(b.x + dx, b.y + dy, b.z + dz);
+  const pts = !FR.lat
+    ? [P(F, 0, 7, 1), F, P(Vb, 2.6 * m, 0, -1.2), V(Vb.x + 1.8 * m, A.y + 1, A.z - 3.5), V(Vb.x + 1.2 * m, below, A.z - 6.5), V(Vb.x + 0.8 * m, below - 4, A.z - 10)]
+    : [P(F, 0, 7, 1), F, P(Vb, -1.4 * m, -0.5, -3), V(Vb.x - 3 * m, A.y, A.z - 5), V(Vb.x - 3.6 * m, below, A.z - 8), V(Vb.x - 3.8 * m, below - 4, A.z - 11)];
+  const curve = new THREE.CatmullRomCurve3(pts);
+  ctDrain.geometry.dispose(); ctDrain.geometry = new THREE.TubeGeometry(curve, 120, 0.4, 8, false);
+  ctDrainTex.repeat.set(curve.getLength() / 2.6, 1);
+  ctDrainHead.position.copy(curve.getPointAt(1)); ctDrainHead.quaternion.setFromUnitVectors(V(0, 1, 0), curve.getTangentAt(1));
+  ctDrain.visible = state.model === 'ct' && $('#chkCtDrain').checked;
+  const ag = lmOf('agger'), dd = ag ? F.distanceTo(ag).toFixed(1) : null, post = ag ? +(ag.z - F.z).toFixed(1) : null;
+  if (!FR.on) $('#frTxt').innerHTML = (!FR.lat
+    ? '<b>Vía de drenaje: medial a la unciforme</b> (unciforme a la lámina papirácea): del ostium baja entre la barra vertical y el cornete medio, por detrás de la axila, al meato medio.'
+    : '<b>Vía de drenaje: lateral a la unciforme</b> (unciforme a la base de cráneo o al cornete medio): del ostium pasa por detrás de la barra vertical al infundíbulo y baja hacia el hiato.')
+    + (ag ? `<br>Ostium frontal a ${dd} mm del centro del agger (${post > 0 ? post + ' mm por detrás' : Math.abs(post) + ' mm por delante'}; en la mayoría de los pacientes queda posterior y medial).` : '');
+}
+document.querySelectorAll('#ctUnc button').forEach(b => b.onclick = () => {
+  FR.lat = b.dataset.u === 'lat';
+  document.querySelectorAll('#ctUnc button').forEach(x => x.classList.toggle('on', x === b));
+  updateCtDrain();
+});
+$('#chkCtDrain').onchange = () => updateCtDrain();
+window.__ctDrainReady = true;
+
 /* ============================== MÁSCARA Y RESIZE ============================== */
 function onResize() {
   renderer.setSize(innerWidth, innerHeight);
@@ -3495,6 +3565,7 @@ renderer.setAnimationLoop(() => {
   if (state.busy && !state.vr) return;   // durante la carga de la TC se pausa el render para acelerar
   const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (state.vr) updateVR(dt); else updateDesktop(dt);
+  if (ctDrain.visible) ctDrainTex.offset.x -= dt * 0.9;
   updateEndoCam();
   if (!state.vr) updateInstrumentDesktop(dt);
   updateInstrumentCommon(dt);
@@ -3518,7 +3589,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

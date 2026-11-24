@@ -260,6 +260,45 @@ const bumpTex = canvasTex((g, s) => {
   }
 }, false);
 
+// Mapas de normales: se dibuja un mapa de alturas y se convierte a normales (Sobel). Tileables.
+function normalTex(drawH, strength = 2.0, size = 512) {
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+  drawH(g, size);
+  const src = g.getImageData(0, 0, size, size).data, out = g.createImageData(size, size), o = out.data;
+  const H = (x, y) => src[(((y + size) % size) * size + ((x + size) % size)) * 4] / 255;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const dx = (H(x + 1, y - 1) + 2 * H(x + 1, y) + H(x + 1, y + 1)) - (H(x - 1, y - 1) + 2 * H(x - 1, y) + H(x - 1, y + 1));
+    const dy = (H(x - 1, y + 1) + 2 * H(x, y + 1) + H(x + 1, y + 1)) - (H(x - 1, y - 1) + 2 * H(x, y - 1) + H(x + 1, y - 1));
+    let nx = -dx * strength, ny = -dy * strength, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    const i = (y * size + x) * 4; o[i] = (nx * 0.5 + 0.5) * 255; o[i + 1] = (ny * 0.5 + 0.5) * 255; o[i + 2] = (nz * 0.5 + 0.5) * 255; o[i + 3] = 255;
+  }
+  g.putImageData(out, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+}
+const blobs = (g, s, n, r0, r1, a0, a1, light = 0.5) => {
+  for (let i = 0; i < n; i++) {
+    const x = rnd() * s, y = rnd() * s, r = r0 + rnd() * (r1 - r0), v = rnd() < light ? 255 : 0, a = a0 + rnd() * (a1 - a0);
+    wrapDraw(s, x, y, r, (X, Y) => { const gr = g.createRadialGradient(X, Y, 0, X, Y, r); gr.addColorStop(0, `rgba(${v},${v},${v},${a})`); gr.addColorStop(1, `rgba(${v},${v},${v},0)`); g.fillStyle = gr; g.beginPath(); g.arc(X, Y, r, 0, 7); g.fill(); });
+  }
+};
+// mucosa: ondulación suave, orificios glandulares y relieve de los vasos
+const mucoN = normalTex((g, s) => {
+  g.fillStyle = '#808080'; g.fillRect(0, 0, s, s);
+  blobs(g, s, 160, 25, 80, 0.1, 0.22);
+  blobs(g, s, 900, 4, 11, 0.07, 0.16);
+  blobs(g, s, 1600, 1.5, 3.5, 0.05, 0.1, 0.6);
+}, 1.7);
+// película de moco: ondulación fina que hace brillar la superficie en puntos (clearcoat)
+const filmN = normalTex((g, s) => { g.fillStyle = '#808080'; g.fillRect(0, 0, s, s); blobs(g, s, 260, 12, 40, 0.1, 0.22); }, 0.9);
+// hueso: trabéculas y poros
+const boneNrm = normalTex((g, s) => {
+  g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, s, s);
+  blobs(g, s, 90, 25, 70, 0.06, 0.14);
+  blobs(g, s, 500, 2, 5, 0.06, 0.16, 0.2);
+}, 1.2);
+// tumor: superficie lobulada
+const lobN = normalTex((g, s) => { g.fillStyle = '#808080'; g.fillRect(0, 0, s, s); blobs(g, s, 60, 40, 110, 0.25, 0.45, 0.8); blobs(g, s, 400, 8, 20, 0.1, 0.25); }, 2.4);
+
 /* ============================== CORTES (volumen 3D de tejido resecado) ==============================
    Cada mordida de pinza / pasada de drill "pinta" una esfera en un volumen de 0,5 mm.
    El shader descarta los fragmentos de tejido resecable que caen dentro del volumen marcado. */
@@ -288,6 +327,20 @@ const fxU = {
   uBlood: { value: Array.from({ length: FX_MAXB }, () => new THREE.Vector4()) }, uBloodN: { value: 0 },
   uBurn: { value: Array.from({ length: FX_MAXBURN }, () => new THREE.Vector4()) }, uBurnN: { value: 0 }
 };
+// Cómo se ve el borde de un corte según el tejido
+const TISSUE_CUT = {
+  soft: `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.07, 0.06), cutHalo * 0.45);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.36, 0.02, 0.025), cutEdge * 0.85);`,
+  bone: `float pn = n3(vLP * 2.6) * 0.65 + n3(vLP * 6.5) * 0.35;
+        vec3 spong = mix(vec3(0.9, 0.8, 0.66), vec3(0.5, 0.16, 0.12), smoothstep(0.55, 0.75, pn));
+        diffuseColor.rgb = mix(diffuseColor.rgb, spong, cutEdge * 0.95);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.62, 0.22, 0.17), cutHalo * (1.0 - cutEdge) * 0.25);`,
+  cart: `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.9, 0.93), cutEdge * 0.7);`,
+  fat: `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.95, 0.78, 0.3), cutEdge * 0.6);`,
+  tumor: `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.3, 0.02, 0.06), cutEdge * 0.9);`,
+  nerve: `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6, 0.3, 0.2), cutEdge * 0.6);`,
+  membrane: `diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.4, 0.05, 0.06), cutEdge * 0.8);`
+};
 function patchSurf(m, cut) {
   if (cut) m.userData.cut = true;
   m.onBeforeCompile = sh => {
@@ -299,12 +352,16 @@ function patchSurf(m, cut) {
       .replace('#include <common>', `#include <common>
         varying vec3 vLP;
         uniform highp sampler3D uCutVol; uniform vec3 uCutO; uniform vec3 uCutSize; uniform float uSag;
-        uniform vec4 uBlood[${FX_MAXB}]; uniform int uBloodN; uniform vec4 uBurn[${FX_MAXBURN}]; uniform int uBurnN;`)
+        uniform vec4 uBlood[${FX_MAXB}]; uniform int uBloodN; uniform vec4 uBurn[${FX_MAXBURN}]; uniform int uBurnN;
+        float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+        float n3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+                     mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
         if (vLP.x > uSag) discard;
         ${cut ? `float cv = texture(uCutVol, (vLP - uCutO) / uCutSize).r;
         if (cv > 0.5) discard;
-        float cutEdge = smoothstep(0.04, 0.5, cv);` : 'float cutEdge = 0.0;'}
+        float cutEdge = smoothstep(0.04, 0.5, cv); float cutHalo = smoothstep(0.0, 0.3, cv);` : 'float cutEdge = 0.0; float cutHalo = 0.0;'}
         float bl = 0.0;
         for (int i = 0; i < ${FX_MAXB}; i++) {
           if (i >= uBloodN) break;
@@ -317,14 +374,15 @@ function patchSurf(m, cut) {
           vec4 c = uBurn[i]; bn = max(bn, 1.0 - smoothstep(c.w * 0.45, c.w, length(vLP - c.xyz)));
         }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.03, 0.03), cutEdge * 0.85);
+        ${TISSUE_CUT[m.userData.tissue || 'soft']}
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.92, 0.86, 0.78), bn * 0.75);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.15, 0.1), bn * bn * bn * 0.7);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.0, 0.004), bl * 0.97);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, 0.16, bl);`);
+        roughnessFactor = mix(roughnessFactor, 0.16, bl);
+        roughnessFactor = mix(roughnessFactor, ${m.userData.tissue === 'bone' ? '0.6' : '0.2'}, cutEdge);`);
   };
-  m.customProgramCacheKey = () => cut ? 'surfC' : 'surf';
+  m.customProgramCacheKey = () => (cut ? 'surfC' : 'surf') + (m.userData.tissue || 'soft');
   return m;
 }
 const patchCut = m => patchSurf(m, true);
@@ -354,11 +412,42 @@ function isCut(lp) {
 
 /* ============================== MATERIALES ============================== */
 function mat(color, { cut = false, rough = 0.38, bump = 1.0, map = true } = {}) {
-  const m = new THREE.MeshStandardMaterial({
+  const m = new THREE.MeshPhysicalMaterial({
     color, roughness: rough, metalness: 0, side: THREE.DoubleSide,
-    map: map ? mucoTex : null, bumpMap: bumpTex, bumpScale: bump
+    map: map ? mucoTex : null, normalMap: mucoN, normalScale: new THREE.Vector2(0.65, 0.65).multiplyScalar(bump),
+    clearcoat: 0.7, clearcoatRoughness: 0.12, clearcoatNormalMap: filmN, clearcoatNormalScale: new THREE.Vector2(0.18, 0.18),
+    sheen: 0.45, sheenRoughness: 0.55, sheenColor: new THREE.Color('#ff6d5c')
   });
+  m.userData.tissue = 'soft';
   return patchSurf(m, cut);
+}
+// Ajuste por tejido (sobre el material ya creado): hueso mate y poroso, tumor lobulado y muy húmedo, grasa brillante, etc.
+const TISSUE_OF = { bone: ['bone', 'lamina', 'septbone', 'boneN', 'sella', 'sellaC'], cart: ['cart'], fat: ['fat', 'fatC'], tumor: ['jnaC'],
+  nerve: ['optic', 'nerve'], membrane: ['dura', 'duraC', 'globe', 'cs'] };
+function applyTissues(M) {
+  for (const [t, keys] of Object.entries(TISSUE_OF)) for (const k of keys) {
+    const m = M[k]; if (!m || !m.isMeshPhysicalMaterial) continue;
+    m.userData.tissue = t;
+    if (t === 'bone') { m.normalMap = boneNrm; m.normalScale.set(0.45, 0.45); m.roughness = Math.max(m.roughness, 0.55); m.clearcoat = 0.22; m.clearcoatRoughness = 0.25; m.sheen = 0; }
+    if (t === 'cart') { m.normalScale.set(0.2, 0.2); m.clearcoat = 0.55; m.sheen = 0.15; m.sheenColor.set('#ffffff'); }
+    if (t === 'fat') { m.normalScale.set(0.35, 0.35); m.clearcoat = 0.7; m.clearcoatRoughness = 0.12; m.sheen = 0.2; m.sheenColor.set('#fff1b0'); }
+    if (t === 'tumor') { m.normalMap = lobN; m.normalScale.set(0.75, 0.75); m.clearcoat = 1.0; m.clearcoatRoughness = 0.06; m.sheen = 0.6; m.sheenColor.set('#ff3f7a'); }
+    if (t === 'nerve') { m.normalScale.set(0.25, 0.25); m.clearcoat = 0.5; m.sheen = 0.25; m.sheenColor.set('#fff4d6'); }
+    if (t === 'membrane') { m.normalScale.set(0.2, 0.2); m.clearcoat = 0.75; m.sheen = 0.2; m.sheenColor.set('#d6dcff'); }
+  }
+  // vasos y músculo: muy húmedos y brillantes
+  ['artery', 'carotid', 'muscle', 'gland'].forEach(k => { if (M[k] && M[k].isMeshPhysicalMaterial) { M[k].clearcoat = 1.0; M[k].clearcoatRoughness = 0.07; } });
+}
+// Modo liviano (Quest): sin capa húmeda ni translucidez, que son lo más costoso por píxel
+const LITE = { on: false, saved: new Map() };
+function setLiteLook(on) {
+  if (LITE.on === on) return; LITE.on = on;
+  Object.values(M).forEach(m => {
+    if (!m || !m.isMeshPhysicalMaterial) return;
+    if (on) { LITE.saved.set(m, [m.clearcoat, m.sheen]); m.clearcoat = 0; m.sheen = 0; }
+    else if (LITE.saved.has(m)) { [m.clearcoat, m.sheen] = LITE.saved.get(m); }
+    m.needsUpdate = true;
+  });
 }
 const M = {
   muc: mat('#d27069'), mucC: mat('#d27069', { cut: true }), sept: mat('#d97c74'), floor: mat('#cd6c64', { cut: true }),
@@ -373,6 +462,7 @@ const M = {
   dark: patchCut(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })),
   darkN: patchSurf(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide }), false)
 };
+applyTissues(M);
 
 /* ============================== INFO ANATÓMICA ============================== */
 const INFO = {
@@ -1021,8 +1111,9 @@ scene.add(endoCam);
 const worldCam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 50);
 worldCam.layers.enable(WORLD_LAYER);
 const ENDO_I = 260, ENDO_DECAY = 1.6;
-const endoLight = new THREE.PointLight(0xfff1e6, ENDO_I, 0, ENDO_DECAY);
-scene.add(endoLight);
+const endoLight = new THREE.SpotLight(0xfff3ea, ENDO_I * 1.2, 0, 0.9, 0.85, ENDO_DECAY);   // la fibra óptica ilumina en cono: más luz al centro
+scene.add(endoLight, endoLight.target);
+const endoFill = new THREE.PointLight(0xffe8dc, ENDO_I * 0.16, 0, ENDO_DECAY); scene.add(endoFill);   // luz difusa del propio campo
 const amb = new THREE.AmbientLight(0xffffff, 0.035); scene.add(amb);
 const hemi = new THREE.HemisphereLight(0xdde6ff, 0x302820, 1.1); hemi.visible = false; scene.add(hemi);
 
@@ -1163,11 +1254,13 @@ function placeAnatomy() {
   instr.scale.setScalar(s);
 }
 renderer.xr.addEventListener('sessionstart', () => {
+  setLiteLook(true);
   state.vr = true; state.S = VR_S; placeAnatomy(); vrRoom.visible = true; hemi.visible = true; amb.visible = false;
   shaft.scale.z = 0.12 / VR_S - 4.5; endoCam.aspect = 4 / 3; endoCam.updateProjectionMatrix();
   document.body.classList.add('invr'); hudKey = '';
 });
 renderer.xr.addEventListener('sessionend', () => {
+  setLiteLook(false);
   state.vr = false; state.S = 1; placeAnatomy(); vrRoom.visible = false; hemi.visible = false; amb.visible = true;
   shaft.scale.z = 140; onResize(); if (state.model === 'ct') placeScopeStart(); else goTo(TOUR[0]);
 });
@@ -1631,7 +1724,9 @@ function updateEndoCam() {
   endoCam.near = 0.3 * s; endoCam.far = 500 * s; endoCam.updateProjectionMatrix();
   endoCam.updateMatrixWorld(true);
   endoLight.position.copy(scope.pos);
-  endoLight.intensity = ENDO_I * Math.pow(s, ENDO_DECAY);
+  endoLight.target.position.copy(scope.pos).add(V(0, 0, -10).applyQuaternion(endoCam.quaternion)); endoLight.target.updateMatrixWorld();
+  endoLight.intensity = ENDO_I * 1.2 * Math.pow(s, ENDO_DECAY);
+  endoFill.position.copy(scope.pos); endoFill.intensity = ENDO_I * 0.16 * Math.pow(s, ENDO_DECAY);
 }
 function updateInstrumentDesktop(dt) {
   instr.visible = state.tool !== 'none' && mouseIn;
@@ -3294,7 +3389,7 @@ const PROCS = {
     { t: 'Identificá el angiofibroma', d: 'Masa violácea, lisa y muy vascularizada en la fosa nasal posterior, detrás de la cola de los cornetes. Nace en el foramen esfenopalatino.', hl: 'jna', view: { pos: [3.2, 12.5, -34], target: [8, 16.5, -58], angle: 0 }, tool: 'none', check: LOOK('jna') },
     { t: 'Antrostomía maxilar amplia', d: 'Uncinectomía y antrostomía llevada hacia atrás hasta la pared posterior del seno (abordaje transmaxilar).', hl: 'font', view: { pos: [9, 18, -26], target: [17, 18, -42], angle: 30, roll: -90 }, tool: 'pinza', check: CUT('font', [16.5, 17.5, 13, 24, -50, -30], 0.4, 1) },
     { t: 'Resecá la pared posterior del seno maxilar', d: 'Con pinza o drill, en su porción medial: está abombada por el tumor (signo de Holman-Miller).', hl: 'maxpost', view: { pos: [19, 18, -36], target: [22, 19, -56], angle: 0 }, tool: 'pinza', check: CUT('maxpost', [18, 26, 12, 25.5, -55, -53], 0.4, 1) },
-    { t: 'Abrí la fosa pterigopalatina', d: 'Incidí el periostio y la grasa: aparece el componente pterigopalatino del tumor.', hl: 'ppf', tool: 'pinza', check: CUT('ppf', [17.2, 26, 13, 28, -56.5, -54], 0.3, 1) },
+    { t: 'Exponé la fosa pterigopalatina', d: 'Por la ventana de la pared posterior del seno aparece la fosa pterigopalatina ensanchada, ocupada por el componente pterigopalatino del tumor.', hl: 'jna', tool: 'none', check: LOOK(['jna', 'ppf', 'ima']) },
     { t: 'Controlá la arteria maxilar interna', d: 'Lateral al tumor, en la fosa pterigopalatina: coagulá con bipolar (o clip) su trayecto antes de resecar. Es la irrigación principal.', hl: 'ima', view: { pos: [20, 19, -42], target: [25, 21, -60], angle: 0 }, tool: 'bipolar', check: { fn: () => JNA.imaOK } },
     { t: 'Resecá el componente pterigopalatino', d: 'Disecá el tumor de la fosa y traelo hacia medial, hacia la fosa nasal.', hl: 'jna', tool: 'pinza', check: CUT('jna', [16.8, 26, 13, 27, -66, -54], 0.45, 1) },
     { t: 'Resecá el componente nasal', d: 'Liberá el pedículo en el foramen esfenopalatino y retirá la masa de la fosa posterior y la rinofaringe.', hl: 'jna', view: { pos: [3.2, 12.5, -34], target: [8, 16.5, -58], angle: 0 }, tool: 'pinza', check: CUT('jna', [2, 14, 11, 24, -69, -50], 0.5, 1) },
@@ -3665,7 +3760,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

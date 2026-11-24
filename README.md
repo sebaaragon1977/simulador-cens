@@ -51,3 +51,10 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - **Fantoma 3 · angiofibroma** (`?fantoma=3`): angiofibroma juvenil nasofaríngeo derecho en la fosa nasal posterior y la rinofaringe. Pasa por el foramen esfenopalatino a la fosa pterigopalatina (irrigado por la maxilar interna) e invade el basiesfenoides.
 - Cirugía guiada "Angiofibroma juvenil: resección endoscópica" (9 pasos): antrostomía amplia, pared posterior del seno maxilar, fosa pterigopalatina, control de la maxilar interna, resección pterigopalatina y nasal, fresado del basiesfenoides y del remanente. Si se reseca sin controlar la maxilar interna, sangra mucho.
 
+## Apariencia
+- **Mucosa húmeda**: capa brillante con película de moco (reflejos puntuales donde pega la luz) y translucidez suave en los bordes.
+- **Relieve por tejido** (mapas de normales generados en el navegador): mucosa ondulada con puntillado glandular, hueso poroso, tumor lobulado; grasa, nervios, duramadre y vasos con su propio brillo.
+- **Corte con aspecto de tejido**: el hueso fresado muestra trabéculas esponjosas con puntos hemorrágicos; la mucosa resecada deja un borde crudo, rojo y húmedo.
+- **Luz del endoscopio en cono**: más luz al centro y caída hacia la periferia, con un relleno tenue.
+- En el **Quest** se pasa solo a un modo liviano (sin capa húmeda ni translucidez) para mantener la fluidez.
+

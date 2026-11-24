@@ -176,6 +176,8 @@
     <div class="row"><button id="btnFRGuide">Marcar receso frontal (guiado)</button></div>
     <div class="seg" id="ctUnc"><button data-u="med" class="on">Drenaje medial a la unciforme</button><button data-u="lat">Lateral (infundíbulo)</button></div>
     <div class="checks"><label><input type="checkbox" id="chkCtDrain" checked> Mostrar vía de drenaje frontal</label></div>
+    <div class="row"><button id="btnAnnot">Modo anotación (protocolo)</button><button id="btnAnnotExport">Descargar anotaciones</button></div>
+    <div id="annotBox" class="mut" style="display:none;line-height:1.4"></div>
     <div class="mut" id="frTxt">Marcá en la TC la axila, el agger nasi, la barra vertical y el ostium frontal: el simulador dibuja la vía de drenaje del frontal sobre la anatomía del paciente.</div>
     <small>Axial</small><canvas id="ctAx" width="480" height="400"></canvas>
     <small>Coronal</small><canvas id="ctCo" width="480" height="400"></canvas>
@@ -1920,6 +1922,8 @@ const LM_TYPES = {
   sphost: ['Ostium esfenoidal', 0, 0x5cffb0, '', 0],
   axila: ['Axila del cornete medio', 0, 0xff70c0, '', 0], agger: ['Agger nasi', 0, 0x40d080, '', 0],
   vbar: ['Barra vertical (unciforme superior)', 0, 0xb0ff90, '', 0], bulla: ['Bulla etmoidal', 0, 0x4a8cff, '', 0],
+  basal: ['Lamela basal', 0, 0xffd36e, '', 0], ocr: ['Receso opticocarotídeo', 0, 0x7fffd4, '', 0],
+  cribr: ['Lámina cribosa (punto más bajo)', 0, 0x9aa8ff, '', 0], fovea: ['Techo etmoidal (fóvea)', 0, 0x8090ff, '', 0],
   other: ['Marca docente', 0, 0xffffff, '', 0]
 };
 $('#lmType').innerHTML = Object.entries(LM_TYPES).map(([k, v]) => `<option value="${k}">${v[0]}${v[1] ? ' (riesgo)' : ''}</option>`).join('');
@@ -2269,6 +2273,7 @@ function sliceClick(k, ev) {
   if (k === 'co') { L = O.x + a * cs[0]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   if (k === 'sa') { P = O.y + a * cs[1]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   const p = V(L, S, -P);
+  if (window.__annotReady && ANNOT.on && ANNOT.i < ANNOT.seq.length) { annotPlace(p); return; }
   if (CT.mark) { addLandmark($('#lmType').value, p); if (window.__ctDrainReady && FR.on) frNext(); return; }
   if (sampleGL(L, P, S) > CT.iso) { toast('Ese punto es tejido: elegí un punto con aire (negro) para ubicar el endoscopio.'); return; }
   state.fly = null; scope.pos.copy(anatomy.localToWorld(p)); sliceKey = '';
@@ -3716,6 +3721,103 @@ document.querySelectorAll('#ctUnc button').forEach(b => b.onclick = () => {
 $('#chkCtDrain').onchange = () => updateCtDrain();
 window.__ctDrainReady = true;
 
+/* ============================== MODO ANOTACIÓN (protocolo de marcas para entrenar el reconocimiento) ============================== */
+const PROTO = [
+  { t: 'axila', d: 'Ángulo donde la cabeza del cornete medio se une a la pared lateral (coronal más anterior en que se insertan).', pl: 'coronal' },
+  { t: 'agger', d: 'Centro de la celda agger nasi: la más anterior, por delante y encima de la axila. Si no existe, saltá.', pl: 'coronal + sagital' },
+  { t: 'vbar', d: 'Pared medial del agger: porción superior de la unciforme (barra vertical de Stamm).', pl: 'coronal' },
+  { t: 'frontost', d: 'Ostium frontal: punto más estrecho entre el seno frontal y el receso.', pl: 'sagital' },
+  { t: 'aea', d: 'Arteria etmoidal anterior: donde cruza el techo (escotadura en la lámina papirácea o en su mesenterio).', pl: 'coronal' },
+  { t: 'bulla', d: 'Centro de la bulla etmoidal.', pl: 'sagital' },
+  { t: 'basal', d: 'Lamela basal: punto donde se inserta en la lámina papirácea.', pl: 'sagital / axial' },
+  { t: 'maxost', d: 'Ostium natural del seno maxilar (en el fondo del infundíbulo).', pl: 'coronal' },
+  { t: 'spa', d: 'Foramen esfenopalatino (detrás de la cola del cornete medio).', pl: 'axial / coronal' },
+  { t: 'sphost', d: 'Ostium natural del seno esfenoidal.', pl: 'axial / sagital' },
+  { t: 'carotid', d: 'Prominencia carotídea paraselar en la pared lateral del esfenoides.', pl: 'axial / coronal' },
+  { t: 'optic', d: 'Prominencia del nervio óptico en la pared superolateral del esfenoides.', pl: 'coronal / axial' },
+  { t: 'ocr', d: 'Receso opticocarotídeo (entre óptico y carótida). Si no está neumatizado, saltá.', pl: 'coronal' },
+  { t: 'cribr', d: 'Punto más bajo de la lámina cribosa (fondo de la hendidura olfatoria), al nivel de la AEA.', pl: 'coronal' },
+  { t: 'fovea', d: 'Techo etmoidal (fóvea) en el mismo coronal que la marca anterior: con las dos se calcula el Keros.', pl: 'coronal' },
+  { t: 'lamina', d: 'Lámina papirácea a la altura de la bulla.', pl: 'coronal' }
+];
+const PROTO_VAR = [
+  ['onodi', 'Celda de Onodi', ['no', 'sí']], ['haller', 'Celda de Haller', ['no', 'sí']],
+  ['concha', 'Concha bullosa', ['no', 'lamelar', 'bulbosa', 'completa']],
+  ['uncsup', 'Inserción superior de la unciforme', ['lámina papirácea', 'base de cráneo', 'cornete medio', 'no evaluable']],
+  ['dehica', 'Dehiscencia de la carótida', ['no', 'sí']], ['dehopt', 'Dehiscencia del óptico', ['no', 'sí']],
+  ['septo', 'Tabique intersinusal hacia la carótida', ['no', 'sí']], ['desvio', 'Desviación septal hacia este lado', ['no', 'leve', 'marcada']]
+];
+const ANNOT = { on: false, seq: [], i: 0, done: [], skipped: [], vars: {} };
+const sideName = s => s === 'D' ? 'Derecha' : 'Izquierda';
+function annotStart(sides) {
+  ANNOT.on = true; ANNOT.i = 0; ANNOT.done = []; ANNOT.skipped = []; ANNOT.vars = {};
+  ANNOT.seq = sides.flatMap(sd => PROTO.map(it => ({ ...it, sd })));
+  CT.mark = false; if (window.__ctDrainReady && FR.on) frEnd();
+  if (!state.xray && typeof setXray === 'function') setXray(true);
+  annotShow();
+}
+function annotShow() {
+  const box = $('#annotBox'); box.style.display = 'block';
+  if (!ANNOT.on) { box.innerHTML = `<b>Modo anotación</b>: marcá en la TC una lista fija de estructuras de cada lado. Al terminar, descargá las anotaciones y mandámelas por el chat.<div class="row"><button data-s="D,I">Ambos lados</button><button data-s="D">Derecha</button><button data-s="I">Izquierda</button></div>`;
+    box.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => annotStart(b.dataset.s.split(','))); return; }
+  if (ANNOT.i < ANNOT.seq.length) {
+    const it = ANNOT.seq[ANNOT.i], sameSide = ANNOT.seq.filter(x => x.sd === it.sd), k = sameSide.indexOf(it) + 1;
+    box.innerHTML = `<b>${sideName(it.sd)} ${k}/${sameSide.length} · ${LM_TYPES[it.t][0]}</b><br>${it.d}<br><span class="mut">Corte sugerido: ${it.pl}. Hacé clic en el corte.</span>
+      <div class="row"><button id="anSkip">Saltar (no existe / no se ve)</button><button id="anBack">Atrás</button><button id="anStop">Terminar</button></div>`;
+    $('#anSkip').onclick = () => { ANNOT.skipped.push({ tipo: it.t, lado: it.sd }); ANNOT.done.push(null); ANNOT.i++; annotShow(); };
+    $('#anBack').onclick = annotBack; $('#anStop').onclick = () => { ANNOT.i = ANNOT.seq.length; annotShow(); };
+    return;
+  }
+  const sides = [...new Set(ANNOT.seq.map(x => x.sd))];
+  box.innerHTML = '<b>Variantes</b> (marcá lo que veas)' + sides.map(sd => `<div style="margin-top:6px"><b>${sideName(sd)}</b>` + PROTO_VAR.map(([k, n, ops]) =>
+    `<div class="ctl"><span>${n}</span><select data-k="${k}" data-sd="${sd}">${ops.map(o => `<option${(ANNOT.vars[sd] || {})[k] === o ? ' selected' : ''}>${o}</option>`).join('')}</select></div>`).join('') + '</div>').join('')
+    + `<div class="ctl"><span>Anotador</span><input id="anWho" placeholder="nombre" style="width:120px" value="${ANNOT.who || ''}"></div>`
+    + `<div class="ctl"><span>Notas</span><input id="anNote" style="width:160px" value="${ANNOT.note || ''}"></div>`
+    + `<div id="anKeros"></div><div class="row"><button id="anBack2">Atrás</button><button id="anExp">Descargar anotaciones</button></div>`;
+  box.querySelectorAll('select[data-k]').forEach(sel => { const set = () => { (ANNOT.vars[sel.dataset.sd] = ANNOT.vars[sel.dataset.sd] || {})[sel.dataset.k] = sel.value; }; set(); sel.onchange = set; });
+  $('#anWho').oninput = e => ANNOT.who = e.target.value; $('#anNote').oninput = e => ANNOT.note = e.target.value;
+  $('#anBack2').onclick = annotBack; $('#anExp').onclick = annotExport;
+  $('#anKeros').innerHTML = sides.map(sd => { const k = kerosOf(sd); return k ? `Keros ${sideName(sd).toLowerCase()}: ${k.mm} mm → tipo ${k.tipo}` : ''; }).filter(Boolean).join('<br>');
+}
+function annotPlace(p) {
+  const it = ANNOT.seq[ANNOT.i];
+  const isRight = p.x < CT.cx;   // L crece hacia la izquierda del paciente
+  if ((it.sd === 'D') !== isRight) { toast(`Ese punto está del lado ${isRight ? 'derecho' : 'izquierdo'}: esta marca va del lado ${sideName(it.sd).toLowerCase()}.`, 4000); return; }
+  addLandmark(it.t, p);
+  const lm = CT.landmarks[CT.landmarks.length - 1]; lm.side = it.sd; lm.proto = true; lm.name = LM_TYPES[it.t][0] + ' (' + it.sd + ')'; renderLmList();
+  ANNOT.done.push(lm.id); ANNOT.i++; annotShow();
+}
+function annotBack() {
+  if (ANNOT.i === 0) return;
+  ANNOT.i = Math.min(ANNOT.i, ANNOT.seq.length) - 1;
+  const id = ANNOT.done.pop();
+  if (id) { const k = CT.landmarks.findIndex(l => l.id === id); if (k >= 0) { const l = CT.landmarks[k]; ctGroup.remove(l.mesh); l.el && l.el.remove(); CT.landmarks.splice(k, 1); renderLmList(); sliceKey = ''; } }
+  else { const it = ANNOT.seq[ANNOT.i]; ANNOT.skipped = ANNOT.skipped.filter(s => !(s.tipo === it.t && s.lado === it.sd)); }
+  annotShow();
+}
+function lmSide(t, sd) { const l = [...CT.landmarks].reverse().find(l => l.type === t && l.side === sd); return l ? l.p : null; }
+function kerosOf(sd) {
+  const c = lmSide('cribr', sd), f = lmSide('fovea', sd); if (!c || !f) return null;
+  const mm = Math.round((f.y - c.y) * 10) / 10;   // y = superior
+  return { mm, tipo: mm <= 0 ? 'revisar (fóvea no más alta que la cribosa)' : mm <= 3 ? 1 : mm <= 7 ? 2 : 3 };
+}
+function annotExport() {
+  if (!CT.C) { toast('Primero cargá una TC.'); return; }
+  const pts = CT.landmarks.filter(l => l.proto).map(l => ({ tipo: l.type, nombre: LM_TYPES[l.type][0], lado: l.side, L: +l.p.x.toFixed(2), P: +(-l.p.z).toFixed(2), S: +l.p.y.toFixed(2) }));
+  const otras = CT.landmarks.filter(l => !l.proto).map(l => ({ tipo: l.type, nombre: l.name, L: +l.p.x.toFixed(2), P: +(-l.p.z).toFixed(2), S: +l.p.y.toFixed(2) }));
+  const sides = [...new Set(ANNOT.seq.map(x => x.sd))];
+  const data = { formato: 'simulador-cens/anotaciones v1', caso: CT.src ? CT.src.label : 'TC cargada desde archivo', fecha: new Date().toISOString(), anotador: ANNOT.who || '', notas: ANNOT.note || '',
+    coordenadas: 'mm, sistema del paciente LPS (L = izquierda +, P = posterior +, S = superior +)', lineaMedia_L: +CT.cx.toFixed(2),
+    puntos: pts, omitidos: ANNOT.skipped, variantes: ANNOT.vars, keros: Object.fromEntries(sides.map(sd => [sd, kerosOf(sd)])), otrasMarcas: otras };
+  const name = 'anotaciones_' + (CT.src ? CT.src.label.replace(/[^\w]+/g, '_') : 'tc') + '.json';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  toast(`Anotaciones descargadas (${pts.length} puntos): ${name}. Mandámelas por el chat.`, 7000);
+}
+$('#btnAnnot').onclick = () => { if (!CT.C) { toast('Primero cargá una TC (por ejemplo un caso de CT-SCOPE).'); return; } if (ANNOT.on) { ANNOT.on = false; ANNOT.seq = []; } annotShow(); };
+$('#btnAnnotExport').onclick = annotExport;
+window.__annotReady = true;
+
 /* ============================== MÁSCARA Y RESIZE ============================== */
 function onResize() {
   renderer.setSize(innerWidth, innerHeight);
@@ -3760,7 +3862,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

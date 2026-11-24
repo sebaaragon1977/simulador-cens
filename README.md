@@ -58,3 +58,6 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - **Luz del endoscopio en cono**: más luz al centro y caída hacia la periferia, con un relleno tenue.
 - En el **Quest** se pasa solo a un modo liviano (sin capa húmeda ni translucidez) para mantener la fluidez.
 
+
+## Modo anotación de TC (protocolo)
+En **TC del paciente → Modo anotación (protocolo)** se marcan, lado por lado, 16 estructuras en orden fijo: axila, agger, barra vertical, ostium frontal, AEA, bulla, lamela basal, ostium maxilar, esfenopalatina, ostium esfenoidal, carótida, óptico, receso opticocarotídeo, lámina cribosa, fóvea y lámina papirácea. Cada paso tiene su definición y el corte sugerido. Se puede saltar o volver atrás, y la app no deja marcar del lado equivocado. Al final se cargan las variantes (Onodi, Haller, concha bullosa, inserción de la unciforme, dehiscencias) y el Keros se calcula solo. **Descargar anotaciones** baja un JSON con coordenadas LPS en mm. Para CT-SCOPE solo se exportan marcas, no imágenes.

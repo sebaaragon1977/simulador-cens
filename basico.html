@@ -447,6 +447,8 @@ const INFO = {
   ptplate: ['Apófisis pterigoides (lámina lateral)', 'Límite posterior de la fosa pterigopalatina y medial de la infratemporal.'],
   pterygbase: ['Base de la apófisis pterigoides', 'Pared posterior de la fosa pterigopalatina, con el agujero redondo y el conducto vidiano.'],
   maxpost: ['Pared posterior del seno maxilar', 'Se fresa para el abordaje transmaxilar a la fosa pterigopalatina.'],
+  opticcan: ['Prominencia del nervio óptico (canal óseo)', 'El nervio está cubierto por una lámina ósea fina: se ve su impronta en la pared superolateral del seno. Puede fresarse con cuidado (descompresión) o resecarse con la pinza; debajo aparece el nervio.'],
+  carcan: ['Prominencia carotídea (hueso)', 'La carótida está cubierta por una lámina ósea fina (a veces dehiscente): se ve su impronta paraselar y paraclival. Fresar de a capas y sin calor; debajo aparece la arteria.'],
   sphlat: ['Pared lateral del esfenoides', 'Con las prominencias del nervio óptico y de la carótida; detrás, el seno cavernoso.'],
   sphpost: ['Pared posterior del esfenoides', 'Silla turca en el centro, clivus abajo y carótida paraclival a los lados.'],
   sphfloor: ['Piso del esfenoides', 'Debajo corre el conducto vidiano.'],
@@ -549,6 +551,15 @@ function openEllipsoid(c, r, cutX, seg = 40) {   // celda con la cara medial abi
   g.setIndex(keep); return g;
 }
 function tube(pts, r, seg = 40) { return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => V(...p))), seg, r, 12, false); }
+function keepTris(g, fn) {   // deja sólo los triángulos cuyo centro cumple fn(x, y, z)
+  const p = g.attributes.position, ix = g.index.array, keep = [];
+  for (let i = 0; i < ix.length; i += 3) {
+    const a = ix[i], b = ix[i + 1], c = ix[i + 2];
+    if (fn((p.getX(a) + p.getX(b) + p.getX(c)) / 3, (p.getY(a) + p.getY(b) + p.getY(c)) / 3, (p.getZ(a) + p.getZ(b) + p.getZ(c)) / 3)) keep.push(a, b, c);
+  }
+  g.setIndex(keep); g.computeVertexNormals(); return g;
+}
+const inSphSinus = (x, y, z) => x < 18.45 && z > -90.2 && z < -66.2 && y > 19 && y < 42.5;
 function openBox(x, y, z, skip, material, key) {
   const [x0, x1] = x, [y0, y1] = y, [z0, z1] = z;
   const F = {
@@ -737,6 +748,10 @@ function buildAnatomy() {
   add(tube(OPTIC, 2.2), M.optic, 'optic', { map: { t: 'poly', pts: OPTIC, col: '#fff3b0' } });
   add(tube(CAROTID, 2.8, 80), M.carotid, 'carotid', { map: { t: 'poly', pts: CAROTID, col: '#ff5d7a' } });
   add(ellipsoid([17.9, 36.4, -70.5], [1.3, 1.5, 1.5], 20), M.darkN, 'ocr');
+  // En la vida real no están descubiertos: una lámina ósea fina cubre el óptico y la carótida; se ven sus improntas
+  add(keepTris(tube(OPTIC, 2.75, 70), inSphSinus), M.bone, 'opticcan');
+  add(keepTris(tube(CAROTID, 3.4, 110), inSphSinus), M.bone, 'carcan');
+  add(ellipsoid(OPTIC[OPTIC.length - 1], [2.75, 2.75, 2.75], 20), M.bone, 'opticcan');   // cierra el extremo posterior del canal óptico
   add(ellipsoid([0, 31, -91], [6.5, 6, 5.5]), M.sellaC, 'sella', { noMirror: true });
   add(ellipsoid([0, 31, -91.8], [6, 5.5, 5]), M.duraC, 'selladura', { noMirror: true });
   add(ellipsoid([0, 31, -93], [4.6, 4, 4.2]), M.gland, 'pituitary', { noMirror: true });
@@ -874,8 +889,8 @@ const DANGERS = [
   { id: 'aea', test: (p, r) => distPoly(p, AEA) < 0.9 + r * 0.6, msg: 'Sección de la arteria etmoidal anterior: sangrado, riesgo de retracción intraorbitaria y hematoma.', art: AEA, name: 'A. etmoidal anterior', rate: 2.6, max: 16 },
   { id: 'pea', test: (p, r) => distPoly(p, PEA) < 0.75 + r * 0.6, msg: 'Lesión de la arteria etmoidal posterior: sangrado.', art: PEA, name: 'A. etmoidal posterior', rate: 2.0, max: 14 },
   { id: 'spa', test: (p, r) => distPoly(p, SPA) < 0.8 + r * 0.6, msg: 'Lesión de la arteria esfenopalatina: sangrado arterial posterior.', art: SPA, name: 'A. esfenopalatina', rate: 3.0, max: 18 },
-  { id: 'optic', test: (p, r) => distPoly(p, OPTIC) < 2.2 + r * 0.6, msg: '¡Lesión del nervio óptico! Riesgo de amaurosis.', bad: 3 },
-  { id: 'carotid', test: (p, r) => distPoly(p, CAROTID) < 3.0 + r * 0.6, msg: '¡Lesión de la carótida interna! Hemorragia masiva: complicación catastrófica.', art: CAROTID, name: 'Carótida interna', rate: 9, max: 34, bad: 3 },
+  { id: 'optic', test: (p, r) => distPoly(p, OPTIC) < 2.2 + r * 0.35, msg: '¡Lesión del nervio óptico! Riesgo de amaurosis.', bad: 3 },
+  { id: 'carotid', test: (p, r) => distPoly(p, CAROTID) < 2.8 + r * 0.35, msg: '¡Lesión de la carótida interna! Hemorragia masiva: complicación catastrófica.', art: CAROTID, name: 'Carótida interna', rate: 9, max: 34, bad: 3 },
   { id: 'nld', test: (p, r) => p.x > 15.5 && p.z > -21 - r * 0.5 && p.z < -11 && p.y > 0 && p.y < 17.5,
     msg: 'Lesión del conducto nasolagrimal: riesgo de epífora. No ampliar la antrostomía hacia anterior.' },
   { id: 'opticorb', test: (p, r) => distPoly(p, OPTORB) < 2.1 + r * 0.6, msg: '¡Lesión del nervio óptico intraorbitario! Riesgo de amaurosis.', bad: 3 },
@@ -1151,6 +1166,29 @@ function doBiteRetro(worldP) {   // muerde hacia anterior (hacia la óptica): c�
   for (let k = 0; k < 3; k++) { const q = lp.clone(); q.z += k * 1.1; if (addCut(q, 1.3)) any = true; checkDanger(q, 1.3); }
   if (any) { state.bites++; haptic(0.35, 30); }
 }
+function addCutGradual(p, r, inc) {   // sube el corte de a poco: hacen falta varias pasadas para gastar un vóxel
+  const { o, vox, nx, ny, nz } = CV, R = r + 1.2;
+  const x0 = Math.max(0, Math.floor((p.x - R - o.x) / vox)), x1 = Math.min(nx - 1, Math.ceil((p.x + R - o.x) / vox));
+  const y0 = Math.max(0, Math.floor((p.y - R - o.y) / vox)), y1 = Math.min(ny - 1, Math.ceil((p.y + R - o.y) / vox));
+  const z0 = Math.max(0, Math.floor((p.z - R - o.z) / vox)), z1 = Math.min(nz - 1, Math.ceil((p.z + R - o.z) / vox));
+  let changed = false;
+  for (let k = z0; k <= z1; k++) for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
+    const cx = o.x + (i + 0.5) * vox, cy = o.y + (j + 0.5) * vox, cz = o.z + (k + 0.5) * vox;
+    const t = THREE.MathUtils.clamp(0.5 + (r - Math.hypot(cx - p.x, cy - p.y, cz - p.z)) / 1.2, 0, 1) * 255;
+    const idx = i + j * nx + k * nx * ny;
+    if (t > cutVol[idx]) { cutVol[idx] = Math.min(t, cutVol[idx] + inc * t / 255); changed = true; }
+  }
+  if (changed) { cutDirty = true; nCuts++; $('#nCuts').textContent = nCuts; }
+  return changed;
+}
+const DRILL = { r: 1.5, back: 1.1, inc: 55 };   // fresa: penetra ~0,4 mm por pasada y cada vóxel necesita 3 pasadas
+function doDrill(worldP, dirWorld) {
+  const lp = anatomy.worldToLocal(worldP.clone());
+  let c = lp;
+  if (dirWorld) { const ld = anatomy.worldToLocal(worldP.clone().add(dirWorld)).sub(lp).normalize(); c = lp.clone().addScaledVector(ld, -DRILL.back); }
+  if (addCutGradual(c, DRILL.r, DRILL.inc)) { state.bites++; haptic(0.2, 20); }
+  checkDanger(lp, 0.6);
+}
 function doBite(worldP, r) {
   if (state.tool === 'none') return;
   const lp = anatomy.worldToLocal(worldP.clone());
@@ -1197,7 +1235,7 @@ const PREP = {
   sphenoid: B => {
     for (let x = -1.6; x <= 1.6; x += 1.6) for (let y = 16; y <= 40; y += 1.6) for (let z = -50; z >= -67; z -= 1.6) B(x, y, z, 1.7);
     for (let x = -14; x <= 14; x += 1.6) for (let y = 21; y <= 41; y += 1.6) { B(x, y, -66, 1.7); B(x, y, -67.5, 1.7); }
-    for (let t = 0; t <= 1; t += 0.05) for (let y = 20.5; y <= 41.5; y += 1.6) B(2 + 11 * t, y, -66.5 - 18.5 * t, 1.6);
+    for (let t = 0; t <= 0.85; t += 0.05) for (let y = 20.5; y <= (t > 0.55 ? 35 : 41.5); y += 1.6) B(2 + 11 * t, y, -66.5 - 18.5 * t, 1.6);   // el tabique intersinusal termina en la prominencia carotídea: no se fresa sobre ella
   },
   sella: B => {
     PREP.sphenoid(B);
@@ -1488,7 +1526,7 @@ function updateVR(dt) {
     const d = Tw.sub(scope.pos), dist = d.length(), STOP = 4 * state.S;
     if (dist > STOP) vrAdvance(d.normalize(), Math.min(18 * state.S * dt, dist - STOP));
   }
-  if (drilling) { const now = performance.now(); if (now - lastDrill > 90) { lastDrill = now; doBite(tipWorld.clone(), 1.6); } }
+  if (drilling) { const now = performance.now(); if (now - lastDrill > 110) { lastDrill = now; doDrill(tipWorld.clone(), null); } }
   updateFreerVR();
 }
 
@@ -1515,9 +1553,9 @@ function updateInstrumentDesktop(dt) {
   instr.position.copy(tipWorld); instr.lookAt(entry);
   if (drilling && tipHit && tipHit.distance < 60) {
     const now = performance.now();
-    if (now - lastDrill > 85 || tipWorld.distanceTo(lastDrillP) > 0.7) {
+    if (now - lastDrill > 110 || tipWorld.distanceTo(lastDrillP) > 0.9) {
       lastDrill = now; lastDrillP.copy(tipWorld);
-      doBite(tipHit.point.clone().addScaledVector(dir, 0.5), 1.6);
+      doDrill(tipHit.point.clone(), dir);
     }
   }
 }
@@ -3033,7 +3071,7 @@ function guideCov(seg) {   // fracción de la guía de Hadad recorrida con incis
   return c / n;
 }
 const box = (x0, x1, y0, y1, z0, z1) => [x0, x1, y0, y1, z0, z1];
-const LOOK = (keys) => ({ look: [].concat(keys) });
+const LOOK = (keys) => { const k = [].concat(keys); if (k.includes('optic')) k.push('opticcan'); if (k.some(x => ['carotid', 'ica_ps', 'ica_pcl', 'ica_pc'].includes(x))) k.push('carcan'); return { look: k }; };
 const CUT = (keys, b, thr, side = 0) => ({ cut: { keys: [].concat(keys), box: b, thr, side } });
 Object.assign(PREP, {
   ethmoid: B => { for (let x = 9; x <= 17; x += 1.6) for (let y = 30; y <= 42.5; y += 1.8) for (let z = -24; z >= -37; z -= 1.8) B(x, y, z, 1.6); },
@@ -3401,7 +3439,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

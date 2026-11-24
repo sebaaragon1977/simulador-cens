@@ -61,3 +61,9 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 
 ## Modo anotación de TC (protocolo)
 En **TC del paciente → Modo anotación (protocolo)** se marcan, lado por lado, 16 estructuras en orden fijo: axila, agger, barra vertical, ostium frontal, AEA, bulla, lamela basal, ostium maxilar, esfenopalatina, ostium esfenoidal, carótida, óptico, receso opticocarotídeo, lámina cribosa, fóvea y lámina papirácea. Cada paso tiene su definición y el corte sugerido. Se puede saltar o volver atrás, y la app no deja marcar del lado equivocado. Al final se cargan las variantes (Onodi, Haller, concha bullosa, inserción de la unciforme, dehiscencias) y el Keros se calcula solo. **Descargar anotaciones** baja un JSON con coordenadas LPS en mm. Para CT-SCOPE solo se exportan marcas, no imágenes.
+
+### Estación de marcado (TC)
+- **Cortes en pantalla principal**: axial, coronal y sagital grandes. A la derecha quedan la lista del protocolo y las herramientas; Esc vuelve a la endoscopia.
+- **Nombre de cada marca**: después de cada clic aparece una ventanita para confirmar o cambiar la estructura. El nombre también se cambia desde la lista de marcas. El protocolo es una lista que se puede recorrer en cualquier orden.
+- **Trayectos**: con "➕ Seguir marcando su trayecto" una estructura junta varios puntos (por ejemplo, la arteria etmoidal anterior de lado a lado). Se dibuja como un tubo en 3D y una línea en los cortes. Las alertas de riesgo usan la distancia a todo el trayecto. La exportación incluye cada punto con sus UH y la longitud en mm.
+- **Unidades Hounsfield**: al pasar el mouse sobre los cortes se ven las UH y el tejido orientativo. Cada marca guarda sus UH (punto y media ± desvío en un cubo de 3×3×3 vóxeles).

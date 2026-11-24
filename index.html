@@ -31,7 +31,30 @@
   #gcard .row{margin-top:8px}#gcard .row button{flex:0 0 auto}
   #tipLab{position:fixed;pointer-events:none;font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#bfffe3;display:none;white-space:nowrap}
   .panel{position:fixed;top:10px;bottom:10px;width:290px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow:auto;backdrop-filter:blur(6px)}
-  #panel{left:10px}#info{right:10px;width:260px}#info.big{width:min(560px,48vw)!important}
+  #panel{left:10px}#info{right:10px;width:260px}
+  .slc input[type=range]{width:100%}
+  #toast{z-index:40}
+  #ctFull{position:fixed;inset:0;z-index:20;display:none;grid-template-columns:1fr 1fr minmax(300px,360px);grid-template-rows:auto 1fr 1fr;gap:6px;padding:6px;pointer-events:none}
+  #ctFull.on{display:grid}
+  body.ctfull #panel,body.ctfull #info,body.ctfull #toggleP,body.ctfull #toggleI,body.ctfull #gcard{visibility:hidden}
+  #ctFull>*{pointer-events:auto}
+  #ctBanner{grid-column:1/3;background:#0b1612;border:1px solid rgba(79,209,165,.6);border-radius:10px;padding:8px 14px;font-size:15px;line-height:1.35}
+  #ctBanner b.big{font-size:20px;color:#9fffd0}
+  #ctFull .cell{background:#000;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  #ctFull .cell .slc{display:flex;flex-direction:column;flex:1;min-height:0;padding:4px}
+  #ctFull .cell canvas{flex:1;min-height:0;width:100%;height:100%;border:0;margin:0}
+  #ctFull .cell small{font-size:13px;color:#cfe}
+  #fAx{grid-column:1;grid-row:2}#fCo{grid-column:2;grid-row:2}#fSa{grid-column:1;grid-row:3}
+  #fEndo{grid-column:2;grid-row:3;pointer-events:none!important;border:1px dashed rgba(255,255,255,.25);border-radius:8px;position:relative}
+  #fEndo span{position:absolute;left:8px;top:6px;font-size:12px;color:rgba(255,255,255,.6)}
+  #fSide{grid-column:3;grid-row:1/4;background:#0e1014;border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;font-size:13px}
+  #lmPop{position:fixed;z-index:41;display:none;background:rgba(14,18,22,.97);border:1px solid #9fffd0;border-radius:10px;padding:8px 10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.6);max-width:300px}
+  #lmPop select{width:100%;margin:4px 0;font-size:14px}
+  #huTip{position:fixed;z-index:42;display:none;pointer-events:none;background:rgba(0,0,0,.85);border:1px solid rgba(255,210,90,.7);border-radius:6px;padding:3px 8px;font-size:12px;max-width:280px}
+  .ck{display:flex;gap:6px;align-items:center;padding:3px 6px;border-radius:6px;cursor:pointer;font-size:12.5px}
+  .ck:hover{background:rgba(255,255,255,.07)}.ck.cur{background:rgba(79,209,165,.25);outline:1px solid rgba(79,209,165,.7)}
+  .ck .st{width:16px;text-align:center}.ck.done .st{color:#7dff9a}.ck.skip{color:var(--mut)}
+  #lmList select{font-size:11.5px;max-width:170px}
   .panel.hidden{display:none}
   h1{font-size:15px;margin:0 0 2px}.sub{color:var(--mut);font-size:11.5px;margin-bottom:10px}
   .grp{margin:10px 0}.grp>label{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
@@ -167,26 +190,32 @@
     <span>Bajo la punta</span><span id="dUnder">—</span>
   </div>
   <div id="ctPanel" style="display:none">
-    <div class="row"><button id="btnWin">Ventana: hueso</button><button id="btnMark">Marcar estructura</button></div>
+    <div class="row"><button id="btnFull" class="mk">⛶ Cortes en pantalla principal</button></div>
+    <div id="ctToolsHome"></div>
     <div class="ctl"><span>Nombre del caso</span><input id="caseName" placeholder="p. ej. Keros III + Onodi" style="flex:1;min-width:0"></div>
     <div class="ctl"><span>Descripción</span><input id="caseDesc" placeholder="variante, objetivo docente…" style="flex:1;min-width:0"></div>
     <div class="row"><button id="btnCaseSave">💾 Guardar caso (anonimizado)</button></div>
     <div class="mut">Guarda sólo el volumen recortado a fosas, senos y base de cráneo, <b>sin encabezados DICOM</b> y sin piel ni partes blandas superficiales de la cara, más las marcas. Queda en "Mis casos" de este dispositivo y se descarga el archivo: para sumarlo a la biblioteca compartida, mandáselo al responsable del repositorio.</div>
-    <div class="ctl"><span>Tipo de marca</span><select id="lmType"></select></div>
     <div class="row"><button id="btnFRGuide">Marcar receso frontal (guiado)</button></div>
     <div class="seg" id="ctUnc"><button data-u="med" class="on">Drenaje medial a la unciforme</button><button data-u="lat">Lateral (infundíbulo)</button></div>
     <div class="checks"><label><input type="checkbox" id="chkCtDrain" checked> Mostrar vía de drenaje frontal</label></div>
-    <div class="row"><button id="btnAnnot">Modo anotación (protocolo)</button><button id="btnAnnotExport">Descargar anotaciones</button></div>
-    <div id="annotBox" class="mut" style="display:none;line-height:1.4"></div>
     <div class="mut" id="frTxt">Marcá en la TC la axila, el agger nasi, la barra vertical y el ostium frontal: el simulador dibuja la vía de drenaje del frontal sobre la anatomía del paciente.</div>
-    <div class="row"><button id="btnFree">Cortes: siguen al endoscopio</button><button id="btnScopeHere">Llevar endoscopio al cursor</button></div>
-    <div class="row"><button id="btnBig">Agrandar cortes</button></div>
-    <div class="ctl"><span>Zoom cortes</span><input type="range" id="ctZoom" min="1" max="4" step="0.25" value="1"><b id="ctZoomV">1×</b></div>
-    <small id="lbAx">Axial</small><canvas id="ctAx" width="480" height="400"></canvas><input type="range" id="rAx" class="sl" min="0" max="1" step="1" style="width:100%">
-    <small id="lbCo">Coronal</small><canvas id="ctCo" width="480" height="400"></canvas><input type="range" id="rCo" class="sl" min="0" max="1" step="1" style="width:100%">
-    <small id="lbSa">Sagital</small><canvas id="ctSa" width="480" height="400"></canvas><input type="range" id="rSa" class="sl" min="0" max="1" step="1" style="width:100%">
-    <div class="mut"><b>Navegar los cortes:</b> rueda del mouse sobre un corte (Shift = de a 5) o la barra debajo de cada uno. Con <b>Cortes libres</b>, el clic mueve la cruz a cualquier punto (aire, hueso o partes blandas) y los otros dos cortes pasan por ahí. Con <b>Marcar estructura</b> o el <b>Modo anotación</b>, el clic marca en cualquier tejido; clic derecho (o Alt + clic) solo mueve la cruz sin marcar. Las marcas de riesgo (arterias, carótida, óptico, base de cráneo…) generan alerta en la endoscopia.</div>
-    <div id="lmList"></div>
+    <div id="ctTools">
+      <div class="row"><button id="btnAnnot">Modo anotación (protocolo)</button><button id="btnAnnotExport">Descargar anotaciones</button></div>
+      <div id="annotBox" class="mut" style="display:none;line-height:1.4"></div>
+      <div class="row"><button id="btnMark">Marcar estructura libre</button><button id="btnWin">Ventana: hueso</button></div>
+      <div class="ctl"><span>Tipo de marca</span><select id="lmType"></select></div>
+      <div class="row"><button id="btnFree">Cortes: siguen al endoscopio</button><button id="btnScopeHere">Llevar endoscopio al cursor</button></div>
+      <div class="ctl"><span>Zoom cortes</span><input type="range" id="ctZoom" min="1" max="4" step="0.25" value="1"><b id="ctZoomV">1×</b></div>
+      <div class="mut"><b>Navegar:</b> rueda del mouse sobre un corte (Shift = de a 5) o la barra debajo de cada corte. <b>Clic</b> marca (en cualquier tejido) y te pregunta qué estructura es; <b>clic derecho</b> o Alt + clic solo mueve la cruz. Las marcas de riesgo (arterias, carótida, óptico, base de cráneo…) generan alerta en la endoscopia.</div>
+      <b style="font-size:12px">Marcas</b> <span class="mut" style="font-size:11px">(podés cambiarles el nombre)</span>
+      <div id="lmList"></div>
+    </div>
+    <div id="ctSlices">
+      <div class="slc" data-k="ax"><small id="lbAx">Axial</small><canvas id="ctAx" width="480" height="400"></canvas><input type="range" id="rAx" class="sl" min="0" max="1" step="1"></div>
+      <div class="slc" data-k="co"><small id="lbCo">Coronal</small><canvas id="ctCo" width="480" height="400"></canvas><input type="range" id="rCo" class="sl" min="0" max="1" step="1"></div>
+      <div class="slc" data-k="sa"><small id="lbSa">Sagital</small><canvas id="ctSa" width="480" height="400"></canvas><input type="range" id="rSa" class="sl" min="0" max="1" step="1"></div>
+    </div>
   </div>
   <div class="maps">
     <small>Corte sagital (anterior ←)</small><canvas id="mapS" width="440" height="270"></canvas>
@@ -195,6 +224,9 @@
   <div id="log"><b>Complicaciones: <span id="nComp">0</span></b> · cortes: <span id="nCuts">0</span><ul id="logList"></ul></div>
 </div>
 <div id="toast"></div>
+<div id="ctFull"><div id="ctBanner"></div><div class="cell" id="fAx"></div><div class="cell" id="fCo"></div><div class="cell" id="fSa"></div><div id="fEndo"><span>Vista endoscópica</span></div>
+  <div id="fSide"><div class="row"><button id="btnFullExit">← Volver a la endoscopia</button></div></div></div>
+<div id="lmPop"></div><div id="huTip"></div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -2210,7 +2242,7 @@ function checkDangerCT(lp, r) {
   if (fat > 3) reportDanger({ id: 'ctorbit', msg: 'Contacto con grasa orbitaria: atravesaste la lámina papirácea / periórbita. Riesgo de hematoma orbitario y lesión del recto medial.' });
   for (const lm of CT.landmarks) {
     const T = LM_TYPES[lm.type]; if (!T[1]) continue;
-    if (lp.distanceTo(lm.p) < T[1] + r * 0.6) { reportDanger({ id: 'lm' + lm.id, msg: T[3] }); if (T[4] > 0) addBleed('lm' + lm.id, T[0], lm.p, 1.5 + T[4] * 2.5, T[4] >= 1 ? 34 : 16); }
+    if (lmDist(lm, lp) < T[1] + r * 0.6) { reportDanger({ id: 'lm' + lm.id, msg: T[3] }); if (T[4] > 0) addBleed('lm' + lm.id, T[0], lm.p, 1.5 + T[4] * 2.5, T[4] >= 1 ? 34 : 16); }
   }
 }
 function ctFatDist(lp) {
@@ -2221,7 +2253,37 @@ function ctFatDist(lp) {
   }
   return best;
 }
-function ctLmDist(lp, type) { let d = 99; for (const lm of CT.landmarks) if (lm.type === type) d = Math.min(d, lp.distanceTo(lm.p)); return d; }
+function ctLmDist(lp, type) { let d = 99; for (const lm of CT.landmarks) if (lm.type === type) d = Math.min(d, lmDist(lm, lp)); return d; }
+function lmDist(lm, lp) {   // distancia al punto o al trayecto marcado
+  const P = lm.pts; if (!P || P.length < 2) return lp.distanceTo(lm.p);
+  let d = 1e9; const ab = new THREE.Vector3(), ap = new THREE.Vector3();
+  for (let i = 0; i < P.length - 1; i++) { ab.subVectors(P[i + 1], P[i]); ap.subVectors(lp, P[i]); const t = THREE.MathUtils.clamp(ap.dot(ab) / Math.max(ab.lengthSq(), 1e-6), 0, 1); d = Math.min(d, ap.sub(ab.multiplyScalar(t)).length()); }
+  return d;
+}
+/* ---- Unidades Hounsfield ---- */
+function huAt(L, P, S) {
+  if (!CT.C) return null; const O = CT.cO, cs = CT.cs, cd = CT.cd;
+  const i = Math.round((L - O.x) / cs[0]), j = Math.round((P - O.y) / cs[1]), k = Math.round((S - O.z) / cs[2]);
+  if (i < 0 || j < 0 || k < 0 || i >= cd[0] || j >= cd[1] || k >= cd[2]) return null;
+  return CT.C[i + j * cd[0] + k * cd[0] * cd[1]];
+}
+function huStats(L, P, S) {   // media y desvío en un cubo de 3×3×3 vóxeles
+  const cs = CT.cs, v = []; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) { const h = huAt(L + a * cs[0], P + b * cs[1], S + c * cs[2]); if (h != null) v.push(h); }
+  if (!v.length) return null; const m = v.reduce((x, y) => x + y, 0) / v.length, sd = Math.sqrt(v.reduce((x, y) => x + (y - m) ** 2, 0) / v.length);
+  return { hu: huAt(L, P, S), media: Math.round(m), sd: Math.round(sd) };
+}
+function huTissue(h) {
+  if (h == null) return '';
+  if (h <= -900) return 'aire';
+  if (h <= -200) return 'aire mezclado con tejido (volumen parcial: borde de celdilla, hueso muy fino)';
+  if (h <= -30) return 'grasa (típico −120 a −60: grasa orbitaria, fosa pterigopalatina)';
+  if (h <= 20) return 'líquido / moco / edema (0 a 20)';
+  if (h <= 80) return 'partes blandas: mucosa, músculo (35–55), sangre fresca (40–90)';
+  if (h <= 300) return 'tejido denso: secreción espesa o fúngica, sangre coagulada, calcificación tenue';
+  if (h <= 1000) return 'hueso fino o esponjoso (o hueso cortical con volumen parcial)';
+  if (h <= 2000) return 'hueso cortical';
+  return 'muy denso: esmalte dental o metal';
+}
 
 /* ---------- cortes de TC sincronizados ---------- */
 const views = { ax: { cv: $('#ctAx') }, co: { cv: $('#ctCo') }, sa: { cv: $('#ctSa') } };
@@ -2242,7 +2304,7 @@ function drawSlices(force) {
   if (!CT.C) return;
   const [L, P, S] = sliceLPS(), [tL, tP, tS] = tipLPS(), cd = CT.cd, cs = CT.cs, O = CT.cO;
   const ci = THREE.MathUtils.clamp(Math.round((L - O.x) / cs[0]), 0, cd[0] - 1), cj = THREE.MathUtils.clamp(Math.round((P - O.y) / cs[1]), 0, cd[1] - 1), ck = THREE.MathUtils.clamp(Math.round((S - O.z) / cs[2]), 0, cd[2] - 1);
-  const vd = viewDir(), key = [ci, cj, ck, CT.win, CT.cur ? 1 : 0, CT.zoom || 1, tL.toFixed(1), tP.toFixed(1), tS.toFixed(1), CT.landmarks.length, vd.x.toFixed(2), vd.y.toFixed(2), vd.z.toFixed(2)].join(',');
+  const vd = viewDir(), key = [ci, cj, ck, CT.win, CT.cur ? 1 : 0, CT.zoom || 1, tL.toFixed(1), tP.toFixed(1), tS.toFixed(1), CT.landmarks.length, CT.ptsN || 0, vd.x.toFixed(2), vd.y.toFixed(2), vd.z.toFixed(2)].join(',');
   if (key === sliceKey && !force) return; sliceKey = key;
   const [wl, ww] = CT.win === 'bone' ? [400, 2200] : [40, 420], lo = wl - ww / 2;
   const nx = cd[0], ny = cd[1], C = CT.C;
@@ -2274,29 +2336,41 @@ function drawSlices(force) {
     g.strokeStyle = '#9fffd0'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(tx, ty); g.lineTo(e[0], e[1]); g.stroke();
     g.fillStyle = '#9fffd0'; g.beginPath(); g.arc(tx, ty, 4, 0, 7); g.fill(); g.globalAlpha = 1;
     for (const lm of CT.landmarks) {
+      const col = '#' + LM_TYPES[lm.type][2].toString(16).padStart(6, '0');
+      if (lm.pts && lm.pts.length > 1) {
+        g.strokeStyle = col; g.lineWidth = Math.max(1.5, W / 320); g.globalAlpha = 0.45; g.setLineDash([5, 4]); g.beginPath();
+        lm.pts.forEach((q, n) => { const [x, y] = P2(q.x, -q.z, q.y); n ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+        for (const q of lm.pts) { if (sp.depth(q.x, -q.z, q.y) > 3) continue; const [x, y] = P2(q.x, -q.z, q.y); g.fillStyle = col; g.beginPath(); g.arc(x, y, Math.max(3.5, W / 170), 0, 7); g.fill(); }
+        continue;
+      }
       const l = lm.p.x, p = -lm.p.z, s2 = lm.p.y; if (sp.depth(l, p, s2) > 3) continue;
-      const [x, y] = P2(l, p, s2); g.fillStyle = '#' + LM_TYPES[lm.type][2].toString(16).padStart(6, '0'); g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill();
+      const [x, y] = P2(l, p, s2); g.fillStyle = '#' + LM_TYPES[lm.type][2].toString(16).padStart(6, '0'); g.beginPath(); g.arc(x, y, Math.max(4.5, W / 130), 0, 7); g.fill();
     }
     if (state.tool !== 'none' && tipHit) { const tp = anatomy.worldToLocal(tipWorld.clone()); const [x, y] = P2(tp.x, -tp.z, tp.y); g.fillStyle = '#ffd166'; g.fillRect(x - 3, y - 3, 6, 6); }
-    g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '15px system-ui'; g.fillText(sp.title, 8, 20);
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.font = Math.round(Math.max(15, W / 45)) + 'px system-ui'; g.fillText(sp.title, 8, 20);
     g.fillText(k === 'sa' ? 'A' : 'D', 8, H / 2); g.fillText(k === 'sa' ? 'P' : 'I', W - 18, H / 2);
     const idx = k === 'ax' ? ck : k === 'co' ? cj : ci, N = k === 'ax' ? cd[2] : k === 'co' ? cd[1] : cd[0], mm = k === 'ax' ? S : k === 'co' ? P : L;
     const r = $('#r' + k[0].toUpperCase() + k[1]); r.max = N - 1; if (document.activeElement !== r) r.value = idx;
     $('#lb' + k[0].toUpperCase() + k[1]).textContent = `${sp.title} · corte ${idx + 1}/${N} (${mm.toFixed(1)} mm)`;
   }
 }
-function sliceClick(k, ev, onlyMove) {
-  const vw = views[k]; if (!vw.tf || !CT.C) return; if (ev.altKey) onlyMove = true;
+function evLPS(k, ev) {
+  const vw = views[k]; if (!vw.tf || !CT.C) return null;
   const rc = vw.cv.getBoundingClientRect(), x = (ev.clientX - rc.left) * vw.cv.width / rc.width, y = (ev.clientY - rc.top) * vw.cv.height / rc.height;
   const a = (x - vw.tf.ox) / vw.tf.kx, b = (y - vw.tf.oy) / vw.tf.ky;
   let [L, P, S] = sliceLPS(); const O = CT.cO, cs = CT.cs, cd = CT.cd;
   if (k === 'ax') { L = O.x + a * cs[0]; P = O.y + b * cs[1]; }
   if (k === 'co') { L = O.x + a * cs[0]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   if (k === 'sa') { P = O.y + a * cs[1]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
+  return [L, P, S];
+}
+function sliceClick(k, ev, onlyMove) {
+  if (ev.altKey) onlyMove = true; const r = evLPS(k, ev); if (!r) return; let [L, P, S] = r;
   const p = V(L, S, -P);
+  if (!onlyMove && TRACE.lm) { traceAdd(p); return; }
   if (onlyMove) { if (!CT.cur) setFree(true, true); CT.cur = [L, P, S]; sliceKey = ''; return; }
-  if (window.__annotReady && ANNOT.on && ANNOT.i < ANNOT.seq.length) { if (CT.cur) CT.cur = [L, P, S]; annotPlace(p); return; }
-  if (CT.mark) { if (CT.cur) CT.cur = [L, P, S]; addLandmark($('#lmType').value, p); if (window.__ctDrainReady && FR.on) frNext(); return; }
+  if (!CT.mark && window.__annotReady && ANNOT.on && ANNOT.i < ANNOT.seq.length) { if (CT.cur) CT.cur = [L, P, S]; const lm = annotPlace(p); if (lm) showPop(lm, ev.clientX, ev.clientY); return; }
+  if (CT.mark) { if (CT.cur) CT.cur = [L, P, S]; addLandmark($('#lmType').value, p); if (!(window.__ctDrainReady && FR.on)) showPop(CT.landmarks[CT.landmarks.length - 1], ev.clientX, ev.clientY); if (window.__ctDrainReady && FR.on) frNext(); return; }
   if (CT.cur) { CT.cur = [L, P, S]; sliceKey = ''; return; }
   if (sampleGL(L, P, S) > CT.iso) { toast('Ese punto es tejido: elegí un punto con aire (negro) para ubicar el endoscopio.'); return; }
   state.fly = null; scope.pos.copy(anatomy.localToWorld(p)); sliceKey = '';
@@ -2305,11 +2379,122 @@ for (const k in views) {
   const cvk = views[k].cv, R = $('#r' + k[0].toUpperCase() + k[1]);
   cvk.addEventListener('click', e => sliceClick(k, e));
   cvk.addEventListener('contextmenu', e => { e.preventDefault(); sliceClick(k, e, true); });
+  cvk.addEventListener('mousemove', e => { const r = evLPS(k, e), tip = $('#huTip'); if (!r) return; const h = huAt(...r); if (h == null) { tip.style.display = 'none'; return; }
+    tip.innerHTML = `<b>${Math.round(h)} UH</b> · ${huTissue(h)}`; tip.style.display = 'block'; tip.style.left = Math.min(innerWidth - tip.offsetWidth - 6, e.clientX + 16) + 'px'; tip.style.top = (e.clientY + 18) + 'px'; });
+  cvk.addEventListener('mouseleave', () => $('#huTip').style.display = 'none');
   cvk.addEventListener('wheel', e => { e.preventDefault(); moveCur(k, Math.sign(e.deltaY) * (e.shiftKey ? 5 : 1)); }, { passive: false });
   R.addEventListener('input', () => { if (!CT.C) return; if (!CT.cur) setFree(true, true); const ix = k === 'ax' ? 2 : k === 'co' ? 1 : 0; CT.cur[ix] = [CT.cO.x, CT.cO.y, CT.cO.z][ix] + (+R.value) * CT.cs[ix]; sliceKey = ''; drawSlices(true); });
 }
 $('#btnFree').onclick = () => setFree(!CT.cur);
-$('#btnBig').onclick = () => { const on = $('#info').classList.toggle('big'); $('#btnBig').textContent = on ? 'Achicar cortes' : 'Agrandar cortes'; sliceKey = ''; };
+
+/* ---- Cortes en pantalla principal ---- */
+const FULL = { on: false };
+function sizeSliceCanvases() {
+  for (const k in views) {
+    const cvk = views[k].cv;
+    if (FULL.on) { const r = cvk.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2); cvk.width = Math.max(200, Math.round(r.width * dpr)); cvk.height = Math.max(150, Math.round(r.height * dpr)); }
+    else { cvk.width = 480; cvk.height = 400; }
+  }
+  sliceKey = '';
+}
+function setFull(v) {
+  if (v && !CT.C) { toast('Primero abrí una TC.'); return; }
+  FULL.on = v; $('#ctFull').classList.toggle('on', v); document.body.classList.toggle('ctfull', v);
+  const slc = k => document.querySelector('.slc[data-k="' + k + '"]');
+  if (v) {
+    $('#fAx').appendChild(slc('ax')); $('#fCo').appendChild(slc('co')); $('#fSa').appendChild(slc('sa'));
+    $('#fSide').appendChild($('#ctTools'));
+    if (!CT.cur) setFree(true, true);
+  } else {
+    ['ax', 'co', 'sa'].forEach(k => $('#ctSlices').appendChild(slc(k)));
+    $('#ctToolsHome').after($('#ctTools'));
+  }
+  $('#btnFull').textContent = v ? 'Cortes en pantalla principal (activo)' : '⛶ Cortes en pantalla principal';
+  requestAnimationFrame(() => { sizeSliceCanvases(); updBanner(); drawSlices(true); });
+}
+$('#btnFull').onclick = () => setFull(!FULL.on);
+$('#btnFullExit').onclick = () => setFull(false);
+addEventListener('resize', () => { if (FULL.on) { sizeSliceCanvases(); drawSlices(true); } });
+addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#lmPop').style.display === 'block') hidePop(); else if (TRACE.lm) traceEnd(); else if (FULL.on) setFull(false); } });
+function updBanner() {
+  const b = $('#ctBanner'); if (!b) return; if (typeof TRACE !== 'undefined' && TRACE.lm) return traceBanner();
+  if (!CT.mark && window.__annotReady && ANNOT.on && ANNOT.i < ANNOT.seq.length) {
+    const it = ANNOT.seq[ANNOT.i];
+    b.innerHTML = `Ahora marcá: <b class="big">${LM_TYPES[it.t][0]}</b> · lado <b>${it.sd === 'D' ? 'derecho' : 'izquierdo'}</b> · corte sugerido: ${it.pl}<br><span class="mut">${it.d}</span>`;
+  } else if (window.__annotReady && ANNOT.on) b.innerHTML = 'Protocolo completo: cargá las <b>variantes</b> a la derecha y tocá <b>Descargar anotaciones</b>.';
+  else if (CT.mark) b.innerHTML = `Marcando: <b class="big">${LM_TYPES[$('#lmType').value][0]}</b> <span class="mut">(cambiala en "Tipo de marca", o corregí el nombre después de cada clic)</span>`;
+  else b.innerHTML = 'Navegá con la rueda o las barras; clic derecho mueve la cruz. Para marcar, usá <b>Modo anotación</b> o <b>Marcar estructura libre</b> a la derecha.';
+}
+$('#lmType').addEventListener('change', updBanner);
+
+/* ---- Ventanita para confirmar o corregir el nombre de cada marca ---- */
+let popTimer = 0;
+function hidePop() { $('#lmPop').style.display = 'none'; clearTimeout(popTimer); }
+function lmOptions(sel) { return Object.entries(LM_TYPES).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${v[0]}${v[1] ? ' (riesgo)' : ''}</option>`).join(''); }
+function showPop(lm, cx, cy) {
+  const pp = $('#lmPop');
+  const H = lm.hu;
+  pp.innerHTML = `Marqué: <b>${LM_TYPES[lm.type][0]}</b>${lm.side ? ' · lado ' + (lm.side === 'D' ? 'derecho' : 'izquierdo') : ''}`
+    + (H ? `<div class="mut" style="margin-top:3px">Densidad: <b>${Math.round(H.hu)} UH</b> (entorno ${H.media} ± ${H.sd}) → ${huTissue(H.media)}</div>` : '')
+    + `¿Es otra estructura? Elegila:<select>${lmOptions(lm.type)}</select><div class="row"><button data-a="ok">✓ Correcto</button><button data-a="del">Borrar marca</button></div>`
+    + `<div class="row"><button data-a="tr">➕ Seguir marcando su trayecto (varios puntos)</button></div>`;
+  pp.style.display = 'block';
+  const w = pp.offsetWidth, h = pp.offsetHeight;
+  pp.style.left = Math.min(innerWidth - w - 8, cx + 14) + 'px'; pp.style.top = Math.min(innerHeight - h - 8, Math.max(8, cy - 20)) + 'px';
+  pp.querySelector('select').onchange = e => { retypeLm(lm, e.target.value); hidePop(); };
+  pp.querySelector('[data-a=ok]').onclick = hidePop;
+  pp.querySelector('[data-a=tr]').onclick = () => { hidePop(); traceStart(lm); };
+  pp.querySelector('[data-a=del]').onclick = () => { removeLm(lm.id); hidePop(); };
+  clearTimeout(popTimer); popTimer = setTimeout(hidePop, 9000);
+}
+function removeLm(id) {
+  const i = CT.landmarks.findIndex(l => l.id === id); if (i < 0) return; const l = CT.landmarks[i];
+  ctGroup.remove(l.mesh); l.el && l.el.remove(); CT.landmarks.splice(i, 1); if (TRACE.lm === l) traceEnd();
+  if (window.__annotReady) { const it = ANNOT.seq.find(x => x.lm === id); if (it) { it.lm = null; if (ANNOT.on) { ANNOT.i = ANNOT.seq.indexOf(it); annotShow(); } } }
+  renderLmList(); sliceKey = '';
+}
+function retypeLm(lm, t) {
+  const T = LM_TYPES[t]; lm.type = t; lm.danger = T[1] > 0; lm.name = T[0] + (lm.side ? ' (' + lm.side + ')' : '');
+  lmGeom(lm); lm.mesh.material.color.setHex(T[2]); if (TRACE.lm === lm) traceBanner();
+  if (window.__annotReady && lm.proto) {
+    const old = ANNOT.seq.find(x => x.lm === lm.id); if (old) old.lm = null;
+    const nw = ANNOT.seq.find(x => x.t === t && x.sd === lm.side);
+    if (nw) { if (nw.lm && nw.lm !== lm.id) removeLmSilent(nw.lm); nw.lm = lm.id; nw.skip = false; }
+    if (ANNOT.on) { ANNOT.i = old && !old.lm ? ANNOT.seq.indexOf(old) : annotNext(0); annotShow(); }
+  }
+  renderLmList(); sliceKey = ''; toast('Nombre corregido: ' + T[0]);
+}
+/* ---- Trayecto: varios puntos para una misma estructura ---- */
+const TRACE = { lm: null };
+function lmGeom(lm) {
+  const T = LM_TYPES[lm.type], r = Math.max(T[1], 1.2);
+  if (lm.pts && lm.pts.length > 1) {
+    const curve = new THREE.CatmullRomCurve3(lm.pts.map(q => q.clone()), false, 'centripetal');
+    lm.mesh.geometry.dispose(); lm.mesh.geometry = new THREE.TubeGeometry(curve, Math.max(8, lm.pts.length * 10), Math.max(T[1] * 0.6, 0.8), 10, false); lm.mesh.position.set(0, 0, 0);
+  } else { lm.mesh.geometry.dispose(); lm.mesh.geometry = new THREE.SphereGeometry(r, 16, 12); lm.mesh.position.copy(lm.p); }
+}
+function lmLen(lm) { let d = 0; for (let i = 1; i < (lm.pts || []).length; i++) d += lm.pts[i].distanceTo(lm.pts[i - 1]); return d; }
+function traceStart(lm) {
+  TRACE.lm = lm; if (!lm.pts) lm.pts = [lm.p.clone()];
+  if (!FULL.on) setFull(true); traceBanner();
+  toast('Trayecto: hacé clic sobre la estructura en los cortes que quieras, punto por punto. Clic derecho mueve la cruz sin marcar.', 5000);
+}
+function traceAdd(p) {
+  const lm = TRACE.lm; if (!CT.landmarks.includes(lm)) { traceEnd(); return; }
+  if (lm.side) { const isRight = p.x < CT.cx; if ((lm.side === 'D') !== isRight) { toast('Ese punto está del otro lado: este trayecto es del lado ' + (lm.side === 'D' ? 'derecho' : 'izquierdo') + '.', 4000); return; } }
+  lm.pts.push(p.clone()); lmGeom(lm); CT.ptsN = (CT.ptsN || 0) + 1; if (CT.cur) CT.cur = [p.x, -p.z, p.y];
+  sliceKey = ''; traceBanner(); if (window.__ctDrainReady) updateCtDrain();
+}
+function traceUndo() { const lm = TRACE.lm; if (!lm || lm.pts.length < 2) return; lm.pts.pop(); lmGeom(lm); CT.ptsN = (CT.ptsN || 0) + 1; sliceKey = ''; traceBanner(); }
+function traceEnd() { const lm = TRACE.lm; TRACE.lm = null; renderLmList(); updBanner(); if (lm && CT.landmarks.includes(lm) && lm.pts.length > 1) toast(`Trayecto guardado: ${LM_TYPES[lm.type][0]}, ${lm.pts.length} puntos, ${lmLen(lm).toFixed(1)} mm.`); }
+function traceBanner() {
+  const lm = TRACE.lm; if (!lm) return updBanner();
+  $('#ctBanner').innerHTML = `Trayecto de <b class="big">${LM_TYPES[lm.type][0]}</b>${lm.side ? ' · lado ' + (lm.side === 'D' ? 'derecho' : 'izquierdo') : ''} · <b>${lm.pts.length}</b> puntos · ${lmLen(lm).toFixed(1)} mm
+    <span class="row" style="display:inline-flex;gap:6px;margin-left:10px"><button id="trUndo">Deshacer punto</button><button id="trEnd" class="mk">✓ Terminar trayecto</button></span><br><span class="mut">Clic en los cortes agrega puntos a esta misma estructura (pasá de corte con la rueda). Clic derecho mueve la cruz.</span>`;
+  $('#trUndo').onclick = traceUndo; $('#trEnd').onclick = traceEnd;
+}
+function removeLmSilent(id) { const i = CT.landmarks.findIndex(l => l.id === id); if (i >= 0) { const l = CT.landmarks[i]; ctGroup.remove(l.mesh); l.el && l.el.remove(); CT.landmarks.splice(i, 1); } }
+
 $('#ctZoom').oninput = e => { CT.zoom = +e.target.value; $('#ctZoomV').textContent = CT.zoom + '×'; sliceKey = ''; };
 $('#btnScopeHere').onclick = () => {
   if (!CT.cur) { toast('Activá Cortes libres y poné la cruz donde quieras llevar el endoscopio.'); return; }
@@ -2321,20 +2506,21 @@ function addLandmark(type, p) {
   const T = LM_TYPES[type];
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(Math.max(T[1], 1.2), 16, 12), new THREE.MeshBasicMaterial({ color: T[2], transparent: true, opacity: 0.55, depthTest: false, depthWrite: false }));
   mesh.position.copy(p); mesh.renderOrder = 25; mesh.visible = state.xray; ctGroup.add(mesh);
-  CT.landmarks.push({ id: ++lmId, type, p: p.clone(), mesh, name: T[0], danger: T[1] > 0, el: null });
+  CT.landmarks.push({ id: ++lmId, type, p: p.clone(), pts: [p.clone()], mesh, name: T[0], danger: T[1] > 0, el: null, hu: huStats(p.x, -p.z, p.y) });
   renderLmList(); sliceKey = '';
   toast('Marca agregada: ' + T[0] + (T[1] ? ' — queda como estructura de riesgo.' : ''));
 }
 function renderLmList() {
   if (window.__ctDrainReady) updateCtDrain();
-  $('#lmList').innerHTML = CT.landmarks.map(l => `<div><span style="color:#${LM_TYPES[l.type][2].toString(16).padStart(6, '0')}">●</span> ${l.name}<button data-id="${l.id}">✕</button></div>`).join('') || '<span class="mut">Sin marcas todavía.</span>';
-  $('#lmList').querySelectorAll('button').forEach(b => b.onclick = () => {
-    const i = CT.landmarks.findIndex(l => l.id === +b.dataset.id); const l = CT.landmarks[i];
-    ctGroup.remove(l.mesh); l.el && l.el.remove(); CT.landmarks.splice(i, 1); renderLmList(); sliceKey = '';
-  });
+  const opts = typeof lmOptions === 'function';
+  $('#lmList').innerHTML = CT.landmarks.map(l => `<div><span style="color:#${LM_TYPES[l.type][2].toString(16).padStart(6, '0')}">●</span>${opts ? `<select data-id="${l.id}" title="Cambiar el nombre">${lmOptions(l.type)}</select>${l.side ? ' ' + l.side : ''}` : ' ' + l.name}${l.pts && l.pts.length > 1 ? ` <span class="mut">${l.pts.length} pts</span>` : ''}<button data-t="${l.id}" title="Agregar puntos a su trayecto">➕</button><button data-g="${l.id}" title="Ir a la marca">◎</button><button data-id="${l.id}">✕</button></div>`).join('') || '<span class="mut">Sin marcas todavía.</span>';
+  $('#lmList').querySelectorAll('button[data-id]').forEach(b => b.onclick = () => removeLm(+b.dataset.id));
+  $('#lmList').querySelectorAll('button[data-t]').forEach(b => b.onclick = () => { const l = CT.landmarks.find(l => l.id === +b.dataset.t); if (l) traceStart(l); });
+  $('#lmList').querySelectorAll('button[data-g]').forEach(b => b.onclick = () => { const l = CT.landmarks.find(l => l.id === +b.dataset.g); if (!l) return; if (!CT.cur) setFree(true, true); CT.cur = [l.p.x, -l.p.z, l.p.y]; sliceKey = ''; });
+  $('#lmList').querySelectorAll('select[data-id]').forEach(sel => sel.onchange = () => { const l = CT.landmarks.find(l => l.id === +sel.dataset.id); if (l) retypeLm(l, sel.value); });
 }
 $('#btnWin').onclick = () => { CT.win = CT.win === 'bone' ? 'soft' : 'bone'; $('#btnWin').textContent = 'Ventana: ' + (CT.win === 'bone' ? 'hueso' : 'partes blandas'); drawSlices(true); };
-$('#btnMark').onclick = () => { CT.mark = !CT.mark; $('#btnMark').classList.toggle('mk', CT.mark); $('#btnMark').textContent = CT.mark ? 'Marcando… (clic en un corte)' : 'Marcar estructura'; };
+$('#btnMark').onclick = () => { CT.mark = !CT.mark; $('#btnMark').classList.toggle('mk', CT.mark); $('#btnMark').textContent = CT.mark ? 'Marcando… (clic en un corte)' : 'Marcar estructura libre'; updBanner(); };
 
 /* ---------- carga y cambio de modelo ---------- */
 async function loadCT(files, pre) {
@@ -2377,6 +2563,7 @@ function placeScopeStart() {
 function setModel(m) {
   if (m !== 'generic' && $('#chkSag')) { $('#chkSag').checked = false; $('#sagCtl').style.display = 'none'; cutU.uSag.value = 1e9; if (!state.vr) hemi.visible = false; }
   if (m === 'ct' && !CT.mesh) { $('#ctBox').style.display = 'block'; segOn('model', 'ct'); toast('Cargá la TC con los botones de carpeta o archivos.'); return; }
+  if (m !== "ct" && typeof FULL !== "undefined" && FULL.on) setFull(false);
   state.model = m; segOn('model', m);
   $('#ctBox').style.display = m === 'ct' || !CT.mesh ? ($('#ctBox').style.display) : 'none';
   if (m === 'ct') $('#ctBox').style.display = 'block';
@@ -2464,7 +2651,7 @@ async function buildCaseZip() {
   await defaceQ(Q, dd, g);
   const meta = { format: 'cens-case', version: 1, name: ($('#caseName').value || 'Caso sin nombre').trim(), desc: ($('#caseDesc').value || '').trim(), created: new Date().toISOString().slice(0, 10),
     dims: dd, spacing: g, origin: CT.cO.toArray(), cx: CT.cx, tipP: CT.tipP, tipS: CT.tipS, iso: CT.iso, hu: { scale: 10, offset: -1000 }, anonymized: { dicomHeaders: false, defaced: true },
-    landmarks: CT.landmarks.map(l => ({ type: l.type, p: l.p.toArray().map(v => +v.toFixed(2)) })) };
+    landmarks: CT.landmarks.map(l => ({ type: l.type, p: l.p.toArray().map(v => +v.toFixed(2)), pts: (l.pts || []).length > 1 ? l.pts.map(q => q.toArray().map(v => +v.toFixed(2))) : undefined })) };
   if (CT.src) meta.credit = `${CT.src.label}. ${CT.src.cita} Licencia ${CT.src.lic}: uso docente no comercial; no redistribuir versiones modificadas.`;
   const zip = new JSZip(); zip.file('case.json', JSON.stringify(meta, null, 1)); zip.file('vol.bin', Q);
   return { meta, blob: await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }) };
@@ -2495,7 +2682,7 @@ async function loadCaseZip(data) {
     if (meta.iso) { CT.iso = meta.iso; $('#iso').value = meta.iso; $('#isoV').textContent = meta.iso; }
     CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = [];
     await rebuildCT();
-    for (const l of meta.landmarks || []) if (LM_TYPES[l.type]) addLandmark(l.type, V(...l.p));
+    for (const l of meta.landmarks || []) if (LM_TYPES[l.type]) { addLandmark(l.type, V(...l.p)); if (l.pts) { const lm = CT.landmarks[CT.landmarks.length - 1]; lm.pts = l.pts.map(a => V(...a)); lmGeom(lm); } }
     $('#caseName').value = meta.name || ''; $('#caseDesc').value = meta.desc || '';
     setModel('ct');
     ctStatus(`✔ Caso: <b>${(meta.name || '').replace(/</g, '&lt;')}</b>${meta.desc ? ' — ' + meta.desc.replace(/</g, '&lt;') : ''}${meta.credit ? '<br><small>' + meta.credit.replace(/</g, '&lt;') + '</small>' : ''}<br>${CT.status}`);
@@ -2671,7 +2858,7 @@ function thermalDanger(lp, isMono) {
     if (isMono && ctFatDist(lp) < 3) reportDanger({ id: 'th_orb', msg: 'Monopolar junto a la órbita: riesgo de lesión térmica orbitaria. Preferí el bipolar.' });
     for (const lm of CT.landmarks) {
       const lim = isMono ? 4.5 : 2.2;
-      if (['skull', 'optic', 'carotid'].includes(lm.type) && lp.distanceTo(lm.p) < lim)
+      if (['skull', 'optic', 'carotid'].includes(lm.type) && lmDist(lm, lp) < lim)
         reportDanger({ id: 'th_' + lm.id, msg: (isMono ? 'Monopolar' : 'Bipolar') + ' junto a ' + LM_TYPES[lm.type][0].toLowerCase() + ': riesgo de lesión térmica.' });
     }
     return;
@@ -3712,7 +3899,7 @@ function frShow() {
   $('#frTxt').innerHTML = st.d + ' <span class="mut">(clic en el corte que corresponda)</span>';
 }
 function frNext() { FR.i++; if (FR.i >= FR_STEPS.length) frEnd(); else frShow(); }
-function frEnd() { FR.on = false; CT.mark = false; $('#btnMark').classList.remove('mk'); $('#btnMark').textContent = 'Marcar estructura'; $('#btnFRGuide').textContent = 'Marcar receso frontal (guiado)'; updateCtDrain(); }
+function frEnd() { FR.on = false; CT.mark = false; $('#btnMark').classList.remove('mk'); $('#btnMark').textContent = 'Marcar estructura libre'; $('#btnFRGuide').textContent = 'Marcar receso frontal (guiado)'; updateCtDrain(); }
 $('#btnFRGuide').onclick = () => {
   if (!CT.C) { toast('Primero cargá una TC.'); return; }
   if (FR.on) { frEnd(); return; }
@@ -3784,53 +3971,69 @@ const PROTO_VAR = [
   ['dehica', 'Dehiscencia de la carótida', ['no', 'sí']], ['dehopt', 'Dehiscencia del óptico', ['no', 'sí']],
   ['septo', 'Tabique intersinusal hacia la carótida', ['no', 'sí']], ['desvio', 'Desviación septal hacia este lado', ['no', 'leve', 'marcada']]
 ];
-const ANNOT = { on: false, seq: [], i: 0, done: [], skipped: [], vars: {} };
+const ANNOT = { on: false, seq: [], i: 0, hist: [], vars: {}, view: 'D' };
 const sideName = s => s === 'D' ? 'Derecha' : 'Izquierda';
+function annotNext(from) {   // próximo ítem pendiente (ni marcado ni salteado), dando la vuelta
+  const n = ANNOT.seq.length;
+  for (let k = 0; k < n; k++) { const j = (from + k) % n, it = ANNOT.seq[j]; if (!it.lm && !it.skip) return j; }
+  return n;
+}
 function annotStart(sides) {
-  ANNOT.on = true; ANNOT.i = 0; ANNOT.done = []; ANNOT.skipped = []; ANNOT.vars = {};
-  ANNOT.seq = sides.flatMap(sd => PROTO.map(it => ({ ...it, sd })));
-  CT.mark = false; if (window.__ctDrainReady && FR.on) frEnd(); setFree(true, true);
+  ANNOT.on = true; ANNOT.i = 0; ANNOT.hist = []; ANNOT.vars = {};
+  ANNOT.seq = sides.flatMap(sd => PROTO.map(it => ({ ...it, sd, lm: null, skip: false })));
+  CT.mark = false; $('#btnMark').classList.remove('mk'); $('#btnMark').textContent = 'Marcar estructura libre';
+  if (window.__ctDrainReady && FR.on) frEnd(); setFree(true, true);
   if (!state.xray && typeof setXray === 'function') setXray(true);
+  if (!FULL.on) setFull(true);
   annotShow();
 }
 function annotShow() {
-  const box = $('#annotBox'); box.style.display = 'block';
-  if (!ANNOT.on) { box.innerHTML = `<b>Modo anotación</b>: marcá en la TC una lista fija de estructuras de cada lado. Al terminar, descargá las anotaciones y mandámelas por el chat.<div class="row"><button data-s="D,I">Ambos lados</button><button data-s="D">Derecha</button><button data-s="I">Izquierda</button></div>`;
+  const box = $('#annotBox'); box.style.display = 'block'; updBanner();
+  if (!ANNOT.on) { box.innerHTML = `<b>Modo anotación</b>: te guío por una lista fija de estructuras de cada lado. Después de cada clic te muestro el nombre para que lo confirmes o lo cambies. Al terminar, descargá las anotaciones y mandámelas por el chat.<div class="row"><button data-s="D,I">Ambos lados</button><button data-s="D">Derecha</button><button data-s="I">Izquierda</button></div>`;
     box.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => annotStart(b.dataset.s.split(','))); return; }
+  const sides = [...new Set(ANNOT.seq.map(x => x.sd))];
   if (ANNOT.i < ANNOT.seq.length) {
-    const it = ANNOT.seq[ANNOT.i], sameSide = ANNOT.seq.filter(x => x.sd === it.sd), k = sameSide.indexOf(it) + 1;
-    box.innerHTML = `<b>${sideName(it.sd)} ${k}/${sameSide.length} · ${LM_TYPES[it.t][0]}</b><br>${it.d}<br><span class="mut">Corte sugerido: ${it.pl}. Buscalo con la rueda o la barra del corte (clic derecho mueve la cruz sin marcar) y hacé clic sobre la estructura: vale hueso, mucosa o aire.</span>
-      <div class="row"><button id="anSkip">Saltar (no existe / no se ve)</button><button id="anBack">Atrás</button><button id="anStop">Terminar</button></div>`;
-    $('#anSkip').onclick = () => { ANNOT.skipped.push({ tipo: it.t, lado: it.sd }); ANNOT.done.push(null); ANNOT.i++; annotShow(); };
+    const it = ANNOT.seq[ANNOT.i]; ANNOT.view = it.sd;
+    const list = ANNOT.seq.map((x, j) => ({ x, j })).filter(o => o.x.sd === ANNOT.view);
+    const nDone = list.filter(o => o.x.lm || o.x.skip).length;
+    box.innerHTML = `${sides.length > 1 ? `<div class="seg">${sides.map(sd => `<button data-v="${sd}" class="${sd === ANNOT.view ? 'on' : ''}">${sideName(sd)}</button>`).join('')}</div>` : ''}
+      <div style="margin:4px 0"><b>${sideName(ANNOT.view)}</b>: ${nDone}/${list.length} listas · tocá una estructura para marcarla (o volver a marcarla)</div>
+      ${list.map(({ x, j }) => `<div class="ck ${j === ANNOT.i ? 'cur' : ''} ${x.lm ? 'done' : ''} ${x.skip ? 'skip' : ''}" data-j="${j}"><span class="st">${x.lm ? '✓' : x.skip ? '—' : j === ANNOT.i ? '▶' : '○'}</span>${LM_TYPES[x.t][0]}</div>`).join('')}
+      <div class="row"><button id="anSkip">Saltar (no existe / no se ve)</button><button id="anBack">Deshacer último</button></div>
+      <div class="row"><button id="anStop">Terminar → variantes</button></div>`;
+    box.querySelectorAll('.ck').forEach(el => el.onclick = () => { ANNOT.i = +el.dataset.j; if (TRACE.lm) traceEnd(); if (CT.mark) $('#btnMark').click(); annotShow(); });
+    box.querySelectorAll('button[data-v]').forEach(b => b.onclick = () => { const j = ANNOT.seq.findIndex(x => x.sd === b.dataset.v && !x.lm && !x.skip); ANNOT.i = j >= 0 ? j : ANNOT.seq.findIndex(x => x.sd === b.dataset.v); annotShow(); });
+    $('#anSkip').onclick = () => { const cur = ANNOT.seq[ANNOT.i]; if (cur.lm) removeLmSilent(cur.lm); cur.lm = null; cur.skip = true; ANNOT.hist.push({ j: ANNOT.i, skip: true }); ANNOT.i = annotNext(ANNOT.i + 1); renderLmList(); sliceKey = ''; annotShow(); };
     $('#anBack').onclick = annotBack; $('#anStop').onclick = () => { ANNOT.i = ANNOT.seq.length; annotShow(); };
     return;
   }
-  const sides = [...new Set(ANNOT.seq.map(x => x.sd))];
   box.innerHTML = '<b>Variantes</b> (marcá lo que veas)' + sides.map(sd => `<div style="margin-top:6px"><b>${sideName(sd)}</b>` + PROTO_VAR.map(([k, n, ops]) =>
     `<div class="ctl"><span>${n}</span><select data-k="${k}" data-sd="${sd}">${ops.map(o => `<option${(ANNOT.vars[sd] || {})[k] === o ? ' selected' : ''}>${o}</option>`).join('')}</select></div>`).join('') + '</div>').join('')
     + `<div class="ctl"><span>Anotador</span><input id="anWho" placeholder="nombre" style="width:120px" value="${ANNOT.who || ''}"></div>`
     + `<div class="ctl"><span>Notas</span><input id="anNote" style="width:160px" value="${ANNOT.note || ''}"></div>`
-    + `<div id="anKeros"></div><div class="row"><button id="anBack2">Atrás</button><button id="anExp">Descargar anotaciones</button></div>`;
+    + `<div id="anKeros"></div><div class="row"><button id="anBack2">← Volver a la lista</button><button id="anExp">Descargar anotaciones</button></div>`;
   box.querySelectorAll('select[data-k]').forEach(sel => { const set = () => { (ANNOT.vars[sel.dataset.sd] = ANNOT.vars[sel.dataset.sd] || {})[sel.dataset.k] = sel.value; }; set(); sel.onchange = set; });
   $('#anWho').oninput = e => ANNOT.who = e.target.value; $('#anNote').oninput = e => ANNOT.note = e.target.value;
-  $('#anBack2').onclick = annotBack; $('#anExp').onclick = annotExport;
+  $('#anBack2').onclick = () => { const j = annotNext(0); ANNOT.i = j < ANNOT.seq.length ? j : 0; annotShow(); }; $('#anExp').onclick = annotExport;
   $('#anKeros').innerHTML = sides.map(sd => { const k = kerosOf(sd); return k ? `Keros ${sideName(sd).toLowerCase()}: ${k.mm} mm → tipo ${k.tipo}` : ''; }).filter(Boolean).join('<br>');
 }
 function annotPlace(p) {
   const it = ANNOT.seq[ANNOT.i];
   const isRight = p.x < CT.cx;   // L crece hacia la izquierda del paciente
-  if ((it.sd === 'D') !== isRight) { toast(`Ese punto está del lado ${isRight ? 'derecho' : 'izquierdo'}: esta marca va del lado ${sideName(it.sd).toLowerCase()}.`, 4000); return; }
+  if ((it.sd === 'D') !== isRight) { toast(`Ese punto está del lado ${isRight ? 'derecho' : 'izquierdo'}: ahora toca el lado ${it.sd === 'D' ? 'derecho' : 'izquierdo'}. Cambiá de lado arriba de la lista si querés.`, 4500); return null; }
+  if (it.lm) removeLmSilent(it.lm);
   addLandmark(it.t, p);
-  const lm = CT.landmarks[CT.landmarks.length - 1]; lm.side = it.sd; lm.proto = true; lm.name = LM_TYPES[it.t][0] + ' (' + it.sd + ')'; renderLmList();
-  ANNOT.done.push(lm.id); ANNOT.i++; annotShow();
+  const lm = CT.landmarks[CT.landmarks.length - 1]; lm.side = it.sd; lm.proto = true; lm.name = LM_TYPES[it.t][0] + ' (' + it.sd + ')';
+  it.lm = lm.id; it.skip = false; ANNOT.hist.push({ j: ANNOT.i, id: lm.id });
+  renderLmList(); ANNOT.i = annotNext(ANNOT.i + 1); annotShow();
+  return lm;
 }
 function annotBack() {
-  if (ANNOT.i === 0) return;
-  ANNOT.i = Math.min(ANNOT.i, ANNOT.seq.length) - 1;
-  const id = ANNOT.done.pop();
-  if (id) { const k = CT.landmarks.findIndex(l => l.id === id); if (k >= 0) { const l = CT.landmarks[k]; ctGroup.remove(l.mesh); l.el && l.el.remove(); CT.landmarks.splice(k, 1); renderLmList(); sliceKey = ''; } }
-  else { const it = ANNOT.seq[ANNOT.i]; ANNOT.skipped = ANNOT.skipped.filter(s => !(s.tipo === it.t && s.lado === it.sd)); }
-  annotShow();
+  const h = ANNOT.hist.pop(); if (!h) { toast('No hay nada para deshacer.'); return; }
+  const it = ANNOT.seq[h.j];
+  if (h.id) { removeLmSilent(h.id); if (it.lm === h.id) it.lm = null; renderLmList(); sliceKey = ''; }
+  else it.skip = false;
+  ANNOT.i = h.j; annotShow();
 }
 function lmSide(t, sd) { const l = [...CT.landmarks].reverse().find(l => l.type === t && l.side === sd); return l ? l.p : null; }
 function kerosOf(sd) {
@@ -3840,18 +4043,23 @@ function kerosOf(sd) {
 }
 function annotExport() {
   if (!CT.C) { toast('Primero cargá una TC.'); return; }
-  const pts = CT.landmarks.filter(l => l.proto).map(l => ({ tipo: l.type, nombre: LM_TYPES[l.type][0], lado: l.side, L: +l.p.x.toFixed(2), P: +(-l.p.z).toFixed(2), S: +l.p.y.toFixed(2) }));
-  const otras = CT.landmarks.filter(l => !l.proto).map(l => ({ tipo: l.type, nombre: l.name, L: +l.p.x.toFixed(2), P: +(-l.p.z).toFixed(2), S: +l.p.y.toFixed(2) }));
+  const xp = l => { const o = { tipo: l.type, nombre: LM_TYPES[l.type][0], L: +l.p.x.toFixed(2), P: +(-l.p.z).toFixed(2), S: +l.p.y.toFixed(2), UH: l.hu ? { punto: Math.round(l.hu.hu), media: l.hu.media, sd: l.hu.sd } : null };
+    if (l.side) o.lado = l.side;
+    if (l.pts && l.pts.length > 1) { o.trayecto = l.pts.map(q => { const h = huAt(q.x, -q.z, q.y); return [+q.x.toFixed(2), +(-q.z).toFixed(2), +q.y.toFixed(2), h == null ? null : Math.round(h)]; }); o.longitud_mm = +lmLen(l).toFixed(1); }
+    return o; };
+  const pts = CT.landmarks.filter(l => l.proto).map(xp);
+  const otras = CT.landmarks.filter(l => !l.proto).map(xp);
   const sides = [...new Set(ANNOT.seq.map(x => x.sd))];
   const data = { formato: 'simulador-cens/anotaciones v1', caso: CT.src ? CT.src.label : 'TC cargada desde archivo', fecha: new Date().toISOString(), anotador: ANNOT.who || '', notas: ANNOT.note || '',
-    coordenadas: 'mm, sistema del paciente LPS (L = izquierda +, P = posterior +, S = superior +)', lineaMedia_L: +CT.cx.toFixed(2),
-    puntos: pts, omitidos: ANNOT.skipped, variantes: ANNOT.vars, keros: Object.fromEntries(sides.map(sd => [sd, kerosOf(sd)])), otrasMarcas: otras };
+    coordenadas: 'mm, sistema del paciente LPS (L = izquierda +, P = posterior +, S = superior +); trayecto = [L, P, S, UH]', voxel_mm: CT.cs.map(v => +v.toFixed(3)), lineaMedia_L: +CT.cx.toFixed(2),
+    puntos: pts, omitidos: ANNOT.seq.filter(x => x.skip).map(x => ({ tipo: x.t, lado: x.sd })), pendientes: ANNOT.seq.filter(x => !x.skip && !x.lm).map(x => ({ tipo: x.t, lado: x.sd })), variantes: ANNOT.vars, keros: Object.fromEntries(sides.map(sd => [sd, kerosOf(sd)])), otrasMarcas: otras };
   const name = 'anotaciones_' + (CT.src ? CT.src.label.replace(/[^\w]+/g, '_') : 'tc') + '.json';
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); a.download = name;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
   toast(`Anotaciones descargadas (${pts.length} puntos): ${name}. Mandámelas por el chat.`, 7000);
 }
-$('#btnAnnot').onclick = () => { if (!CT.C) { toast('Primero cargá una TC (por ejemplo un caso de CT-SCOPE).'); return; } if (ANNOT.on) { ANNOT.on = false; ANNOT.seq = []; } annotShow(); };
+$('#btnAnnot').onclick = () => { if (!CT.C) { toast('Primero cargá una TC (por ejemplo un caso de CT-SCOPE).'); return; } if (ANNOT.on && !confirmLeave()) return; if (ANNOT.on) { ANNOT.on = false; ANNOT.seq = []; } if (!FULL.on) setFull(true); annotShow(); };
+function confirmLeave() { const n = ANNOT.seq.filter(x => x.lm).length; if (!n) return true; toast('Para empezar de nuevo, primero descargá o borrá las marcas del protocolo actual.', 4500); return false; }
 $('#btnAnnotExport').onclick = annotExport;
 window.__annotReady = true;
 
@@ -3899,7 +4107,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { setFree, moveCur, sliceLPS, ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { traceStart, traceAdd, traceEnd, huAt, huStats, lmDist, TRACE, setFull, retypeLm, showPop, setFree, moveCur, sliceLPS, ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

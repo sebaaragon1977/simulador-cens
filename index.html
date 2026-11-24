@@ -31,7 +31,7 @@
   #gcard .row{margin-top:8px}#gcard .row button{flex:0 0 auto}
   #tipLab{position:fixed;pointer-events:none;font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#bfffe3;display:none;white-space:nowrap}
   .panel{position:fixed;top:10px;bottom:10px;width:290px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow:auto;backdrop-filter:blur(6px)}
-  #panel{left:10px}#info{right:10px;width:260px}
+  #panel{left:10px}#info{right:10px;width:260px}#info.big{width:min(560px,48vw)!important}
   .panel.hidden{display:none}
   h1{font-size:15px;margin:0 0 2px}.sub{color:var(--mut);font-size:11.5px;margin-bottom:10px}
   .grp{margin:10px 0}.grp>label{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
@@ -179,10 +179,13 @@
     <div class="row"><button id="btnAnnot">Modo anotación (protocolo)</button><button id="btnAnnotExport">Descargar anotaciones</button></div>
     <div id="annotBox" class="mut" style="display:none;line-height:1.4"></div>
     <div class="mut" id="frTxt">Marcá en la TC la axila, el agger nasi, la barra vertical y el ostium frontal: el simulador dibuja la vía de drenaje del frontal sobre la anatomía del paciente.</div>
-    <small>Axial</small><canvas id="ctAx" width="480" height="400"></canvas>
-    <small>Coronal</small><canvas id="ctCo" width="480" height="400"></canvas>
-    <small>Sagital</small><canvas id="ctSa" width="480" height="400"></canvas>
-    <div class="mut">Clic en un corte: lleva el endoscopio a ese punto (tiene que ser aire). Con <b>Marcar estructura</b> activo, el clic agrega la marca elegida (arterias, carótida, óptico, base de cráneo…): queda como estructura de riesgo con alerta en la endoscopia.</div>
+    <div class="row"><button id="btnFree">Cortes: siguen al endoscopio</button><button id="btnScopeHere">Llevar endoscopio al cursor</button></div>
+    <div class="row"><button id="btnBig">Agrandar cortes</button></div>
+    <div class="ctl"><span>Zoom cortes</span><input type="range" id="ctZoom" min="1" max="4" step="0.25" value="1"><b id="ctZoomV">1×</b></div>
+    <small id="lbAx">Axial</small><canvas id="ctAx" width="480" height="400"></canvas><input type="range" id="rAx" class="sl" min="0" max="1" step="1" style="width:100%">
+    <small id="lbCo">Coronal</small><canvas id="ctCo" width="480" height="400"></canvas><input type="range" id="rCo" class="sl" min="0" max="1" step="1" style="width:100%">
+    <small id="lbSa">Sagital</small><canvas id="ctSa" width="480" height="400"></canvas><input type="range" id="rSa" class="sl" min="0" max="1" step="1" style="width:100%">
+    <div class="mut"><b>Navegar los cortes:</b> rueda del mouse sobre un corte (Shift = de a 5) o la barra debajo de cada uno. Con <b>Cortes libres</b>, el clic mueve la cruz a cualquier punto (aire, hueso o partes blandas) y los otros dos cortes pasan por ahí. Con <b>Marcar estructura</b> o el <b>Modo anotación</b>, el clic marca en cualquier tejido; clic derecho (o Alt + clic) solo mueve la cruz sin marcar. Las marcas de riesgo (arterias, carótida, óptico, base de cráneo…) generan alerta en la endoscopia.</div>
     <div id="lmList"></div>
   </div>
   <div class="maps">
@@ -2224,11 +2227,22 @@ function ctLmDist(lp, type) { let d = 99; for (const lm of CT.landmarks) if (lm.
 const views = { ax: { cv: $('#ctAx') }, co: { cv: $('#ctCo') }, sa: { cv: $('#ctSa') } };
 let sliceKey = '';
 function tipLPS() { const lp = anatomy.worldToLocal(scope.pos.clone()); return [lp.x, -lp.z, lp.y]; }
+function sliceLPS() { return CT.cur ? CT.cur.slice() : tipLPS(); }
+function setFree(v, quiet) {
+  if (v && !CT.cur) CT.cur = tipLPS(); if (!v) CT.cur = null;
+  $('#btnFree').textContent = v ? 'Cortes: libres' : 'Cortes: siguen al endoscopio'; $('#btnFree').classList.toggle('mk', !!v);
+  if (v && !quiet) toast('Cortes libres: navegalos con la rueda o las barras; el clic mueve la cruz a cualquier tejido.'); sliceKey = '';
+}
+function moveCur(k, n) {   // k: ax (S), co (P), sa (L); n en vóxeles
+  if (!CT.C) return; if (!CT.cur) setFree(true, true);
+  const ix = k === 'ax' ? 2 : k === 'co' ? 1 : 0, O = [CT.cO.x, CT.cO.y, CT.cO.z][ix], d = CT.cs[ix], N = CT.cd[ix];
+  const v = Math.round((CT.cur[ix] - O) / d) + n; CT.cur[ix] = O + THREE.MathUtils.clamp(v, 0, N - 1) * d; sliceKey = '';
+}
 function drawSlices(force) {
   if (!CT.C) return;
-  const [L, P, S] = tipLPS(), cd = CT.cd, cs = CT.cs, O = CT.cO;
+  const [L, P, S] = sliceLPS(), [tL, tP, tS] = tipLPS(), cd = CT.cd, cs = CT.cs, O = CT.cO;
   const ci = THREE.MathUtils.clamp(Math.round((L - O.x) / cs[0]), 0, cd[0] - 1), cj = THREE.MathUtils.clamp(Math.round((P - O.y) / cs[1]), 0, cd[1] - 1), ck = THREE.MathUtils.clamp(Math.round((S - O.z) / cs[2]), 0, cd[2] - 1);
-  const vd = viewDir(), key = [ci, cj, ck, CT.win, CT.landmarks.length, vd.x.toFixed(2), vd.y.toFixed(2), vd.z.toFixed(2)].join(',');
+  const vd = viewDir(), key = [ci, cj, ck, CT.win, CT.cur ? 1 : 0, CT.zoom || 1, tL.toFixed(1), tP.toFixed(1), tS.toFixed(1), CT.landmarks.length, vd.x.toFixed(2), vd.y.toFixed(2), vd.z.toFixed(2)].join(',');
   if (key === sliceKey && !force) return; sliceKey = key;
   const [wl, ww] = CT.win === 'bone' ? [400, 2200] : [40, 420], lo = wl - ww / 2;
   const nx = cd[0], ny = cd[1], C = CT.C;
@@ -2246,15 +2260,19 @@ function drawSlices(force) {
       d[o] = d[o + 1] = d[o + 2] = v; d[o + 3] = 255;
     }
     vw.off.getContext('2d').putImageData(vw.img, 0, 0);
-    const sc = Math.min(W / (sp.w * sp.sx), H / (sp.h * sp.sy)), dw = sp.w * sp.sx * sc, dh = sp.h * sp.sy * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
+    const zm = CT.zoom || 1, sc = Math.min(W / (sp.w * sp.sx), H / (sp.h * sp.sy)) * zm, dw = sp.w * sp.sx * sc, dh = sp.h * sp.sy * sc;
+    let ox = (W - dw) / 2, oy = (H - dh) / 2;
+    if (zm > 1) { const [ca, cb] = sp.map(L, P, S); ox = THREE.MathUtils.clamp(W / 2 - ca * dw / sp.w, W - dw, 0); oy = THREE.MathUtils.clamp(H / 2 - cb * dh / sp.h, H - dh, 0); }
     vw.tf = { ox, oy, kx: dw / sp.w, ky: dh / sp.h, k };
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.imageSmoothingEnabled = true; g.drawImage(vw.off, ox, oy, dw, dh);
     const P2 = (l, p, s) => { const [a, b] = sp.map(l, p, s); return [ox + a * vw.tf.kx, oy + b * vw.tf.ky]; };
-    const [tx, ty] = P2(L, P, S);
-    g.strokeStyle = 'rgba(80,220,255,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(tx, oy); g.lineTo(tx, oy + dh); g.moveTo(ox, ty); g.lineTo(ox + dw, ty); g.stroke();
-    const e = P2(L + vd.x * 15, P - vd.z * 15, S + vd.y * 15);
+    const [cx2, cy2] = P2(L, P, S);
+    g.strokeStyle = CT.cur ? 'rgba(255,210,90,.75)' : 'rgba(80,220,255,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(cx2, oy); g.lineTo(cx2, oy + dh); g.moveTo(ox, cy2); g.lineTo(ox + dw, cy2); g.stroke();
+    const [tx, ty] = P2(tL, tP, tS), tipNear = sp.depth(tL, tP, tS) < 4;
+    g.globalAlpha = tipNear ? 1 : 0.35;
+    const e = P2(tL + vd.x * 15, tP - vd.z * 15, tS + vd.y * 15);
     g.strokeStyle = '#9fffd0'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(tx, ty); g.lineTo(e[0], e[1]); g.stroke();
-    g.fillStyle = '#9fffd0'; g.beginPath(); g.arc(tx, ty, 4, 0, 7); g.fill();
+    g.fillStyle = '#9fffd0'; g.beginPath(); g.arc(tx, ty, 4, 0, 7); g.fill(); g.globalAlpha = 1;
     for (const lm of CT.landmarks) {
       const l = lm.p.x, p = -lm.p.z, s2 = lm.p.y; if (sp.depth(l, p, s2) > 3) continue;
       const [x, y] = P2(l, p, s2); g.fillStyle = '#' + LM_TYPES[lm.type][2].toString(16).padStart(6, '0'); g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill();
@@ -2262,23 +2280,42 @@ function drawSlices(force) {
     if (state.tool !== 'none' && tipHit) { const tp = anatomy.worldToLocal(tipWorld.clone()); const [x, y] = P2(tp.x, -tp.z, tp.y); g.fillStyle = '#ffd166'; g.fillRect(x - 3, y - 3, 6, 6); }
     g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '15px system-ui'; g.fillText(sp.title, 8, 20);
     g.fillText(k === 'sa' ? 'A' : 'D', 8, H / 2); g.fillText(k === 'sa' ? 'P' : 'I', W - 18, H / 2);
+    const idx = k === 'ax' ? ck : k === 'co' ? cj : ci, N = k === 'ax' ? cd[2] : k === 'co' ? cd[1] : cd[0], mm = k === 'ax' ? S : k === 'co' ? P : L;
+    const r = $('#r' + k[0].toUpperCase() + k[1]); r.max = N - 1; if (document.activeElement !== r) r.value = idx;
+    $('#lb' + k[0].toUpperCase() + k[1]).textContent = `${sp.title} · corte ${idx + 1}/${N} (${mm.toFixed(1)} mm)`;
   }
 }
-function sliceClick(k, ev) {
-  const vw = views[k]; if (!vw.tf || !CT.C) return;
+function sliceClick(k, ev, onlyMove) {
+  const vw = views[k]; if (!vw.tf || !CT.C) return; if (ev.altKey) onlyMove = true;
   const rc = vw.cv.getBoundingClientRect(), x = (ev.clientX - rc.left) * vw.cv.width / rc.width, y = (ev.clientY - rc.top) * vw.cv.height / rc.height;
   const a = (x - vw.tf.ox) / vw.tf.kx, b = (y - vw.tf.oy) / vw.tf.ky;
-  let [L, P, S] = tipLPS(); const O = CT.cO, cs = CT.cs, cd = CT.cd;
+  let [L, P, S] = sliceLPS(); const O = CT.cO, cs = CT.cs, cd = CT.cd;
   if (k === 'ax') { L = O.x + a * cs[0]; P = O.y + b * cs[1]; }
   if (k === 'co') { L = O.x + a * cs[0]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   if (k === 'sa') { P = O.y + a * cs[1]; S = O.z + (cd[2] - 1 - b) * cs[2]; }
   const p = V(L, S, -P);
-  if (window.__annotReady && ANNOT.on && ANNOT.i < ANNOT.seq.length) { annotPlace(p); return; }
-  if (CT.mark) { addLandmark($('#lmType').value, p); if (window.__ctDrainReady && FR.on) frNext(); return; }
+  if (onlyMove) { if (!CT.cur) setFree(true, true); CT.cur = [L, P, S]; sliceKey = ''; return; }
+  if (window.__annotReady && ANNOT.on && ANNOT.i < ANNOT.seq.length) { if (CT.cur) CT.cur = [L, P, S]; annotPlace(p); return; }
+  if (CT.mark) { if (CT.cur) CT.cur = [L, P, S]; addLandmark($('#lmType').value, p); if (window.__ctDrainReady && FR.on) frNext(); return; }
+  if (CT.cur) { CT.cur = [L, P, S]; sliceKey = ''; return; }
   if (sampleGL(L, P, S) > CT.iso) { toast('Ese punto es tejido: elegí un punto con aire (negro) para ubicar el endoscopio.'); return; }
   state.fly = null; scope.pos.copy(anatomy.localToWorld(p)); sliceKey = '';
 }
-for (const k in views) views[k].cv.addEventListener('click', e => sliceClick(k, e));
+for (const k in views) {
+  const cvk = views[k].cv, R = $('#r' + k[0].toUpperCase() + k[1]);
+  cvk.addEventListener('click', e => sliceClick(k, e));
+  cvk.addEventListener('contextmenu', e => { e.preventDefault(); sliceClick(k, e, true); });
+  cvk.addEventListener('wheel', e => { e.preventDefault(); moveCur(k, Math.sign(e.deltaY) * (e.shiftKey ? 5 : 1)); }, { passive: false });
+  R.addEventListener('input', () => { if (!CT.C) return; if (!CT.cur) setFree(true, true); const ix = k === 'ax' ? 2 : k === 'co' ? 1 : 0; CT.cur[ix] = [CT.cO.x, CT.cO.y, CT.cO.z][ix] + (+R.value) * CT.cs[ix]; sliceKey = ''; drawSlices(true); });
+}
+$('#btnFree').onclick = () => setFree(!CT.cur);
+$('#btnBig').onclick = () => { const on = $('#info').classList.toggle('big'); $('#btnBig').textContent = on ? 'Achicar cortes' : 'Agrandar cortes'; sliceKey = ''; };
+$('#ctZoom').oninput = e => { CT.zoom = +e.target.value; $('#ctZoomV').textContent = CT.zoom + '×'; sliceKey = ''; };
+$('#btnScopeHere').onclick = () => {
+  if (!CT.cur) { toast('Activá Cortes libres y poné la cruz donde quieras llevar el endoscopio.'); return; }
+  const [L, P, S] = CT.cur; if (sampleGL(L, P, S) > CT.iso) { toast('La cruz está en tejido: el endoscopio solo puede ir a un punto con aire (negro).'); return; }
+  state.fly = null; scope.pos.copy(anatomy.localToWorld(V(L, S, -P))); sliceKey = ''; toast('Endoscopio en el punto de la cruz.');
+};
 let lmId = 0;
 function addLandmark(type, p) {
   const T = LM_TYPES[type];
@@ -2313,7 +2350,7 @@ async function loadCT(files, pre) {
     ctStatus('Armando el volumen…'); await tick();
     const vol = buildVolume(slices);
     const cr = cropHead(vol);
-    Object.assign(CT, cr);
+    Object.assign(CT, cr); CT.cur = null; if (typeof setFree === "function") setFree(false, true);
     CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = []; renderLmList();
     await rebuildCT();
     if (CT.src) $('#caseName').value = CT.src.label;
@@ -2454,7 +2491,7 @@ async function loadCaseZip(data) {
     const meta = JSON.parse(await jf.async('string')), Q = await vf.async('uint8array');
     if (meta.format !== 'cens-case' || Q.length !== meta.dims[0] * meta.dims[1] * meta.dims[2]) throw new Error('archivo de caso dañado o de otra versión');
     const C = new Int16Array(Q.length), sc = meta.hu.scale, of = meta.hu.offset; for (let i = 0; i < Q.length; i++) C[i] = Q[i] * sc + of;
-    Object.assign(CT, { C, cd: meta.dims, cs: meta.spacing, cO: V(...meta.origin), cx: meta.cx, tipP: meta.tipP, tipS: meta.tipS, caseMeta: meta });
+    Object.assign(CT, { C, cd: meta.dims, cs: meta.spacing, cO: V(...meta.origin), cx: meta.cx, tipP: meta.tipP, tipS: meta.tipS, caseMeta: meta, cur: null });
     if (meta.iso) { CT.iso = meta.iso; $('#iso').value = meta.iso; $('#isoV').textContent = meta.iso; }
     CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = [];
     await rebuildCT();
@@ -3752,7 +3789,7 @@ const sideName = s => s === 'D' ? 'Derecha' : 'Izquierda';
 function annotStart(sides) {
   ANNOT.on = true; ANNOT.i = 0; ANNOT.done = []; ANNOT.skipped = []; ANNOT.vars = {};
   ANNOT.seq = sides.flatMap(sd => PROTO.map(it => ({ ...it, sd })));
-  CT.mark = false; if (window.__ctDrainReady && FR.on) frEnd();
+  CT.mark = false; if (window.__ctDrainReady && FR.on) frEnd(); setFree(true, true);
   if (!state.xray && typeof setXray === 'function') setXray(true);
   annotShow();
 }
@@ -3762,7 +3799,7 @@ function annotShow() {
     box.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => annotStart(b.dataset.s.split(','))); return; }
   if (ANNOT.i < ANNOT.seq.length) {
     const it = ANNOT.seq[ANNOT.i], sameSide = ANNOT.seq.filter(x => x.sd === it.sd), k = sameSide.indexOf(it) + 1;
-    box.innerHTML = `<b>${sideName(it.sd)} ${k}/${sameSide.length} · ${LM_TYPES[it.t][0]}</b><br>${it.d}<br><span class="mut">Corte sugerido: ${it.pl}. Hacé clic en el corte.</span>
+    box.innerHTML = `<b>${sideName(it.sd)} ${k}/${sameSide.length} · ${LM_TYPES[it.t][0]}</b><br>${it.d}<br><span class="mut">Corte sugerido: ${it.pl}. Buscalo con la rueda o la barra del corte (clic derecho mueve la cruz sin marcar) y hacé clic sobre la estructura: vale hueso, mucosa o aire.</span>
       <div class="row"><button id="anSkip">Saltar (no existe / no se ve)</button><button id="anBack">Atrás</button><button id="anStop">Terminar</button></div>`;
     $('#anSkip').onclick = () => { ANNOT.skipped.push({ tipo: it.t, lado: it.sd }); ANNOT.done.push(null); ANNOT.i++; annotShow(); };
     $('#anBack').onclick = annotBack; $('#anStop').onclick = () => { ANNOT.i = ANNOT.seq.length; annotShow(); };
@@ -3862,7 +3899,7 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+window.__sim = { setFree, moveCur, sliceLPS, ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

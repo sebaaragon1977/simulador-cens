@@ -45,3 +45,9 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - Cirugía guiada "Órbita: recto medial y nervio óptico (anatomía)" y paradas 30–31 del recorrido.
 - **Modo TC: "Marcar receso frontal (guiado)"**: se marcan axila, agger, barra vertical, ostium frontal y bulla sobre la TC del paciente y se dibuja la vía de drenaje animada, medial o lateral a la unciforme.
 
+## Hueso sobre carótida y óptico, drill de a capas y Fantoma 3
+- Dentro del seno esfenoidal, la **carótida y el nervio óptico** están cubiertos por una lámina ósea fina (se ven sus improntas). Se puede fresar o resecar; la lesión se avisa recién al atravesarla.
+- **Drill**: gasta de a capas finas (~0,1 mm por pasada); hay que insistir sobre la zona para profundizar.
+- **Fantoma 3 · angiofibroma** (`?fantoma=3`): angiofibroma juvenil nasofaríngeo derecho en la fosa nasal posterior y la rinofaringe. Pasa por el foramen esfenopalatino a la fosa pterigopalatina (irrigado por la maxilar interna) e invade el basiesfenoides.
+- Cirugía guiada "Angiofibroma juvenil: resección endoscópica" (9 pasos): antrostomía amplia, pared posterior del seno maxilar, fosa pterigopalatina, control de la maxilar interna, resección pterigopalatina y nasal, fresado del basiesfenoides y del remanente. Si se reseca sin controlar la maxilar interna, sangra mucho.
+

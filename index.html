@@ -96,7 +96,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ph3" title="Angiofibroma juvenil nasofaríngeo">Fantoma 3 · angiofibroma</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -369,7 +369,7 @@ const M = {
   artery: mat('#a4121b', { rough: 0.28 }), optic: mat('#efe5c6', { map: false }), carotid: mat('#c57487'),
   sella: mat('#dbae9b'), sellaC: mat('#e0c0a8', { cut: true }), duraC: mat('#a3a8c8', { cut: true, map: false }),
   gland: mat('#e7a96f', { rough: 0.45 }), nerve: mat('#f2e9c4', { map: false, rough: 0.5 }), cs: mat('#4b2b5e', { rough: 0.3 }),
-  fatC: mat('#efc94e', { cut: true, map: false, rough: 0.45 }), muscle: mat('#a9463d'), sacC: mat('#c98aa8', { cut: true }), boneN: mat('#d9b49a', { map: false }), globe: mat('#f2efe8', { map: false, rough: 0.3 }),
+  fatC: mat('#efc94e', { cut: true, map: false, rough: 0.45 }), muscle: mat('#a9463d'), jnaC: mat('#9a3a5c', { cut: true, rough: 0.35 }), sacC: mat('#c98aa8', { cut: true }), boneN: mat('#d9b49a', { map: false }), globe: mat('#f2efe8', { map: false, rough: 0.3 }),
   dark: patchCut(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide })),
   darkN: patchSurf(new THREE.MeshStandardMaterial({ color: '#1c0505', roughness: 1, side: THREE.DoubleSide }), false)
 };
@@ -464,6 +464,8 @@ const INFO = {
   maxpost: ['Pared posterior del seno maxilar', 'Se fresa para el abordaje transmaxilar a la fosa pterigopalatina.'],
   opticcan: ['Prominencia del nervio óptico (canal óseo)', 'El nervio está cubierto por una lámina ósea fina: se ve su impronta en la pared superolateral del seno. Puede fresarse con cuidado (descompresión) o resecarse con la pinza; debajo aparece el nervio.'],
   carcan: ['Prominencia carotídea (hueso)', 'La carótida está cubierta por una lámina ósea fina (a veces dehiscente): se ve su impronta paraselar y paraclival. Fresar de a capas y sin calor; debajo aparece la arteria.'],
+  jna: ['Angiofibroma juvenil nasofaríngeo', 'Tumor muy vascularizado de varones adolescentes. Nace en el borde superior del foramen esfenopalatino; crece hacia la fosa nasal posterior y la rinofaringe, hacia lateral por el foramen a la fosa pterigopalatina (la ensancha y abomba la pared posterior del seno maxilar: signo de Holman-Miller) y hacia atrás al basiesfenoides y la base de las apófisis pterigoides (sitio principal de recidiva). Irrigación: maxilar interna (y vidiana). Embolización prequirúrgica 24–72 h antes.'],
+  basisph: ['Basiesfenoides (base de las pterigoides)', 'El tumor invade el hueso esponjoso del basiesfenoides y el conducto vidiano: se fresa hasta hueso sano para no dejar remanente (la recidiva aparece acá).'],
   sphlat: ['Pared lateral del esfenoides', 'Con las prominencias del nervio óptico y de la carótida; detrás, el seno cavernoso.'],
   sphpost: ['Pared posterior del esfenoides', 'Silla turca en el centro, clivus abajo y carótida paraclival a los lados.'],
   sphfloor: ['Piso del esfenoides', 'Debajo corre el conducto vidiano.'],
@@ -622,6 +624,15 @@ function overlay(geom, color, op = 0.55) {
    (bulla grande con receso retrobullar corto, lamela basal a ~11 mm de la cara del esfenoides) y todo lo posterior
    (esfenoides, silla, carótida, seno cavernoso, fosas pterigopalatina e infratemporal) se adelanta 14,5 mm. */
 const PH2 = new URLSearchParams(location.search).get('fantoma') === '2';
+// Fantoma 3: genérico + angiofibroma juvenil nasofaríngeo (lado derecho)
+const PH3 = new URLSearchParams(location.search).get('fantoma') === '3';
+const JNA = { imaOK: false, imaT: 0,
+  lobes: [ { c: [8.2, 17.5, -59], r: [5.6, 5.8, 9.5] },      // componente nasal: fosa posterior y rinofaringe
+           { c: [15.6, 20.2, -61], r: [3.0, 2.6, 2.6] },     // cuello en el foramen esfenopalatino (origen)
+           { c: [21.2, 20.0, -60], r: [4.4, 6.5, 5.6] },     // componente pterigopalatino (ensancha la fosa)
+           { c: [9.0, 16.8, -71], r: [4.6, 2.6, 5.0] } ],    // invasión del basiesfenoides
+  inside(p, r) { return this.lobes.some(L => ((p.x - L.c[0]) / (L.r[0] + r * 0.5)) ** 2 + ((p.y - L.c[1]) / (L.r[1] + r * 0.5)) ** 2 + ((p.z - L.c[2]) / (L.r[2] + r * 0.5)) ** 2 < 1); } };
+const JNA_ART = [[8.2, 17.5, -59], [15.6, 20.2, -61], [21.2, 20, -60], [24, 21.5, -60]];
 const WZK = PH2 ? [[-28, -28], [-40.8, -39.4], [-43, -40.5], [-50, -45.5], [-66, -51.5]] : null;
 function WZ(z) {   // coordenada de diseño → fantoma
   if (!WZK || z >= WZK[0][0]) return z;
@@ -811,7 +822,15 @@ function buildAnatomy() {
   add(tube(N3, 0.9), M.nerve, 'n3'); add(tube(N4, 0.5), M.nerve, 'n4'); add(tube(N5_1, 1.0), M.nerve, 'v1');
   add(tube(N6, 0.7), M.nerve, 'n6'); add(tube(V2N, 1.2, 60), M.nerve, 'v2'); add(tube(VIDN, 0.8, 50), M.nerve, 'vid');
   // fosa pterigopalatina (grasa) y fosa infratemporal
-  openBox([17.2, 26], [12, 32], [-66, -54.3], ['z1', 'x1', 'z0'], M.fatC, 'ppf');
+  openBox([17.2, 26], [12, 32], [-66, -54.3], ['z1', 'x1', 'z0', 'x0'], M.fatC, 'ppf');   // sin cara medial: no se transparenta por la pared lateral
+  if (PH3) {
+    JNA.lobes.forEach((L, i) => add(ellipsoid(L.c, L.r, 48), M.jnaC, 'jna', { noMirror: true, map: i === 0 || i === 2 ? { t: 'e', c: L.c, r: L.r, col: '#c0507a', n: 'AJ' } : undefined }));
+    // basiesfenoides engrosado bajo el piso del esfenoides (techo de la rinofaringe): se fresa para resecar la invasión
+    add(quad([2, 15, -66.2], [15, 15, -66.2], [2, 19, -66.2], 0.15), M.bone, 'basisph', { noMirror: true });
+    add(quad([2, 15, -66.2], [15, 15, -66.2], [2, 15, -80], 0.2), M.bone, 'basisph', { noMirror: true });
+    add(quad([15, 15, -66.2], [15, 15, -80], [15, 19, -66.2], 0.15), M.bone, 'basisph', { noMirror: true });
+    add(quad([2, 15, -80], [15, 15, -80], [2, 19, -80], 0.1), M.bone, 'basisph', { noMirror: true });
+  }
   add(quad([17.2, 12, -66], [26, 12, -66], [17.2, 32, -66], 0.2), M.bone, 'pterygbase');
   add(disc([22, 24, -65.85], 1.7, 1.7, 'z+'), M.darkN, 'frotundum');
   add(disc([18.6, 18, -65.85], 1.0, 1.0, 'z+'), M.darkN, 'vidcanal');
@@ -922,6 +941,7 @@ const ANCHORS = [
   ['torus', [13, 10, -84]], ['np', [4, 9, -78]], ['septsph', [6, 30, -73]]
 ].map(([k, p]) => ({ key: k, p: V(...p), el: null }));
 if (PH2) ANCHORS.forEach(a => a.p.z = WZ(a.p.z));
+if (PH3) ANCHORS.push({ key: 'jna', p: V(6.6, 23, -55), el: null }, { key: 'jna', p: V(21, 24, -55), el: null }, { key: 'basisph', p: V(9, 15.2, -70), el: null });
 
 /* ============================== RIESGOS ============================== */
 function distSeg(p, a, b) { const ab = b.clone().sub(a), t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1); return p.distanceTo(a.clone().addScaledVector(ab, t)); }
@@ -940,6 +960,7 @@ const DANGERS = [
   { id: 'supra', test: (p, r) => p.x < 6 && p.y + r * 0.5 > 36.8 && p.z < -87 && p.z > -97, msg: 'Diafragma selar / cisterna supraselar: riesgo de fístula de LCR.', bad: 2 },
   { id: 'clivdura', test: (p, r) => p.x < 12 && p.y > 6 && p.y < 26.5 && p.z - r * 0.5 < -95.4, msg: 'Duramadre del clivus abierta: detrás la arteria basilar y el tronco; fístula de LCR.', bad: 2 },
   { id: 'basilar', test: (p, r) => distPoly(p, BASILAR) < 2.0 + r * 0.6, msg: '¡Lesión de la arteria basilar! Hemorragia catastrófica.', art: BASILAR, name: 'Arteria basilar', rate: 8, max: 30, bad: 3 },
+  { id: 'jnableed', test: (p, r) => PH3 && !JNA.imaOK && p.x > 0 && JNA.inside(p, r), msg: 'Sangrado profuso del angiofibroma: controlá primero la maxilar interna (bipolar/clip) en la fosa pterigopalatina.', art: JNA_ART, name: 'Angiofibroma', rate: 4.2, max: 24 },
   { id: 'ima', test: (p, r) => distPoly(p, IMA) < 1.1 + r * 0.6, msg: 'Lesión de la arteria maxilar interna: sangrado arterial profuso en la fosa pterigopalatina.', art: IMA, name: 'A. maxilar interna', rate: 3.8, max: 20 },
   { id: 'dpa', test: (p, r) => distPoly(p, DPA) < 0.7 + r * 0.6, msg: 'Lesión de la arteria palatina descendente: sangrado.', art: DPA, name: 'A. palatina descendente', rate: 2.2, max: 14 },
   { id: 'ioa', test: (p, r) => distPoly(p, IOA) < 0.6 + r * 0.6, msg: 'Lesión de la arteria infraorbitaria: sangrado.', art: IOA, name: 'A. infraorbitaria', rate: 1.6, max: 12 },
@@ -976,7 +997,7 @@ function checkDanger(lp, r) {
   if (state.prepping) return;
   if (state.model === 'ct') { checkDangerCT(lp, r); return; }
   const pm = V(Math.abs(lp.x), lp.y, WZi(lp.z)), sx = lp.x < 0 ? -1 : 1;
-  for (const d of DANGERS) if (d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; q.z = WZ(q.z); addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
+  for (const d of DANGERS) if (!(PH3 && JNA.imaOK && (d.id === 'spa' || d.id === 'ima')) && d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; q.z = WZ(q.z); addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
 }
 function reportDanger(d) {
   const now = performance.now();
@@ -2238,11 +2259,11 @@ function setModel(m) {
   resetCuts(); setXray(state.xray); placeAnatomy(); lookKey = '__';
   if (m === 'ct') placeScopeStart(); else goTo(TOUR[0]);
 }
-function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; if (id === 'model' && v === 'generic' && PH3) v = 'ph3'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
 document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'ph1') { location.href = 'basico.html'; return; }
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
-  else if ((b.dataset.v === 'ph2') !== PH2) { const u = new URL(location.href); if (PH2) u.searchParams.delete('fantoma'); else u.searchParams.set('fantoma', '2'); location.href = u.toString(); }
+  else if ((b.dataset.v === 'ph2') !== PH2 || (b.dataset.v === 'ph3') !== PH3) { const u = new URL(location.href), f = b.dataset.v === 'ph2' ? '2' : b.dataset.v === 'ph3' ? '3' : null; if (f) u.searchParams.set('fantoma', f); else u.searchParams.delete('fantoma'); location.href = u.toString(); }
   else setModel('generic');
 });
 $('#btnFolder').onclick = () => $('#inFolder').click();
@@ -2495,6 +2516,10 @@ function updateToolAction(dt) {
   }
   if (state.tool === 'freer') { const q = state.vr ? anatomy.worldToLocal(tipWorld.clone()) : lp; if (Math.abs(q.x) < 3.5) dissect(V(q.x < 0 ? -0.8 : 0.8, q.y, q.z)); else if (flaps.some(f => f.lat)) dissectLat(q); return; }
   if (state.tool === 'aspirador') { suctionOn = true; suctionTipL.copy(lp); return; }
+  if (PH3 && !JNA.imaOK && (state.tool === 'bipolar' || state.tool === 'monopolar') && lp.x > 0 && distPoly(lp, IMA) < 2.6 && lp.x > 22) {
+    JNA.imaT += dt;
+    if (JNA.imaT > 1.0) { JNA.imaOK = true; toast('✔ Maxilar interna controlada: el tumor va a sangrar mucho menos.', 5000); haptic(0.5, 120); }
+  }
   if (state.tool === 'bipolar' || state.tool === 'monopolar') {
     const isMono = state.tool === 'monopolar', now = performance.now();
     if (now - lastFx > 110) { lastFx = now; addBurn(lp, isMono ? 1.9 : 1.0); spawnSmoke(lp); thermalDanger(lp, isMono); haptic(0.12, 15); }
@@ -3265,6 +3290,17 @@ const PROCS = {
     { t: 'Identificá el nervio óptico', d: 'Dentro del cono muscular, superolateral al recto medial. Seguilo hacia atrás, hacia el ápex.', hl: 'opticorb', view: { pos: [9, 37, -54], target: [19.5, 39, -67], angle: 30, roll: 0 }, check: LOOK('opticorb') },
     { t: 'Seguilo hasta el esfenoides', d: 'Entra al conducto óptico y hace la prominencia en la pared superolateral del seno esfenoidal, por encima del receso opticocarotídeo.', hl: 'optic', check: LOOK(['optic', 'ocr']) }
   ] },
+  jna: { name: 'Angiofibroma juvenil: resección endoscópica', only: 'ph3', steps: [
+    { t: 'Identificá el angiofibroma', d: 'Masa violácea, lisa y muy vascularizada en la fosa nasal posterior, detrás de la cola de los cornetes. Nace en el foramen esfenopalatino.', hl: 'jna', view: { pos: [3.2, 12.5, -34], target: [8, 16.5, -58], angle: 0 }, tool: 'none', check: LOOK('jna') },
+    { t: 'Antrostomía maxilar amplia', d: 'Uncinectomía y antrostomía llevada hacia atrás hasta la pared posterior del seno (abordaje transmaxilar).', hl: 'font', view: { pos: [9, 18, -26], target: [17, 18, -42], angle: 30, roll: -90 }, tool: 'pinza', check: CUT('font', [16.5, 17.5, 13, 24, -50, -30], 0.4, 1) },
+    { t: 'Resecá la pared posterior del seno maxilar', d: 'Con pinza o drill, en su porción medial: está abombada por el tumor (signo de Holman-Miller).', hl: 'maxpost', view: { pos: [19, 18, -36], target: [22, 19, -56], angle: 0 }, tool: 'pinza', check: CUT('maxpost', [18, 26, 12, 25.5, -55, -53], 0.4, 1) },
+    { t: 'Abrí la fosa pterigopalatina', d: 'Incidí el periostio y la grasa: aparece el componente pterigopalatino del tumor.', hl: 'ppf', tool: 'pinza', check: CUT('ppf', [17.2, 26, 13, 28, -56.5, -54], 0.3, 1) },
+    { t: 'Controlá la arteria maxilar interna', d: 'Lateral al tumor, en la fosa pterigopalatina: coagulá con bipolar (o clip) su trayecto antes de resecar. Es la irrigación principal.', hl: 'ima', view: { pos: [20, 19, -42], target: [25, 21, -60], angle: 0 }, tool: 'bipolar', check: { fn: () => JNA.imaOK } },
+    { t: 'Resecá el componente pterigopalatino', d: 'Disecá el tumor de la fosa y traelo hacia medial, hacia la fosa nasal.', hl: 'jna', tool: 'pinza', check: CUT('jna', [16.8, 26, 13, 27, -66, -54], 0.45, 1) },
+    { t: 'Resecá el componente nasal', d: 'Liberá el pedículo en el foramen esfenopalatino y retirá la masa de la fosa posterior y la rinofaringe.', hl: 'jna', view: { pos: [3.2, 12.5, -34], target: [8, 16.5, -58], angle: 0 }, tool: 'pinza', check: CUT('jna', [2, 14, 11, 24, -69, -50], 0.5, 1) },
+    { t: 'Fresá el basiesfenoides', d: 'El tumor invade el hueso de la base de las pterigoides y del esfenoides: fresá de a capas hasta hueso sano. Cuidado con el nervio vidiano y la carótida.', hl: 'basisph', view: { pos: [5, 15, -46], target: [9, 16.5, -70], angle: 0 }, tool: 'drill', check: CUT('basisph', [2, 15, 14.5, 19.2, -80, -66], 0.2, 1) },
+    { t: 'Resecá el remanente del basiesfenoides', d: 'Retirá el tumor que quedaba dentro del hueso: es el sitio principal de recidiva. Revisá la hemostasia.', hl: 'jna', tool: 'pinza', check: CUT('jna', [4, 14, 13.5, 20, -76.5, -66], 0.55, 1) }
+  ] },
   hemo: { name: 'Control de sangrado de la etmoidal anterior', prep: 'hemo', after: () => addBleed('aea1', 'A. etmoidal anterior', V(12, 44.85, -30), 2.6, 16), steps: [
     { t: 'Coagulá la arteria', d: 'Bipolar sobre el punto que sangra en el techo etmoidal (si no lo ves, aspirá primero).', hl: 'aea', view: 10, tool: 'bipolar', check: { fn: () => !bleeds.some(b => b.active) } },
     { t: 'Aspirá la sangre', d: 'Aspirador sobre la sangre acumulada hasta dejar el campo limpio.', tool: 'aspirador', check: { fn: () => bleeds.length === 0 } }
@@ -3310,7 +3346,8 @@ Object.assign(PROCS, {
   perf_rod: { name: 'Perforación grande anterior · racket-on-donut (Alobid)', guide: 'perf', after: () => makePerforation('antL'), steps: perfSteps('rod'), finish: perfFinish },
   perf_plnw: { name: 'Perforación grande · colgajo de pared lateral (Alobid)', guide: 'perf', after: () => makePerforation('largeL'), steps: perfSteps('plnw'), finish: perfFinish }
 });
-$('#procSel').innerHTML = Object.entries(PROCS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+$('#procSel').innerHTML = Object.entries(PROCS).filter(([k, v]) => !v.only || (v.only === 'ph3' && PH3)).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+if (PH3) $('#procSel').value = 'jna';
 const G = { on: false, proc: null, i: 0, t0: 0, hold: 0, wait: 0, done: false, chk: 0 };
 // anillo naranja que señala la estructura objetivo
 const hl = new THREE.Group(); anatomy.add(hl);
@@ -3598,6 +3635,7 @@ addEventListener('resize', onResize); onResize();
 let last = performance.now(), frameN = 0;
 placeAnatomy();
 goTo(TOUR[0]); state.anim.t = 1;
+if (PH3) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Fantoma 3 (angiofibroma)'; setTimeout(() => toast('Fantoma 3: angiofibroma juvenil nasofaríngeo derecho. Ocupa la fosa nasal posterior, pasa por el foramen esfenopalatino a la fosa pterigopalatina e invade el basiesfenoides. Hacé la resección en Cirugía guiada.', 9000), 600); }
 if (PH2) { segOn('model', 'generic'); setAtlas(true); $('h1').textContent = 'Simulador CENS · Fantoma 2'; setTimeout(() => toast('Fantoma 2: proporciones del promedio de TC normales. Etmoides más corto (bulla grande, receso retrobullar corto, lamela basal oblicua a ~11 mm del esfenoides) y arterias etmoidales según la regla 24-12-6. Colores de atlas activados (podés pasar a mucosa).', 9000), 800); }
 renderer.setAnimationLoop(() => {
   if (state.busy && !state.vr) return;   // durante la carga de la TC se pausa el render para acelerar

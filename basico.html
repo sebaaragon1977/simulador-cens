@@ -96,7 +96,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="generic" class="on" title="El fantoma original">Fantoma 1 · básico</button><button data-v="gen" title="Abre el genérico actual">Genérico</button><button data-v="ph2" title="Abre el Fantoma 2">Fantoma 2</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="generic" class="on" title="El fantoma original">Fantoma 1 · básico</button><button data-v="gen" title="Abre el genérico actual">Genérico</button><button data-v="ph2" title="Abre el Fantoma 2">Fantoma 2</button><button data-v="ph3" title="Abre el Fantoma 3 (angiofibroma juvenil)">Fantoma 3 · angiofibroma</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -765,7 +765,7 @@ function buildAnatomy() {
   add(tube(N3, 0.9), M.nerve, 'n3'); add(tube(N4, 0.5), M.nerve, 'n4'); add(tube(N5_1, 1.0), M.nerve, 'v1');
   add(tube(N6, 0.7), M.nerve, 'n6'); add(tube(V2N, 1.2, 60), M.nerve, 'v2'); add(tube(VIDN, 0.8, 50), M.nerve, 'vid');
   // fosa pterigopalatina (grasa) y fosa infratemporal
-  openBox([17.2, 26], [12, 32], [-66, -54.3], ['z1', 'x1', 'z0'], M.fatC, 'ppf');
+  openBox([17.2, 26], [12, 32], [-66, -54.3], ['z1', 'x1', 'z0', 'x0'], M.fatC, 'ppf');   // sin cara medial: no se transparenta por la pared lateral
   add(quad([17.2, 12, -66], [26, 12, -66], [17.2, 32, -66], 0.2), M.bone, 'pterygbase');
   add(disc([22, 24, -65.85], 1.7, 1.7, 'z+'), M.darkN, 'frotundum');
   add(disc([18.6, 18, -65.85], 1.0, 1.0, 'z+'), M.darkN, 'vidcanal');
@@ -2164,6 +2164,7 @@ function segOn(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => 
 document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'gen') { location.href = 'index.html'; return; }
   if (b.dataset.v === 'ph2') { location.href = 'index.html?fantoma=2'; return; }
+  if (b.dataset.v === 'ph3') { location.href = 'index.html?fantoma=3'; return; }
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
   else setModel('generic');
 });

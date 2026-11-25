@@ -2339,7 +2339,7 @@ function drawSlices(force) {
       const col = '#' + LM_TYPES[lm.type][2].toString(16).padStart(6, '0');
       if (lm.pts && lm.pts.length > 1) {
         g.strokeStyle = col; g.lineWidth = Math.max(1.5, W / 320); g.globalAlpha = 0.45; g.setLineDash([5, 4]); g.beginPath();
-        lm.pts.forEach((q, n) => { const [x, y] = P2(q.x, -q.z, q.y); n ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+        for (const run of lmRuns(lm)) run.forEach((q, n) => { const [x, y] = P2(q.x, -q.z, q.y); n ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
         for (const q of lm.pts) { if (sp.depth(q.x, -q.z, q.y) > 3) continue; const [x, y] = P2(q.x, -q.z, q.y); g.fillStyle = col; g.beginPath(); g.arc(x, y, Math.max(3.5, W / 170), 0, 7); g.fill(); }
         continue;
       }
@@ -2466,14 +2466,27 @@ function retypeLm(lm, t) {
 }
 /* ---- Trayecto: varios puntos para una misma estructura ---- */
 const TRACE = { lm: null };
+function mergeGeoms(gs) {   // une geometrías no indexadas (sólo posición y normal)
+  const arr = gs.map(g => g.index ? g.toNonIndexed() : g); let n = 0; arr.forEach(g => n += g.attributes.position.count);
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3); let o = 0;
+  for (const g of arr) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; g.dispose(); }
+  const m = new THREE.BufferGeometry(); m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); return m;
+}
 function lmGeom(lm) {
   const T = LM_TYPES[lm.type], r = Math.max(T[1], 1.2);
   if (lm.pts && lm.pts.length > 1) {
-    const curve = new THREE.CatmullRomCurve3(lm.pts.map(q => q.clone()), false, 'centripetal');
-    lm.mesh.geometry.dispose(); lm.mesh.geometry = new THREE.TubeGeometry(curve, Math.max(8, lm.pts.length * 10), Math.max(T[1] * 0.6, 0.8), 10, false); lm.mesh.position.set(0, 0, 0);
+    const parts = lmRuns(lm).map(run => run.length > 1 ? new THREE.TubeGeometry(new THREE.CatmullRomCurve3(run.map(q => q.clone()), false, 'centripetal'), Math.max(6, run.length * 8), Math.max(T[1] * 0.6, 0.8), 8, false)
+      : new THREE.SphereGeometry(Math.max(T[1] * 0.6, 0.9), 10, 8).translate(run[0].x, run[0].y, run[0].z));
+    lm.mesh.geometry.dispose(); lm.mesh.geometry = mergeGeoms(parts); lm.mesh.position.set(0, 0, 0);
   } else { lm.mesh.geometry.dispose(); lm.mesh.geometry = new THREE.SphereGeometry(r, 16, 12); lm.mesh.position.copy(lm.p); }
 }
-function lmLen(lm) { let d = 0; for (let i = 1; i < (lm.pts || []).length; i++) d += lm.pts[i].distanceTo(lm.pts[i - 1]); return d; }
+const LINEAR = ['aea', 'pea', 'spa', 'optic', 'carotid', 'nld'];   // estructuras con trayecto; el resto se marca como contorno
+function lmRuns(lm) {   // separa el trazado donde salta de corte (más de 5 mm entre puntos seguidos)
+  const P = lm.pts || [lm.p], runs = [[P[0]]];
+  for (let i = 1; i < P.length; i++) { if (P[i].distanceTo(P[i - 1]) > 5) runs.push([]); runs[runs.length - 1].push(P[i]); }
+  return runs;
+}
+function lmLen(lm) { let d = 0; for (const r of lmRuns(lm)) for (let i = 1; i < r.length; i++) d += r[i].distanceTo(r[i - 1]); return d; }
 function traceStart(lm) {
   TRACE.lm = lm; if (!lm.pts) lm.pts = [lm.p.clone()];
   if (!FULL.on) setFull(true); traceBanner();
@@ -2486,10 +2499,10 @@ function traceAdd(p) {
   sliceKey = ''; traceBanner(); if (window.__ctDrainReady) updateCtDrain();
 }
 function traceUndo() { const lm = TRACE.lm; if (!lm || lm.pts.length < 2) return; lm.pts.pop(); lmGeom(lm); CT.ptsN = (CT.ptsN || 0) + 1; sliceKey = ''; traceBanner(); }
-function traceEnd() { const lm = TRACE.lm; TRACE.lm = null; renderLmList(); updBanner(); if (lm && CT.landmarks.includes(lm) && lm.pts.length > 1) toast(`Trayecto guardado: ${LM_TYPES[lm.type][0]}, ${lm.pts.length} puntos, ${lmLen(lm).toFixed(1)} mm.`); }
+function traceEnd() { const lm = TRACE.lm; TRACE.lm = null; renderLmList(); updBanner(); if (lm && CT.landmarks.includes(lm) && lm.pts.length > 1) toast(`Guardado: ${LM_TYPES[lm.type][0]}, ${lm.pts.length} puntos` + (LINEAR.includes(lm.type) ? `, ${lmLen(lm).toFixed(1)} mm.` : ` en ${lmRuns(lm).length} cortes.`)); }
 function traceBanner() {
   const lm = TRACE.lm; if (!lm) return updBanner();
-  $('#ctBanner').innerHTML = `Trayecto de <b class="big">${LM_TYPES[lm.type][0]}</b>${lm.side ? ' · lado ' + (lm.side === 'D' ? 'derecho' : 'izquierdo') : ''} · <b>${lm.pts.length}</b> puntos · ${lmLen(lm).toFixed(1)} mm
+  $('#ctBanner').innerHTML = `${LINEAR.includes(lm.type) ? 'Trayecto' : 'Contorno'} de <b class="big">${LM_TYPES[lm.type][0]}</b>${lm.side ? ' · lado ' + (lm.side === 'D' ? 'derecho' : 'izquierdo') : ''} · <b>${lm.pts.length}</b> puntos · ${LINEAR.includes(lm.type) ? lmLen(lm).toFixed(1) + ' mm' : lmRuns(lm).length + ' cortes'}
     <span class="row" style="display:inline-flex;gap:6px;margin-left:10px"><button id="trUndo">Deshacer punto</button><button id="trEnd" class="mk">✓ Terminar trayecto</button></span><br><span class="mut">Clic en los cortes agrega puntos a esta misma estructura (pasá de corte con la rueda). Clic derecho mueve la cruz.</span>`;
   $('#trUndo').onclick = traceUndo; $('#trEnd').onclick = traceEnd;
 }
@@ -4015,7 +4028,7 @@ function annotShow() {
   box.querySelectorAll('select[data-k]').forEach(sel => { const set = () => { (ANNOT.vars[sel.dataset.sd] = ANNOT.vars[sel.dataset.sd] || {})[sel.dataset.k] = sel.value; }; set(); sel.onchange = set; });
   $('#anWho').oninput = e => ANNOT.who = e.target.value; $('#anNote').oninput = e => ANNOT.note = e.target.value;
   $('#anBack2').onclick = () => { const j = annotNext(0); ANNOT.i = j < ANNOT.seq.length ? j : 0; annotShow(); }; $('#anExp').onclick = annotExport;
-  $('#anKeros').innerHTML = sides.map(sd => { const k = kerosOf(sd); return k ? `Keros ${sideName(sd).toLowerCase()}: ${k.mm} mm → tipo ${k.tipo}` : ''; }).filter(Boolean).join('<br>');
+  $('#anKeros').innerHTML = sides.map(sd => { const k = kerosOf(sd); return k ? `Keros ${sideName(sd).toLowerCase()}: ${k.mm} mm → tipo ${k.tipo}${k.corte_P != null ? ` (corte P ${k.corte_P})` : ''}${k.aviso ? `<br><span style="color:#ffb36b">⚠ ${k.aviso}</span>` : ''}` : ''; }).filter(Boolean).join('<br>');
 }
 function annotPlace(p) {
   const it = ANNOT.seq[ANNOT.i];
@@ -4037,15 +4050,28 @@ function annotBack() {
 }
 function lmSide(t, sd) { const l = [...CT.landmarks].reverse().find(l => l.type === t && l.side === sd); return l ? l.p : null; }
 function kerosOf(sd) {
-  const c = lmSide('cribr', sd), f = lmSide('fovea', sd); if (!c || !f) return null;
-  const mm = Math.round((f.y - c.y) * 10) / 10;   // y = superior
-  return { mm, tipo: mm <= 0 ? 'revisar (fóvea no más alta que la cribosa)' : mm <= 3 ? 1 : mm <= 7 ? 2 : 3 };
+  // Por corte coronal: altura de la lamela lateral = extremo medial de la fóvea − punto más bajo de la cribosa (± 1,3 mm en P)
+  const all = t => CT.landmarks.filter(l => l.type === t && l.side === sd).flatMap(l => l.pts && l.pts.length ? l.pts : [l.p]);
+  const C = all('cribr'), F = all('fovea'); if (!C.length || !F.length) return null;
+  const tipo = mm => mm <= 0 ? 'revisar (la fóvea no queda más alta que la cribosa)' : mm <= 3 ? 1 : mm <= 7 ? 2 : 3;
+  const mid = CT.cx, per = [];
+  const Ps = [...new Set(F.map(q => Math.round(-q.z * 10) / 10))];
+  for (const P of Ps) {
+    const ff = F.filter(q => Math.abs(-q.z - P) < 0.3), cc = C.filter(q => Math.abs(-q.z - P) < 1.3); if (!ff.length || !cc.length) continue;
+    const fm = ff.reduce((a, b) => Math.abs(b.x - mid) < Math.abs(a.x - mid) ? b : a), cl = Math.min(...cc.map(q => q.y));
+    per.push({ P: +P.toFixed(1), mm: Math.round((fm.y - cl) * 10) / 10, fovea_lat_mm: +Math.abs(fm.x - mid).toFixed(1) });
+  }
+  if (!per.length) {   // sin cortes compartidos: primer punto de cada una
+    const mm = Math.round((F[0].y - C[0].y) * 10) / 10; return { mm, tipo: tipo(mm), metodo: 'primer punto (no hay cortes coronales compartidos)' };
+  }
+  const best = per.reduce((a, b) => b.mm > a.mm ? b : a), warn = per.some(p => p.fovea_lat_mm < 3.5) ? 'la fóvea quedó muy cerca de la línea media: revisá que no hayas marcado la cribosa o la lamela lateral' : undefined;
+  return { mm: best.mm, tipo: tipo(best.mm), corte_P: best.P, metodo: 'máximo por corte coronal', cortes: per, aviso: warn };
 }
 function annotExport() {
   if (!CT.C) { toast('Primero cargá una TC.'); return; }
   const xp = l => { const o = { tipo: l.type, nombre: LM_TYPES[l.type][0], L: +l.p.x.toFixed(2), P: +(-l.p.z).toFixed(2), S: +l.p.y.toFixed(2), UH: l.hu ? { punto: Math.round(l.hu.hu), media: l.hu.media, sd: l.hu.sd } : null };
     if (l.side) o.lado = l.side;
-    if (l.pts && l.pts.length > 1) { o.trayecto = l.pts.map(q => { const h = huAt(q.x, -q.z, q.y); return [+q.x.toFixed(2), +(-q.z).toFixed(2), +q.y.toFixed(2), h == null ? null : Math.round(h)]; }); o.longitud_mm = +lmLen(l).toFixed(1); }
+    if (l.pts && l.pts.length > 1) { o.trayecto = l.pts.map(q => { const h = huAt(q.x, -q.z, q.y); return [+q.x.toFixed(2), +(-q.z).toFixed(2), +q.y.toFixed(2), h == null ? null : Math.round(h)]; }); if (LINEAR.includes(l.type)) o.longitud_mm = +lmLen(l).toFixed(1); else o.contorno_cortes = lmRuns(l).length; }
     return o; };
   const pts = CT.landmarks.filter(l => l.proto).map(xp);
   const otras = CT.landmarks.filter(l => !l.proto).map(xp);

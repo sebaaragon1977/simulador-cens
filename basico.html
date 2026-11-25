@@ -1147,20 +1147,20 @@ lightPost.position.z = 0.115; scopeModel.add(lightPost);
 const camHead = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.06, 16).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x30343a }));
 camHead.position.z = 0.15; scopeModel.add(camHead);
 /* ---- Torre de endoscopía: el monitor pasa arriba de una torre, delante del cirujano ---- */
-const towerG = new THREE.Group(); towerG.position.set(0, 0, -1.6); vrRoom.add(towerG);
+const towerG = new THREE.Group(); towerG.position.set(-1.25, 0, -1.25); towerG.rotation.y = Math.PI / 4; vrRoom.add(towerG);   // en diagonal a la izquierda, casi de frente al cirujano
 {
   const k = 1.25; for (const m of [monitor, monitorR, bezel, hud]) { towerG.add(m); m.scale.setScalar(k); }
-  monitor.position.set(0, 2.1, 0); monitorR.position.set(0, 2.1, 0); bezel.position.set(0, 2.1, -0.025); hud.position.set(0, 2.74, 0.03);
-  for (const m of [monitor, monitorR, bezel, hud]) m.rotation.x = 0.16;   // alto, para verlo por encima de la cabeza del paciente
+  monitor.position.set(0, 1.62, 0); monitorR.position.set(0, 1.62, 0); bezel.position.set(0, 1.62, -0.025); hud.position.set(0, 2.25, 0.02);
+  for (const m of [monitor, monitorR, bezel, hud]) m.rotation.x = 0.04;
   const dark = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.55, metalness: 0.3 }), grey = new THREE.MeshStandardMaterial({ color: 0x9aa1aa, roughness: 0.45, metalness: 0.5 });
   const box = (w, h, d, x, y, z, m) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); towerG.add(o); return o; };
   box(0.75, 0.07, 0.62, 0, 0.09, -0.05, dark);                                   // base
   for (const [x, z] of [[-0.32, 0.2], [0.32, 0.2], [-0.32, -0.3], [0.32, -0.3]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.04, 14).rotateZ(Math.PI / 2), dark); w.position.set(x, 0.045, z); towerG.add(w); }
-  box(0.1, 1.62, 0.1, 0, 0.9, -0.28, grey);                                       // columna
-  box(0.66, 0.03, 0.5, 0, 1.58, -0.08, grey);                                     // estante superior
+  box(0.1, 1.15, 0.1, 0, 0.65, -0.28, grey);                                       // columna
+  box(0.66, 0.03, 0.5, 0, 1.6 - 0.47, -0.08, grey);                                     // estante superior
   const units = [['Cámara 3D', 0x1d2a3a, 0x4fd1a5], ['Fuente de luz', 0x2a2a2a, 0xfff2b0], ['Shaver / fresa', 0x262c33, 0x6ab7ff], ['Electrobisturí', 0x2e2a22, 0xffb36b], ['Aspiración', 0x22302a, 0x9fffd0]];
   units.forEach(([n, c, led], i) => {
-    const y = 0.32 + i * 0.25; box(0.62, 0.2, 0.46, 0, y, -0.06, new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.2 }));
+    const y = 0.22 + i * 0.2; box(0.62, 0.2, 0.46, 0, y, -0.06, new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.2 }));
     const l = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), new THREE.MeshBasicMaterial({ color: led })); l.position.set(0.24, y + 0.04, 0.175); towerG.add(l);
     const cv = document.createElement('canvas'); cv.width = 256; cv.height = 48; const g = cv.getContext('2d'); g.fillStyle = '#cfd8e0'; g.font = 'bold 28px system-ui'; g.fillText(n, 8, 34);
     const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
@@ -1186,11 +1186,17 @@ const restMat = new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 0.6
     g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.setIndex([0, 1, 3, 0, 3, 2, 1, 4, 3, 3, 4, 2, 0, 2, 1]); g.computeVertexNormals();
     const n = new THREE.Mesh(g, skinMat); n.material.side = THREE.DoubleSide; patientG.add(n);
   }
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(50, 56, 140, 32), skinMat); neck.position.set(0, -110, -88); patientG.add(neck);
-  ell(1, [0, -205, -120], [230, 62, 130], drapeMat);      // hombros bajo el campo
-  const drape = new THREE.Mesh(new THREE.PlaneGeometry(560, 300), drapeMat); drape.rotation.x = -Math.PI / 2 + 0.25; drape.position.set(0, -236, -260); patientG.add(drape);
-  const rest = new THREE.Mesh(new THREE.BoxGeometry(150, 130, 40), restMat); rest.position.set(0, 52, -196); patientG.add(rest);   // cabezal
-  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(12, 12, 270, 14), restMat); stalk.position.set(0, -110, -205); patientG.add(stalk);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(50, 56, 120, 32), skinMat); neck.position.set(0, -100, -95); patientG.add(neck);
+  // el cuerpo no gira con la cabeza: grupo con giro opuesto alrededor del eje del cuello
+  const body = new THREE.Group(); body.position.set(0, -110, -95); body.rotation.y = -15 * Math.PI / 180; patientG.add(body);
+  const bel = (c, r, m) => { const o = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 24), m); o.scale.set(...r); o.position.set(...c); body.add(o); return o; };
+  // a escala ×4 el tórax no entra en la sala: sólo un campo alrededor de la base del cuello
+  bel([0, -62, 8], [112, 40, 58], drapeMat);
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(240, 380), drapeMat); sheet.position.set(0, -260, 20); body.add(sheet);
+  const tableM = new THREE.MeshStandardMaterial({ color: 0x3d6b7a, roughness: 0.7, metalness: 0.1 });
+  const top = new THREE.Mesh(new THREE.BoxGeometry(170, 560, 26), tableM); top.position.set(0, -190, -108); body.add(top);
+  const rest = new THREE.Mesh(new THREE.BoxGeometry(150, 150, 22), restMat); rest.position.set(0, 60, -186); patientG.add(rest);   // cabezal bajo el occipucio
+  const ped = new THREE.Mesh(new THREE.BoxGeometry(90, 140, 70), restMat); ped.position.set(0, -280, -156); body.add(ped);       // pedestal de la camilla
 }
 patientG.traverse(o => o.layers.set(WORLD_LAYER));
 function updatePatient() {
@@ -1269,13 +1275,20 @@ function onTrigger(c, down) {
   if (state.tool === 'drill') drilling = down;
 }
 const S = () => state.S;
+// VR: paciente acostado boca arriba. Ejes locales: +x = izquierda del paciente, +y = superior, +z = anterior.
+// En el quirófano virtual: la derecha del paciente mira al cirujano (+z), la cabeza hacia la izquierda (−x), la cara al techo (+y),
+// con la cabeza rotada 15° hacia la derecha (hacia el cirujano).
+const VR_Q = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), 15 * Math.PI / 180)
+  .multiply(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0, 0, -1), V(-1, 0, 0), V(0, 1, 0))));
+const VR_ENTRY = V(-0.15, 1.06, -0.5);   // narina, delante del cirujano a la altura de las manos
 function placeAnatomy() {
   const s = state.S, sd = state.side, ct = state.model === 'ct';
   anatomy.scale.set(ct ? s : -sd * s, s, s);
   if (state.vr) {
-    const e = (ct ? CT.entry[sd] || V(0, 0, 0) : V(6, 14, 2)).clone().multiply(anatomy.scale);
-    anatomy.position.copy(V(0, 1.02, -0.28).sub(e));
-  } else anatomy.position.set(0, 0, 0);
+    anatomy.quaternion.copy(VR_Q);
+    const e = (ct ? CT.entry[sd] || V(0, 0, 0) : V(6, 14, 2)).clone().multiply(anatomy.scale).applyQuaternion(VR_Q);
+    anatomy.position.copy(VR_ENTRY.clone().sub(e));
+  } else { anatomy.position.set(0, 0, 0); anatomy.quaternion.identity(); }
   anatomy.updateMatrixWorld(true);
   instr.scale.setScalar(s);
 }

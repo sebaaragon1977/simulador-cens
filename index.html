@@ -176,7 +176,7 @@
     <b>Apuntar y navegar</b>: en <i>Explorar</i>, clic sobre un punto = el endoscopio gira y viaja hasta ahí (arrastrar = orientar). Con pinza/drill: <kbd>Alt</kbd>+clic o <kbd>N</kbd> (punto bajo el mouse) · <kbd>T</kbd> = viajar al centro de la cruz · cualquier tecla cancela<br>
     <b>Endoscopio</b>: <kbd>W</kbd>/<kbd>S</kbd> o rueda avanza/retrocede (hacia donde mira la óptica: con 70° mirando arriba, sube) · <kbd>A</kbd>/<kbd>D</kbd> lateral · <kbd>R</kbd>/<kbd>F</kbd> arriba/abajo · flechas o arrastre con botón derecho: orientar · <kbd>Z</kbd>/<kbd>X</kbd> rotar la óptica angulada · <kbd>O</kbd> cambiar óptica · <kbd>Shift</kbd> lento<br>
     <b>Instrumento</b>: la punta sigue al mouse · <kbd>1</kbd>–<kbd>9</kbd>, <kbd>0</kbd>, <kbd>U</kbd> (porta-agujas) cambiar · retrógrada: clic = muerde hacia adelante · palpador bolita: apoyar en la unciforme y arrastrar hacia el septum · pinza: clic = cortar · drill: mantener = fresar · bipolar/monopolar: mantener sobre el punto que sangra = coagular · aspirador: mantener = aspirar sangre · Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados = medializar/lateralizar · <kbd>Espacio</kbd> lavado-aspiración general<br>
-    <b>Quest 2</b>: control izquierdo = endoscopio (gatillo mantenido = viajar al punto que marca la cruz · stick ↑↓ = avanzar/retroceder hacia donde mira · stick ←→ = rotar óptica, X = cambiar óptica, grip = mover maqueta, Y = ver/ocultar maqueta) · control derecho = instrumento (gatillo = cortar/fresar, A = cambiar instrumento, B = estructuras de riesgo).
+    <b>Quest 2</b>: <b>control izquierdo = endoscopio</b>: moverlo orienta la óptica en todas las direcciones · stick ↑↓ = avanzar/retroceder dentro de la nariz · stick ←→ = rotar la óptica · <b>gatillo = cambiar de instrumento</b> · X = cambiar ángulo de óptica · Y = ver/ocultar maqueta · grip = mover maqueta · clic del stick (mantenido) = viajar al punto de la cruz. <b>Control derecho = instrumento</b>: moverlo lo dirige en todos los ángulos · stick ↑↓ = avanzar/retraer el instrumento · clic del stick = volver a la posición inicial · <b>gatillo = accionar</b> (cortar, fresar, coagular, aspirar…) · A = instrumento anterior · B = estructuras de riesgo.
   </div>
 </div>
 
@@ -1260,15 +1260,20 @@ function haptic(i, ms) {
   if (!state.vr) return;
   for (const c of ctrls) { const h = c.userData.gp && c.userData.gp.hapticActuators && c.userData.gp.hapticActuators[0]; if (h) try { h.pulse(i, ms); } catch (e) { } }
 }
-function onTrigger(c, down) {
-  if (c.userData.hand === 'left') {
-    if (down) {
+const VR_TOOLS = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'grasp', 'retro', 'ball', 'suture', 'none'];
+function vrCycleTool(step) {
+  if (drilling) drilling = false; using = false; if (typeof freerGrab !== 'undefined' && freerGrab) endFreer();
+  setTool(VR_TOOLS[(VR_TOOLS.indexOf(state.tool) + step + VR_TOOLS.length) % VR_TOOLS.length]); state.instrExt = 0; haptic(0.3, 30);
+}
+function vrFlyStart(down) {
+  if (down) {
       const h = pick(endoCam.position, viewDir(), 150 * state.S);
       state.vrFly = h ? anatomy.worldToLocal(h.point.clone()) : null;
       if (h) haptic(0.2, 20);
-    } else { if (state.vrFly) { marker.userData.last = anatomy.localToWorld(state.vrFly.clone()); state.markerT = 1; } state.vrFly = null; }
-    return;
-  }
+  } else { if (state.vrFly) { marker.userData.last = anatomy.localToWorld(state.vrFly.clone()); state.markerT = 1; } state.vrFly = null; }
+}
+function onTrigger(c, down) {
+  if (c.userData.hand === 'left') { if (down) vrCycleTool(1); return; }
   if (c.userData.hand !== 'right') return;
   if (state.tool === 'pinza' && down) doBite(tipWorld.clone(), 2.2);
   if (state.tool === 'retro' && down) doBiteRetro(tipWorld.clone());
@@ -1731,14 +1736,19 @@ function updateVR(dt) {
         const ay = gp.axes[3];
         if (Math.abs(ay) > 0.15) vrAdvance(viewDirFrom(_q), -ay * 15 * state.S * dt);
       }
+      { const now = btn(c, 3), was = !!c.userData.flyB; c.userData.flyB = now; if (now !== was) vrFlyStart(now); }
       if (edge(c, 4)) { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
       if (edge(c, 5)) { state.maqueta = !state.maqueta; if (state.maqueta) worldCam.layers.enable(0); else worldCam.layers.disable(0); }
       if (btn(c, 1)) { if (!grabOffset) grabOffset = anatomy.position.clone().sub(_p); anatomy.position.copy(_p).add(grabOffset); }
       else grabOffset = null;
     } else {
-      tipWorld.copy(_p).addScaledVector(fwd, 0.12);
+      if (gp && gp.axes.length >= 4) {
+        const ay = gp.axes[3]; if (Math.abs(ay) > 0.15) state.instrExt = THREE.MathUtils.clamp((state.instrExt || 0) - ay * 0.06 * dt, -0.06, 0.12);
+      }
+      if (edge(c, 3)) state.instrExt = 0;   // clic del stick: vuelve a la posición inicial
+      tipWorld.copy(_p).addScaledVector(fwd, 0.12 + (state.instrExt || 0));
       instr.position.copy(tipWorld); instr.quaternion.copy(_q);
-      if (edge(c, 4)) { const T = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'grasp', 'retro', 'ball', 'suture', 'none']; setTool(T[(T.indexOf(state.tool) + 1) % T.length]); }
+      if (edge(c, 4)) vrCycleTool(-1);   // A = instrumento anterior
       vrFwd.copy(fwd);
       if (edge(c, 5)) setXray(!state.xray);
       if (edge(c, 1) && state.tool === 'monopolar') setMono(state.monoMode === 'cut' ? 'coag' : 'cut');

@@ -67,3 +67,7 @@ En **TC del paciente → Modo anotación (protocolo)** se marcan, lado por lado,
 - **Nombre de cada marca**: después de cada clic aparece una ventanita para confirmar o cambiar la estructura. El nombre también se cambia desde la lista de marcas. El protocolo es una lista que se puede recorrer en cualquier orden.
 - **Trayectos**: con "➕ Seguir marcando su trayecto" una estructura junta varios puntos (por ejemplo, la arteria etmoidal anterior de lado a lado). Se dibuja como un tubo en 3D y una línea en los cortes. Las alertas de riesgo usan la distancia a todo el trayecto. La exportación incluye cada punto con sus UH y la longitud en mm.
 - **Unidades Hounsfield**: al pasar el mouse sobre los cortes se ven las UH y el tejido orientativo. Cada marca guarda sus UH (punto y media ± desvío en un cubo de 3×3×3 vóxeles).
+
+## Controles Quest 2 (v24)
+- **Izquierdo (endoscopio):** mover el control orienta la óptica. Stick ↑↓ avanza o retrocede dentro de la nariz y stick ←→ rota la óptica. **El gatillo cambia de instrumento.** X cambia el ángulo de la óptica, Y muestra u oculta la maqueta y el grip mueve la maqueta. Manteniendo apretado el clic del stick, el endoscopio viaja al punto de la cruz.
+- **Derecho (instrumento):** mover el control lo dirige. Stick ↑↓ avanza o retrae el instrumento sobre su eje (−6 a +12 cm) y el clic del stick lo vuelve al inicio. **El gatillo acciona** el instrumento: pinza, drill, bipolar, monopolar, aspirador, etc. A pasa al instrumento anterior y B muestra las estructuras de riesgo.

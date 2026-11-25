@@ -150,7 +150,7 @@
     <b>Apuntar y navegar</b>: en <i>Explorar</i>, clic sobre un punto = el endoscopio gira y viaja hasta ahí (arrastrar = orientar). Con pinza/drill: <kbd>Alt</kbd>+clic o <kbd>N</kbd> (punto bajo el mouse) · <kbd>T</kbd> = viajar al centro de la cruz · cualquier tecla cancela<br>
     <b>Endoscopio</b>: <kbd>W</kbd>/<kbd>S</kbd> o rueda avanza/retrocede (hacia donde mira la óptica: con 70° mirando arriba, sube) · <kbd>A</kbd>/<kbd>D</kbd> lateral · <kbd>R</kbd>/<kbd>F</kbd> arriba/abajo · flechas o arrastre con botón derecho: orientar · <kbd>Z</kbd>/<kbd>X</kbd> rotar la óptica angulada · <kbd>O</kbd> cambiar óptica · <kbd>Shift</kbd> lento<br>
     <b>Instrumento</b>: la punta sigue al mouse · <kbd>1</kbd>–<kbd>9</kbd>, <kbd>0</kbd>, <kbd>U</kbd> (porta-agujas) cambiar · retrógrada: clic = muerde hacia adelante · palpador bolita: apoyar en la unciforme y arrastrar hacia el septum · pinza: clic = cortar · drill: mantener = fresar · bipolar/monopolar: mantener sobre el punto que sangra = coagular · aspirador: mantener = aspirar sangre · Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados = medializar/lateralizar · <kbd>Espacio</kbd> lavado-aspiración general<br>
-    <b>Quest 2</b>: <b>control izquierdo = endoscopio</b>: moverlo orienta la óptica en todas las direcciones · stick ↑↓ = avanzar/retroceder dentro de la nariz · stick ←→ = rotar la óptica · <b>gatillo = cambiar de instrumento</b> · X = cambiar ángulo de óptica · Y = ver/ocultar maqueta · grip = mover maqueta · clic del stick (mantenido) = viajar al punto de la cruz. Con una sola fosa elegida, la óptica y el instrumento no cruzan el tabique ("Ambas fosas" lo habilita). <b>Control derecho = instrumento</b>: moverlo lo dirige en todos los ángulos · stick ↑↓ = avanzar/retraer el instrumento · clic del stick = volver a la posición inicial · <b>gatillo = accionar</b> (cortar, fresar, coagular, aspirar…) · A = instrumento anterior · B = estructuras de riesgo · <b>grip = 3D encendido/apagado</b> · en monopolar, el clic del stick cambia corte/coagulación.
+    <b>Quest 2</b>: <b>control izquierdo = endoscopio</b>: moverlo orienta la óptica en todas las direcciones · stick ↑↓ = avanzar/retroceder dentro de la nariz · stick ←→ = rotar la óptica · <b>gatillo = cambiar de instrumento</b> · X = cambiar ángulo de óptica · Y = ver/ocultar maqueta (<b>mantener Y 1,5 s = salir de VR</b>) · grip = mover maqueta · clic del stick (mantenido) = viajar al punto de la cruz. Con una sola fosa elegida, la óptica y el instrumento no cruzan el tabique ("Ambas fosas" lo habilita). <b>Control derecho = instrumento</b>: moverlo lo dirige en todos los ángulos · stick ↑↓ = avanzar/retraer el instrumento · clic del stick = volver a la posición inicial · <b>gatillo = accionar</b> (cortar, fresar, coagular, aspirar…) · A = instrumento anterior · B = estructuras de riesgo · <b>grip = 3D encendido/apagado</b> · en monopolar, el clic del stick cambia corte/coagulación.
   </div>
 </div>
 
@@ -1737,7 +1737,12 @@ function updateVR(dt) {
       { const L = 0.12 + (state.scopeExt || 0); scopeShaftM.scale.z = L / 0.12; lightPost.position.z = L - 0.005; camHead.position.z = L + 0.03; }
       { const now = btn(c, 3), was = !!c.userData.flyB; c.userData.flyB = now; if (now !== was) vrFlyStart(now); }
       if (edge(c, 4)) { const A = [0, 30, 45, 70]; setAngle(A[(A.indexOf(state.angle) + 1) % 4]); }
-      if (edge(c, 5)) { state.maqueta = !state.maqueta; if (state.maqueta) worldCam.layers.enable(0); else worldCam.layers.disable(0); }
+      { // Y: toque corto = ver/ocultar maqueta · mantener 1,5 s = salir de la realidad virtual
+        const u = c.userData, down = btn(c, 5);
+        if (down) { u.yT = (u.yT || 0) + dt; if (u.yT > 0.4 && !u.yExit) { hudWarn = `Saliendo de VR… soltá Y para cancelar (${Math.max(0, 1.5 - u.yT).toFixed(1)} s)`; hudWarnT = 0.3; }
+          if (u.yT >= 1.5 && !u.yExit) { u.yExit = true; haptic(0.8, 120); const ss = renderer.xr.getSession(); if (ss) ss.end(); } }
+        else { if (u.yT > 0 && u.yT < 0.4) { state.maqueta = !state.maqueta; if (state.maqueta) worldCam.layers.enable(0); else worldCam.layers.disable(0); } u.yT = 0; u.yExit = false; }
+      }
       if (btn(c, 1)) { if (!grabOffset) grabOffset = anatomy.position.clone().sub(_p); anatomy.position.copy(_p).add(grabOffset); }
       else grabOffset = null;
     } else {
@@ -1945,6 +1950,7 @@ function drawHUD() {
   g.fillStyle = '#fff'; g.font = '32px system-ui';
   g.fillText(G.on && G.proc ? `Paso ${Math.min(G.i + 1, G.proc.steps.length)}/${G.proc.steps.length}: ${G.done ? 'completado' : G.proc.steps[G.i].t}` : 'Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
   if (hudWarnT > 0) { g.fillStyle = '#ff7070'; g.font = 'bold 26px system-ui'; wrapText(g, '⚠ ' + hudWarn, 24, 152, 980, 32); }
+  else { g.fillStyle = 'rgba(255,255,255,.55)'; g.font = '22px system-ui'; g.fillText('Salir de VR: mantené apretado Y (mando izquierdo) 1,5 s', 24, 200); }
 }
 function wrapText(g, t, x, y, w, lh) { let line = ''; for (const word of t.split(' ')) { const test = line + word + ' '; if (g.measureText(test).width > w && line) { g.fillText(line, x, y); line = word + ' '; y += lh; } else line = test; } g.fillText(line, x, y); }
 

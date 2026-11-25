@@ -74,3 +74,11 @@ En **TC del paciente → Modo anotación (protocolo)** se marcan, lado por lado,
 
 ## Endoscopio 3D en VR (v25)
 En VR el monitor del endoscopio se ve en estéreo: cada ojo recibe una imagen tomada desde una cámara corrida a un costado, como en un endoscopio 3D. Las dos imágenes convergen a 16 mm. Se prende y apaga con el **grip derecho** o con el botón "3D en VR" del panel. La separación entre cámaras ("Profundidad 3D", de 0,4 a 3 mm; 1,4 mm por defecto) se ajusta en el panel y queda guardada. En monopolar, el cambio entre corte y coagulación pasó al clic del stick derecho.
+
+## VR v26: límite de fosa, suavizado, paciente y torre
+- **Una fosa / ambas fosas:** con una sola fosa elegida, en VR la óptica y el instrumento no cruzan el plano del tabique. Al llegar al límite, el mando vibra y aparece un aviso. Con **"Ambas fosas en VR"** (panel) se puede cruzar el tabique para septectomía, Draf III o esfenoidotomía bilateral. Ese modo se activa solo al iniciar las guiadas Draf III, esfenoidotomía bilateral, silla turca y septoplastia. En TC el límite es la línea media.
+- **Suavizado:** filtro "one euro" sobre la posición y la rotación de cada mando. Quieto filtra mucho y en movimientos rápidos responde. Se ajusta con el slider "Suavizado VR" (60% por defecto). Los sticks tienen respuesta fina cerca del centro y velocidades más bajas.
+- **La óptica se desliza sobre su eje** (stick izquierdo) en lugar de mover la maqueta, y el instrumento igual (stick derecho, hasta 10 cm reales). Por eso el paciente queda quieto.
+- **Paciente esquemático:** cabeza, cuello y hombros bajo el campo, con cabezal. Está a la misma escala que la maqueta (×4) y la sigue. Se ve translúcido mientras la maqueta está visible y opaco al ocultarla (Y).
+- **Torre de endoscopía:** carro con cámara, fuente de luz, shaver, electrobisturí y aspiración. Arriba, el monitor 3D, alto para verlo por encima de la cabeza del paciente.
+- Arreglo: la luz del quirófano ya no se apaga al ocultar la maqueta.

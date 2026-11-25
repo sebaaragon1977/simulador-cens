@@ -71,3 +71,6 @@ En **TC del paciente → Modo anotación (protocolo)** se marcan, lado por lado,
 ## Controles Quest 2 (v24)
 - **Izquierdo (endoscopio):** mover el control orienta la óptica. Stick ↑↓ avanza o retrocede dentro de la nariz y stick ←→ rota la óptica. **El gatillo cambia de instrumento.** X cambia el ángulo de la óptica, Y muestra u oculta la maqueta y el grip mueve la maqueta. Manteniendo apretado el clic del stick, el endoscopio viaja al punto de la cruz.
 - **Derecho (instrumento):** mover el control lo dirige. Stick ↑↓ avanza o retrae el instrumento sobre su eje (−6 a +12 cm) y el clic del stick lo vuelve al inicio. **El gatillo acciona** el instrumento: pinza, drill, bipolar, monopolar, aspirador, etc. A pasa al instrumento anterior y B muestra las estructuras de riesgo.
+
+## Endoscopio 3D en VR (v25)
+En VR el monitor del endoscopio se ve en estéreo: cada ojo recibe una imagen tomada desde una cámara corrida a un costado, como en un endoscopio 3D. Las dos imágenes convergen a 16 mm. Se prende y apaga con el **grip derecho** o con el botón "3D en VR" del panel. La separación entre cámaras ("Profundidad 3D", de 0,4 a 3 mm; 1,4 mm por defecto) se ajusta en el panel y queda guardada. En monopolar, el cambio entre corte y coagulación pasó al clic del stick derecho.

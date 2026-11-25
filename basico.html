@@ -142,11 +142,13 @@
   </div>
   <div class="grp" id="tourGrp"><label>Recorrido guiado (secuencia CENS)</label><div id="tour"></div></div>
   <div class="row"><button id="btnReset">Reiniciar tejido</button><button id="btnVR">Entrar en VR</button></div>
+  <div class="row"><button id="btnStereo" class="mk">3D en VR: encendido</button></div>
+  <div class="ctl"><span>Profundidad 3D</span><input type="range" id="stereoSep" min="0.4" max="3" step="0.1" value="1.4"><b id="stereoSepV">1.4 mm</b></div>
   <div class="help">
     <b>Apuntar y navegar</b>: en <i>Explorar</i>, clic sobre un punto = el endoscopio gira y viaja hasta ahí (arrastrar = orientar). Con pinza/drill: <kbd>Alt</kbd>+clic o <kbd>N</kbd> (punto bajo el mouse) · <kbd>T</kbd> = viajar al centro de la cruz · cualquier tecla cancela<br>
     <b>Endoscopio</b>: <kbd>W</kbd>/<kbd>S</kbd> o rueda avanza/retrocede (hacia donde mira la óptica: con 70° mirando arriba, sube) · <kbd>A</kbd>/<kbd>D</kbd> lateral · <kbd>R</kbd>/<kbd>F</kbd> arriba/abajo · flechas o arrastre con botón derecho: orientar · <kbd>Z</kbd>/<kbd>X</kbd> rotar la óptica angulada · <kbd>O</kbd> cambiar óptica · <kbd>Shift</kbd> lento<br>
     <b>Instrumento</b>: la punta sigue al mouse · <kbd>1</kbd>–<kbd>9</kbd>, <kbd>0</kbd>, <kbd>U</kbd> (porta-agujas) cambiar · retrógrada: clic = muerde hacia adelante · palpador bolita: apoyar en la unciforme y arrastrar hacia el septum · pinza: clic = cortar · drill: mantener = fresar · bipolar/monopolar: mantener sobre el punto que sangra = coagular · aspirador: mantener = aspirar sangre · Freer: apoyar sobre el cornete medio o inferior y arrastrar a los lados = medializar/lateralizar · <kbd>Espacio</kbd> lavado-aspiración general<br>
-    <b>Quest 2</b>: <b>control izquierdo = endoscopio</b>: moverlo orienta la óptica en todas las direcciones · stick ↑↓ = avanzar/retroceder dentro de la nariz · stick ←→ = rotar la óptica · <b>gatillo = cambiar de instrumento</b> · X = cambiar ángulo de óptica · Y = ver/ocultar maqueta · grip = mover maqueta · clic del stick (mantenido) = viajar al punto de la cruz. <b>Control derecho = instrumento</b>: moverlo lo dirige en todos los ángulos · stick ↑↓ = avanzar/retraer el instrumento · clic del stick = volver a la posición inicial · <b>gatillo = accionar</b> (cortar, fresar, coagular, aspirar…) · A = instrumento anterior · B = estructuras de riesgo.
+    <b>Quest 2</b>: <b>control izquierdo = endoscopio</b>: moverlo orienta la óptica en todas las direcciones · stick ↑↓ = avanzar/retroceder dentro de la nariz · stick ←→ = rotar la óptica · <b>gatillo = cambiar de instrumento</b> · X = cambiar ángulo de óptica · Y = ver/ocultar maqueta · grip = mover maqueta · clic del stick (mantenido) = viajar al punto de la cruz. <b>Control derecho = instrumento</b>: moverlo lo dirige en todos los ángulos · stick ↑↓ = avanzar/retraer el instrumento · clic del stick = volver a la posición inicial · <b>gatillo = accionar</b> (cortar, fresar, coagular, aspirar…) · A = instrumento anterior · B = estructuras de riesgo · <b>grip = 3D encendido/apagado</b> · en monopolar, el clic del stick cambia corte/coagulación.
   </div>
 </div>
 
@@ -1096,6 +1098,33 @@ const monMat = new THREE.ShaderMaterial({
 const vrRoom = new THREE.Group(); scene.add(vrRoom);
 const monitor = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.75), monMat);
 monitor.position.set(0.05, 1.5, -1.05); vrRoom.add(monitor);
+/* ---- Endoscopio 3D: una imagen para cada ojo ---- */
+const rtR = new THREE.WebGLRenderTarget(1024, 768, { type: THREE.HalfFloatType, samples: 4 });
+const monMatR = monMat.clone(); monMatR.uniforms.map.value = rtR.texture; monMatR.uniforms.bleed = monMat.uniforms.bleed;
+const monitorR = new THREE.Mesh(monitor.geometry, monMatR); monitorR.position.copy(monitor.position); vrRoom.add(monitorR);
+const STEREO = { on: true, sep: 1.4, conv: 16 };   // separación de las dos cámaras y distancia de convergencia, en mm
+try { const v = localStorage.getItem('cens_stereo'); if (v) Object.assign(STEREO, JSON.parse(v)); } catch (e) { }
+function saveStereo() { try { localStorage.setItem('cens_stereo', JSON.stringify(STEREO)); } catch (e) { } }
+function setStereo(on) {
+  STEREO.on = on; saveStereo(); applyStereoLayers(); hudKey = '';
+  const b = document.getElementById('btnStereo'); if (b) { b.textContent = '3D en VR: ' + (on ? 'encendido' : 'apagado'); b.classList.toggle('mk', on); }
+}
+function applyStereoLayers() {   // en WebXR el ojo izquierdo ve la capa 1 y el derecho la 2
+  if (STEREO.on) { monitor.layers.set(1); monitorR.layers.set(2); monitorR.visible = true; }
+  else { monitor.layers.set(WORLD_LAYER); monitorR.visible = false; }
+}
+function renderEndoEye(target, side) {   // side: -1 ojo izquierdo, +1 derecho, 0 mono
+  const pos0 = endoCam.position.clone();
+  if (side) {
+    const b = STEREO.sep * state.S, c = STEREO.conv * state.S;
+    endoCam.position.addScaledVector(V(1, 0, 0).applyQuaternion(endoCam.quaternion), side * b / 2); endoCam.updateMatrixWorld(true);
+    endoCam.updateProjectionMatrix(); const P = endoCam.projectionMatrix.elements;
+    P[8] += -side * P[0] * b / (2 * c);   // corrimiento de imagen: converge a STEREO.conv mm
+    endoCam.projectionMatrixInverse.copy(endoCam.projectionMatrix).invert();
+  }
+  renderer.setRenderTarget(target); renderer.clear(); renderer.render(scene, endoCam);
+  if (side) { endoCam.position.copy(pos0); endoCam.updateMatrixWorld(true); endoCam.updateProjectionMatrix(); }
+}
 const bezel = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.81, 0.03), new THREE.MeshStandardMaterial({ color: 0x15171b, roughness: 0.6 }));
 bezel.position.set(0.05, 1.5, -1.07); vrRoom.add(bezel);
 const hudCanvas = document.createElement('canvas'); hudCanvas.width = 1024; hudCanvas.height = 220;
@@ -1615,13 +1644,13 @@ function updateVR(dt) {
       if (gp && gp.axes.length >= 4) {
         const ay = gp.axes[3]; if (Math.abs(ay) > 0.15) state.instrExt = THREE.MathUtils.clamp((state.instrExt || 0) - ay * 0.06 * dt, -0.06, 0.12);
       }
-      if (edge(c, 3)) state.instrExt = 0;   // clic del stick: vuelve a la posición inicial
+      if (edge(c, 3)) { state.instrExt = 0; if (state.tool === 'monopolar') setMono(state.monoMode === 'cut' ? 'coag' : 'cut'); }   // clic del stick: vuelve a la posición inicial (en monopolar, cambia corte/coagulación)
       tipWorld.copy(_p).addScaledVector(fwd, 0.12 + (state.instrExt || 0));
       instr.position.copy(tipWorld); instr.quaternion.copy(_q);
       if (edge(c, 4)) vrCycleTool(-1);   // A = instrumento anterior
       vrFwd.copy(fwd);
       if (edge(c, 5)) setXray(!state.xray);
-      if (edge(c, 1) && state.tool === 'monopolar') setMono(state.monoMode === 'cut' ? 'coag' : 'cut');
+      if (edge(c, 1)) { setStereo(!STEREO.on); haptic(0.4, 40); }   // grip derecho = 3D encendido/apagado
     }
   }
   if (state.vrFly) {
@@ -1802,13 +1831,13 @@ function drawMap(g, W, H, P, plane, lp, lpd, tp) {
   if (plane === 'yz') { g.fillStyle = 'rgba(255,255,255,.45)'; g.fillText('techo / base de cráneo', 150, 22); }
 }
 function drawHUD() {
-  const k = [state.side, state.angle, state.tool, state.monoMode, G.i, G.done, lookKey, hudWarnT > 0 ? hudWarn : ''].join('|');
+  const k = [STEREO.on, state.side, state.angle, state.tool, state.monoMode, G.i, G.done, lookKey, hudWarnT > 0 ? hudWarn : ''].join('|');
   if (k === hudKey) return; hudKey = k;
   const g = hudCanvas.getContext('2d');
   g.clearRect(0, 0, 1024, 220); g.fillStyle = 'rgba(10,12,16,.85)'; g.fillRect(0, 0, 1024, 220);
   g.fillStyle = '#9fffd0'; g.font = 'bold 34px system-ui';
   const toolN = { none: 'Explorar', pinza: 'Pinza cortante', drill: 'Drill', bipolar: 'Bipolar', monopolar: state.monoMode === 'cut' ? 'Monopolar (corte)' : 'Monopolar (coagulación)', aspirador: 'Aspirador', freer: 'Espátula de Freer', grasp: 'Pinza de agarre', retro: 'Pinza retrógrada', ball: 'Palpador bolita', suture: 'Porta-agujas con aguja curva' }[state.tool];
-  g.fillText(`Fosa ${state.side > 0 ? 'DERECHA' : 'IZQUIERDA'} · Óptica ${state.angle}° · ${toolN}`, 24, 50);
+  g.fillText(`Fosa ${state.side > 0 ? 'DERECHA' : 'IZQUIERDA'} · Óptica ${state.angle}° · ${toolN} · ${STEREO.on ? '3D' : '2D'}`, 24, 50);
   g.fillStyle = '#fff'; g.font = '32px system-ui';
   g.fillText(G.on && G.proc ? `Paso ${Math.min(G.i + 1, G.proc.steps.length)}/${G.proc.steps.length}: ${G.done ? 'completado' : G.proc.steps[G.i].t}` : 'Centro: ' + (lookKey && INFO[lookKey] ? INFO[lookKey][0] : '—'), 24, 105);
   if (hudWarnT > 0) { g.fillStyle = '#ff7070'; g.font = 'bold 26px system-ui'; wrapText(g, '⚠ ' + hudWarn, 24, 152, 980, 32); }
@@ -3536,16 +3565,24 @@ renderer.setAnimationLoop(() => {
     hemi.visible = false;
     const old = renderer.getRenderTarget();
     renderer.xr.enabled = false;
-    renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene, endoCam);
+    if (STEREO.on) { renderEndoEye(rt, -1); renderEndoEye(rtR, 1); } else renderEndoEye(rt, 0);
     renderer.setRenderTarget(old);
     renderer.xr.enabled = true;
     hemi.visible = true;
+    { // las cámaras de cada ojo heredan las capas de worldCam; capa 1 = sólo ojo izquierdo, capa 2 = sólo ojo derecho
+      const xc = renderer.xr.getCamera(), m = worldCam.layers.mask;
+      xc.layers.mask = m | 6; if (xc.cameras[0]) xc.cameras[0].layers.mask = m | 2; if (xc.cameras[1]) xc.cameras[1].layers.mask = m | 4;
+    }
     renderer.render(scene, worldCam);
   } else {
     renderer.render(scene, endoCam);
   }
 });
-window.__sim = { setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
+$('#btnStereo').onclick = () => setStereo(!STEREO.on);
+$('#stereoSep').value = STEREO.sep; $('#stereoSepV').textContent = STEREO.sep.toFixed(1) + ' mm';
+$('#stereoSep').oninput = e => { STEREO.sep = +e.target.value; $('#stereoSepV').textContent = STEREO.sep.toFixed(1) + ' mm'; saveStereo(); };
+setStereo(STEREO.on);
+window.__sim = { STEREO, setStereo, renderEndoEye, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 </body>
 </html>

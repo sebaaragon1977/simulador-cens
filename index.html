@@ -21,6 +21,7 @@
   .lab{position:absolute;transform:translate(-50%,-100%);padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;white-space:nowrap}
   .lab.d{border-color:#ff6b6b;color:#ffd0d0}
   .lab:after{content:"";position:absolute;left:50%;top:100%;width:1px;height:8px;background:rgba(255,255,255,.5)}
+  #fxInfo{position:fixed;left:50%;top:44px;transform:translateX(-50%);padding:4px 12px;border-radius:14px;background:rgba(20,40,70,.88);border:1px solid #8cc8ff;color:#e6f3ff;font-size:12.5px;display:none;pointer-events:none;z-index:3;max-width:70vw;text-align:center}
   #bleedInfo{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:4px 12px;border-radius:14px;background:rgba(110,0,0,.85);border:1px solid #ff6b6b;color:#ffe0e0;font-size:12.5px;display:none;pointer-events:none;z-index:3}
   #gcard{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(560px,52vw);background:rgba(10,20,16,.9);border:1px solid rgba(79,209,165,.55);border-radius:12px;padding:10px 14px;display:none;z-index:4}
   #gProc{font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.06em}
@@ -103,7 +104,7 @@
 <div id="mask"></div>
 <div id="notchWrap"><div id="notch"></div></div>
 <div id="cross"></div>
-<div id="bleedInfo"></div>
+<div id="bleedInfo"></div><div id="fxInfo"></div>
 <div id="gcard"><div id="gProc"></div><div id="gStep"></div><div id="gText"></div><div class="gbar"><div id="gFill"></div></div>
   <div class="row"><button id="gView">Ir a la vista</button><button id="gSkip">Saltar paso</button><button id="gExit">Salir</button></div></div>
 <div id="labels"></div>
@@ -1140,7 +1141,7 @@ function checkDanger(lp, r) {
   if (state.prepping) return;
   if (state.model === 'ct') { checkDangerCT(lp, r); return; }
   const pm = V(Math.abs(lp.x), lp.y, WZi(lp.z)), sx = lp.x < 0 ? -1 : 1;
-  for (const d of DANGERS) if (!(PH3 && JNA.imaOK && (d.id === 'spa' || d.id === 'ima')) && d.test(pm, r)) { reportDanger(d); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; q.z = WZ(q.z); addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
+  for (const d of DANGERS) if (!(PH3 && JNA.imaOK && (d.id === 'spa' || d.id === 'ima')) && d.test(pm, r)) { reportDanger(d); if (CSF_IDS.includes(d.id)) addCSF(lp, d.id); if (d.id === 'lamina') addHernia(lp); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; q.z = WZ(q.z); addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
 }
 function reportDanger(d) {
   const now = performance.now();
@@ -1559,6 +1560,7 @@ function doBite(worldP, r) {
   const lp = anatomy.worldToLocal(worldP.clone());
   if (state.tool === 'pinza') jawClose = 0.18;
   if (addCut(lp, r)) { state.bites++; haptic(0.35, 30); }
+  herniaBite(lp);
   checkDanger(lp, r);
 }
 
@@ -2929,6 +2931,7 @@ function addBurn(p, r) {
 }
 function resetFx() {
   bleeds.length = 0; burnN = 0; burnIdx = 0; fxU.uBurnN.value = 0; fxU.uBloodN.value = 0; state.bleed = 0;
+  resetCSFHernia();
   drops.forEach(d => d.life = 0); smokes.forEach(d => d.life = 0);
   turbDisp.mt = 0; turbDisp.it = 0; turbDisp.unc = 0; applyTurb('mt'); applyTurb('it'); applyTurb('unc');
   incisions.length = 0; lastInc = null; flapGrab = null; flaps.forEach(f => { anatomy.remove(f.mesh); const k = meshes.indexOf(f.mesh); if (k >= 0) meshes.splice(k, 1); }); flaps.length = 0; perforation = null;
@@ -2993,7 +2996,155 @@ function updateBleeds(dt) {
   if (activeNames.length) { bi.style.display = 'block'; bi.textContent = '🩸 Sangrado activo: ' + [...new Set(activeNames)].join(', ') + ' — coagulá con bipolar y aspirá'; }
   else bi.style.display = 'none';
   if (activeNames.length && state.vr && beat > 0.9) haptic(0.15, 20);
+  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt);
 }
+
+/* ---------- fístula de LCR: gotea líquido claro como agua ----------
+   Se abre al lesionar la base de cráneo (fóvea, lámina cribosa, pared posterior del frontal, diafragma selar, dura del clivus).
+   Gotas transparentes que se forman, cuelgan y caen con la gravedad real (también en VR, con el paciente acostado).
+   No se controla con bipolar: se sella rotando el colgajo nasoseptal a la base de cráneo sobre el defecto. */
+const CSF_IDS = ['cribr', 'roof', 'frontpost', 'supra', 'clivdura'];
+const CSF_NAMES = { cribr: 'lámina cribosa', roof: 'techo etmoidal (fóvea)', frontpost: 'pared posterior del seno frontal', supra: 'diafragma selar', clivdura: 'duramadre del clivus' };
+const csfLeaks = [];
+const NCSF = 140;
+const csfMat = new THREE.MeshPhysicalMaterial({ color: 0xd6eeff, emissive: 0x16222c, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.42, clearcoat: 1, clearcoatRoughness: 0.01, specularIntensity: 1, depthWrite: false });
+const csfMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.22, 10, 8), csfMat, NCSF);
+const csfHang = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 14, 10), csfMat, 8);
+const csfFilm = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 24), new THREE.MeshPhysicalMaterial({ color: 0xe8f4ff, roughness: 0.01, transparent: true, opacity: 0.08, clearcoat: 1, depthWrite: false, side: THREE.DoubleSide }), 8);
+csfMesh.frustumCulled = csfHang.frustumCulled = csfFilm.frustumCulled = false; csfMesh.count = csfHang.count = csfFilm.count = 0;
+fxGroup.add(csfMesh, csfHang, csfFilm);
+const csfDrops = Array.from({ length: NCSF }, () => ({ p: V(0, 0, 0), v: V(0, 0, 0), life: 0, s: 1 }));
+let csfI = 0;
+function gravityLocal() {   // dirección "abajo" del mundo expresada en la anatomía (incluye la rotación del paciente en VR y el espejo de lado)
+  const g = V(0, -1, 0).applyQuaternion(anatomy.quaternion.clone().invert());
+  g.set(g.x / anatomy.scale.x, g.y / anatomy.scale.y, g.z / anatomy.scale.z);
+  return g.normalize();
+}
+function addCSF(lp, id) {
+  if (state.model === 'ct') return;
+  if (csfLeaks.some(c => c.p.distanceTo(lp) < 5)) return;
+  if (csfLeaks.length >= 6) return;
+  csfLeaks.push({ id, name: CSF_NAMES[id] || 'base de cráneo', p: lp.clone(), hang: 0, t: 0, sealed: false, rate: id === 'supra' || id === 'clivdura' ? 1.6 : 1.0 });
+  setTimeout(() => toast('💧 Fístula de LCR (' + (CSF_NAMES[id] || 'base de cráneo') + '): sale líquido claro como agua, que lava la sangre. No se cierra con bipolar: reparación multicapa (injerto + colgajo nasoseptal rotado a base de cráneo).', 8000, true), 1200);
+}
+function csfSealedBy(c) {   // un colgajo rotado a la base de cráneo que cubra el defecto lo sella
+  for (const f of flaps) {
+    if (f.rotated !== 'skull') continue;
+    const pa = f.mesh.geometry.attributes.position;
+    for (let i = 0; i < pa.count; i += 3) if (Math.hypot(pa.getX(i) - c.p.x, pa.getY(i) - c.p.y, pa.getZ(i) - c.p.z) < 4) return true;
+  }
+  return false;
+}
+function updateCSF(dt, camL, beat) {
+  const g = gravityLocal();
+  let nh = 0;
+  for (const c of csfLeaks) {
+    if (c.sealed) continue;
+    c.t += dt;
+    if (Math.floor(c.t * 2) !== Math.floor((c.t - dt) * 2) && csfSealedBy(c)) { c.sealed = true; toast('✔ Fístula de LCR (' + c.name + ') sellada con el colgajo nasoseptal.', 5000); haptic(0.4, 80); continue; }
+    // gota colgante que crece con el latido y se desprende
+    c.hang += dt * c.rate * (0.55 + 0.8 * beat);
+    const hr = 0.15 + 0.4 * Math.min(1, c.hang);
+    if (c.hang >= 1) {
+      c.hang = 0;
+      const d = csfDrops[csfI = (csfI + 1) % NCSF];
+      d.p.copy(c.p).addScaledVector(g, hr); d.v.copy(g).multiplyScalar(2 + Math.random() * 2).add(V(Math.random() - 0.5, 0, Math.random() - 0.5).multiplyScalar(0.8)); d.life = 1.6; d.s = 1.0;
+      // hilo fino que acompaña la gota (aspecto de chorrito)
+      for (let k = 1; k <= 3; k++) { const e = csfDrops[csfI = (csfI + 1) % NCSF]; e.p.copy(c.p).addScaledVector(g, hr * 0.5); e.v.copy(g).multiplyScalar(1.2 + k * 0.3); e.life = 1.2; e.s = 0.45; }
+    }
+    if (nh < 8) {
+      _m4.makeScale(hr, hr * 1.25, hr).setPosition(c.p.clone().addScaledVector(g, hr * 0.7)); csfHang.setMatrixAt(nh, _m4);
+      const film = new THREE.Object3D(); film.position.copy(c.p); film.lookAt(camL); film.scale.setScalar(1.6 + 0.2 * Math.sin(c.t * 3)); film.updateMatrix(); csfFilm.setMatrixAt(nh, film.matrix);
+      nh++;
+    }
+  }
+  csfHang.count = nh; csfFilm.count = nh; csfHang.instanceMatrix.needsUpdate = true; csfFilm.instanceMatrix.needsUpdate = true;
+  let n = 0;
+  for (const d of csfDrops) {
+    if (d.life <= 0) continue;
+    d.life -= dt; d.v.addScaledVector(g, 38 * dt); d.v.multiplyScalar(1 - 0.6 * dt); d.p.addScaledVector(d.v, dt);
+    if (d.p.distanceTo(camL) < 4) { d.life = 0; continue; }
+    const vl = d.v.length(), st = Math.min(1.8, 1 + vl * 0.04);
+    const q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), d.v.clone().normalize());
+    _m4.compose(d.p, q, _s3.set(d.s, d.s * st, d.s)); csfMesh.setMatrixAt(n++, _m4);
+  }
+  csfMesh.count = n; csfMesh.instanceMatrix.needsUpdate = true;
+  // el LCR lava la sangre acumulada alrededor del defecto
+  for (const c of csfLeaks) if (!c.sealed) for (const b of bleeds) if (!b.active && b.p.distanceTo(c.p) < 8) b.r -= 0.6 * dt;
+}
+
+/* ---------- herniación de grasa orbitaria ----------
+   Al abrir la lámina papirácea / periórbita, la grasa empieza a protruir hacia medial, sobre el etmoides y el meato medio.
+   No se reseca: se coagula su superficie con bipolar y se retrae. */
+const hernias = [];
+const herniaMat = mat('#f1cd52', { rough: 0.42, map: false });
+function addHernia(lp) {
+  if (state.model === 'ct') return;
+  if (hernias.some(h => h.c.distanceTo(lp) < 6)) return;
+  if (hernias.length >= 5) return;
+  const sx = lp.x < 0 ? -1 : 1, grp = new THREE.Group();
+  const lobes = [[0, 0, 0, 1], [0.15, 0.55, 0.35, 0.72], [0.1, -0.5, -0.4, 0.68], [0.25, 0.2, -0.65, 0.6], [0.2, -0.35, 0.6, 0.58]];
+  for (const [ox, oy, oz, k] of lobes) {
+    const gm = new THREE.SphereGeometry(1, 22, 16), pa = gm.attributes.position;
+    for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), w = 1 + 0.07 * Math.sin(7 * x + 3 * y) * Math.cos(5 * z - 2 * y); pa.setXYZ(i, x * w, y * w, z * w); }
+    gm.computeVertexNormals();
+    const m = new THREE.Mesh(gm, herniaMat); m.userData = { lobe: [ox, oy, oz, k] }; grp.add(m);
+  }
+  grp.visible = state.model === 'generic'; anatomy.add(grp);
+  hernias.push({ c: V(sx * 18.4, lp.y, lp.z), sx, grp, r: 0.3, rmax: 5.6 + Math.random() * 1.0, st: 'grow', coag: 0, t: 0, warned: 0 });
+  setTimeout(() => toast('🟡 Grasa orbitaria herniada hacia el meato medio. No la reseques: coagulá su superficie con bipolar para que se retraiga.', 7000, true), 900);
+}
+function placeHernia(h) {
+  for (const m of h.grp.children) {
+    const [ox, oy, oz, k] = m.userData.lobe, r = h.r * k;
+    m.position.set(h.c.x - h.sx * (h.r * 0.75 + ox * h.r), h.c.y + oy * h.r, h.c.z + oz * h.r);
+    m.scale.set(r * 0.85, r, r);
+  }
+}
+function updateHernias(dt) {
+  for (const h of hernias) {
+    h.t += dt;
+    if (h.st === 'grow') h.r += (h.rmax - h.r) * Math.min(1, dt * 0.45);
+    else if (h.st === 'retract') { h.r += (1.0 - h.r) * Math.min(1, dt * 1.6); if (h.r < 1.15) h.st = 'done'; }
+    const breathe = h.st === 'grow' ? 1 + 0.03 * Math.sin(h.t * 1.6) : 1;
+    const r0 = h.r; h.r *= breathe; placeHernia(h); h.r = r0;
+    h.grp.visible = state.model === 'generic';
+  }
+}
+function herniaCoag(lp, dt, isMono) {
+  for (const h of hernias) {
+    if (h.st !== 'grow') continue;
+    const cen = V(h.c.x - h.sx * h.r * 0.75, h.c.y, h.c.z);
+    if (lp.distanceTo(cen) > h.r + 2.8) continue;
+    if (isMono) { if (performance.now() - h.warned > 3000) { h.warned = performance.now(); toast('Sobre la grasa orbitaria usá bipolar (el monopolar puede dañar el recto medial).', 4000, true); } continue; }
+    h.coag += dt;
+    if (h.coag > 1.0) { h.st = 'retract'; herniaMat.color.set('#d9a94a'); toast('✔ Grasa orbitaria coagulada: se retrae hacia la órbita.', 4000); haptic(0.4, 80); }
+  }
+}
+function herniaBite(lp) {
+  if (state.tool !== 'pinza' && state.tool !== 'drill') return;
+  for (const h of hernias) {
+    if (h.st !== 'grow') continue;
+    const cen = V(h.c.x - h.sx * h.r * 0.75, h.c.y, h.c.z);
+    if (lp.distanceTo(cen) < h.r + 1.5 && performance.now() - h.warned > 3000) { h.warned = performance.now(); reportDanger({ id: 'herniacut', msg: 'Resección de grasa orbitaria herniada: riesgo de hematoma orbitario y de lesión del recto medial. Coagulá con bipolar para retraerla.' }); }
+  }
+}
+function resetCSFHernia() {
+  csfLeaks.length = 0; csfDrops.forEach(d => d.life = 0);
+  hernias.forEach(h => anatomy.remove(h.grp)); hernias.length = 0; herniaMat.color.set('#f1cd52');
+}
+let fxInfoT = 0;
+function updateFxInfo(dt) {
+  const msg = [];
+  const open = csfLeaks.filter(c => !c.sealed);
+  if (open.length) msg.push('💧 Fístula de LCR: ' + [...new Set(open.map(c => c.name))].join(', ') + ' — reparación con colgajo nasoseptal a base de cráneo');
+  if (hernias.some(h => h.st === 'grow')) msg.push('🟡 Grasa orbitaria herniada — coagulá con bipolar para retraerla');
+  const el = $('#fxInfo');
+  if (msg.length) { el.style.display = 'block'; el.innerHTML = msg.join('<br>'); } else el.style.display = 'none';
+  fxInfoT -= dt;
+  if (msg.length && state.vr && fxInfoT <= 0 && hudWarnT <= 0) { hudWarn = msg.join(' · '); hudWarnT = 4; fxInfoT = 8; }
+}
+
 function toolContactLocal() {   // punto de contacto de la punta con el tejido (coordenadas de la anatomía)
   if (state.vr) {
     const from = tipWorld.clone().addScaledVector(vrFwd, -2 * state.S);
@@ -3023,6 +3174,7 @@ function updateToolAction(dt) {
   if (state.tool === 'bipolar' || state.tool === 'monopolar') {
     const isMono = state.tool === 'monopolar', now = performance.now();
     if (now - lastFx > 110) { lastFx = now; addBurn(lp, isMono ? 1.9 : 1.0); spawnSmoke(lp); thermalDanger(lp, isMono); haptic(0.12, 15); }
+    herniaCoag(lp, dt, isMono);
     for (const b of bleeds) if (b.active && lp.distanceTo(b.p) < (isMono ? 4.5 : 3.6)) {
       b.coag += dt;
       if (b.coag > (isMono ? 0.35 : 0.7)) { b.active = false; toast('✔ Hemostasia: ' + b.name + ' coagulada. Aspirá la sangre que quedó.', 4000); haptic(0.4, 80); }

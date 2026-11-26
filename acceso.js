@@ -2,8 +2,8 @@
    Datos en Supabase (ver supabase/esquema.sql). Si SUPA_URL o SUPA_KEY están vacíos, no pide nada.
    La clave nunca viaja en claro: el navegador manda SHA-256(mail + clave) y la base guarda su bcrypt. */
 (() => {
-  const SUPA_URL = '';   // https://xxxx.supabase.co
-  const SUPA_KEY = '';   // clave pública (anon / publishable)
+  const SUPA_URL = 'https://zktoqxwokmuekmywatad.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprdG9xeHdva211ZWtteXdhdGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NzA1NjgsImV4cCI6MjEwMzM0NjU2OH0.lQdhCZPBvWdFA94pWUZ5IkGGKOwlgk6QXthD6yQgEUc';   // clave pública anon (sólo ejecuta las funciones cens_*)
   if (!SUPA_URL || !SUPA_KEY) return;
 
   const LS_MAIL = 'cens_mail', SS_UID = 'cens_uid', LS_N = 'cens_n', LS_ENC = 'cens_enc';

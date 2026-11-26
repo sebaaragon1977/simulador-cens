@@ -1186,7 +1186,7 @@ const polyps = [];
 const POLY_REG = { mm: 'Meato medio', fr: 'Receso frontal', ea: 'Etmoides anterior', ep: 'Etmoides posterior', olf: 'Hendidura olfatoria', ser: 'Receso esfenoetmoidal' };
 if (PH6) {
   const pmA = mat('#efe2cf', { rough: 0.2, bump: 0.35 }), pmB = mat('#f3d9cf', { rough: 0.22, bump: 0.35 }), pmC = mat('#e6e0cf', { rough: 0.18, bump: 0.35 });
-  for (const m of [pmA, pmB, pmC]) { m.clearcoat = 1; m.clearcoatRoughness = 0.05; m.sheen = 0.35; m.sheenColor.set('#ffd2c4'); m.emissive.set('#3a1d16'); m.emissiveIntensity = 0.1; m.color.multiplyScalar(0.72); }
+  for (const m of [pmA, pmB, pmC]) { m.vertexColors = true; m.clearcoat = 1; m.clearcoatRoughness = 0.05; m.sheen = 0.35; m.sheenColor.set('#ffd2c4'); m.emissive.set('#3a1d16'); m.emissiveIntensity = 0.1; m.color.multiplyScalar(0.72); }
   const PM = [pmA, pmB, pmC];
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   anatomy.updateMatrixWorld(true);
@@ -1203,7 +1203,7 @@ if (PH6) {
       const rad = (0.28 + 0.72 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.12 + t * 0.95)), 0.55)) * (1 + 0.09 * Math.sin(6 * x + ph) * Math.cos(5 * z + 2 * y));
       pa.setXYZ(i, x * R * rad, t * L, z * R * rad * fl);
     }
-    g.computeVertexNormals();
+    g.computeVertexNormals(); g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(pa.count * 3).fill(1), 3));
     const m = new THREE.Mesh(g, mat); m.position.copy(base); m.quaternion.setFromUnitVectors(V(0, 1, 0), gdir.clone().normalize());
     m.userData = { key: 'polyp' }; anatomy.add(m); meshes.push(m);
     const p = { mesh: m, base: base.clone(), dir: gdir.clone().normalize(), L, R, s: 1, reg, bled: false, gone: false };
@@ -1249,11 +1249,103 @@ function polypRemove(p) {
   if (!left) toast('✔ ' + POLY_REG[p.reg] + ': sin pólipos.', 3500);
 }
 function polypBleed(p, rate) { if (p.bled && rate < 1) return; p.bled = true; addBleed('pol' + polyps.indexOf(p), 'Lecho de pólipo', p.base.clone(), rate, rate < 1 ? 4 : 8); }
-function polypShave(mesh, dt) {   // el shaver lo va comiendo desde la punta y aspira
-  const p = mesh.userData.polyp; if (!p || p.gone) return;
-  p.s -= dt * 2.6 / Math.max(2.5, p.L); polypApply(p); haptic(0.12, 12); SND.cutHit = performance.now();
-  if (Math.random() < dt * 0.8) polypBleed(p, 0.6);
-  if (p.s < 0.18) polypRemove(p);
+/* Shaver sobre pólipos: la ventana aspira el tejido (se estira hacia la hoja), la cuchilla muerde un bocado del tamaño de la
+   ventana (cráter de estroma crudo, rojo) y los trocitos se van por la cánula. Cuando un anillo del pólipo queda cortado,
+   el segmento libre se desprende y se aspira entero; si el corte llega al pedículo, el pólipo sale completo. */
+const PROW = 27, PNR = 19;   // vértices por anillo y anillos de la esfera base (26 x 18 segmentos)
+const RAW = [0.93, 0.33, 0.3];
+const shavFrag = [], fragGeo = new THREE.IcosahedronGeometry(0.32, 0), fragMat = new THREE.MeshStandardMaterial({ color: 0xd98a7e, roughness: 0.35 });
+const activePolyps = new Set();
+const _v = new THREE.Vector3(), _c = new THREE.Vector3(), _w = new THREE.Vector3();
+function polypInit(p) {   // datos para la deformación local (se crean al primer contacto)
+  if (p.cur) return;
+  const g = p.mesh.geometry; p.cur = Float32Array.from(g.attributes.position.array); p.orig = Float32Array.from(p.cur);
+  p.eat = new Uint8Array(g.attributes.position.count); p.top = 0; p.pull = 0; p.lastChomp = 0;
+}
+function polypRad(a, i) { return Math.hypot(a[i * 3], a[i * 3 + 2]); }   // distancia al eje del pólipo (eje local y)
+function polypShave(mesh, dt) {
+  const p = mesh.userData.polyp; if (!p || p.gone || p.anim) return;
+  polypInit(p); activePolyps.add(p); p.touch = performance.now();
+  const now = performance.now(); if (now - p.lastChomp < 110) return;   // un bocado por ciclo de la cuchilla
+  p.lastChomp = now;
+  shaverM.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
+  const sc = Math.abs(mesh.getWorldScale(_v).y) || 1, rb = 2.2 * instr.scale.x / sc;
+  mesh.worldToLocal(shaverM.localToWorld(_c.set(0, 0.9, 0.9)));   // centro del bocado: en la ventana, cerca de la punta (la succión trae el tejido)
+  const a = p.cur, col = mesh.geometry.attributes.color; let n = 0;
+  for (let i = p.top * PROW; i < a.length / 3; i++) {
+    _v.set(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]); const d = _v.distanceTo(_c); if (d >= rb) continue;
+    if (rb - d < 0.04 && p.eat[i]) continue;   // ya está en el borde del bocado anterior
+    _v.sub(_c).multiplyScalar(rb / Math.max(d, 1e-4)).add(_c);   // empuja la superficie al borde del bocado (cráter)
+    if (Math.hypot(_v.x, _v.z) > polypRad(p.orig, i) * 1.04) _v.set(a[i * 3] * 0.12, a[i * 3 + 1], a[i * 3 + 2] * 0.12);   // atravesó el pólipo: esa pared se va
+    a[i * 3] = _v.x; a[i * 3 + 1] = _v.y; a[i * 3 + 2] = _v.z;
+    if (!p.eat[i]) { p.eat[i] = 1; col.setXYZ(i, ...RAW); } n++;
+  }
+  if (!n) return;
+  col.needsUpdate = true; haptic(0.16, 14); SND.cutHit = now; state.bites++;
+  for (let k = 0; k < Math.min(4, 1 + (n >> 3)); k++) spawnFrag(mesh.localToWorld(_c.clone()));
+  if (Math.random() < 0.35) polypBleed(p, 0.6);
+  // ¿quedó cortado algún anillo? → el segmento distal se desprende y se aspira
+  let cut = -1, eaten = 0, live = 0;
+  for (let r = p.top; r < PNR; r++) { let e = 0; for (let j = 0; j < PROW; j++) e += p.eat[r * PROW + j]; eaten += e; live += PROW; if (r > p.top && e >= PROW * 0.4) cut = r; }
+  if (eaten / live > 0.62) cut = PNR - 1;
+  if (cut >= 0) polypSever(p, cut); else polypRefresh(p);
+}
+function polypSever(p, r) {
+  const a = p.cur, cen = new THREE.Vector3();
+  for (let j = 0; j < PROW; j++) cen.add(_v.set(a[(r * PROW + j) * 3], a[(r * PROW + j) * 3 + 1], a[(r * PROW + j) * 3 + 2]));
+  cen.divideScalar(PROW);
+  const all = r >= PNR - 4;   // corte a nivel del pedículo: sale entero
+  const win = p.mesh.worldToLocal(shaverM.localToWorld(SHAV_WIN.clone()));
+  p.anim = { t: 0, dur: 0.35, r: all ? PNR : r, from: Float32Array.from(a), win, cen, all };
+  polypBleed(p, 0.6); haptic(0.35, 40);
+  for (let k = 0; k < 6; k++) spawnFrag(p.mesh.localToWorld(cen.clone()));
+}
+function polypRefresh(p) {
+  const g = p.mesh.geometry, pa = g.attributes.position, a = p.cur, f = p.pull;
+  if (f > 0.01) {   // succión: el tejido cercano se estira hacia la ventana
+    const w = p.mesh.worldToLocal(shaverM.localToWorld(_w.copy(SHAV_WIN))), R = 4.2 * instr.scale.x / (Math.abs(p.mesh.getWorldScale(_v).y) || 1);
+    for (let i = 0; i < pa.count; i++) {
+      const x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2], d = Math.hypot(x - w.x, y - w.y, z - w.z);
+      const k = d < R && i >= p.top * PROW ? f * 0.45 * Math.pow(1 - d / R, 2) : 0;
+      pa.setXYZ(i, x + (w.x - x) * k, y + (w.y - y) * k, z + (w.z - z) * k);
+    }
+  } else pa.array.set(a);
+  pa.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingSphere(); g.computeBoundingBox();
+}
+function spawnFrag(pw) {
+  if (shavFrag.length > 40) return;
+  const m = new THREE.Mesh(fragGeo, fragMat); anatomy.add(m); m.position.copy(anatomy.worldToLocal(pw.clone()));
+  m.position.add(V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(1.2)); m.scale.setScalar(0.6 + Math.random() * 0.8);
+  m.rotation.set(Math.random() * 6, Math.random() * 6, 0); shavFrag.push({ m, t: 0 });
+}
+function shavFxUpdate(dt) {
+  if (!shavFrag.length && !activePolyps.size) return;
+  const winL = anatomy.worldToLocal(shaverM.localToWorld(_w.copy(SHAV_WIN)));
+  for (let i = shavFrag.length - 1; i >= 0; i--) {   // trocitos que se van por la ventana
+    const f = shavFrag[i]; f.t += dt; f.m.position.lerp(winL, Math.min(1, dt * 14)); f.m.scale.multiplyScalar(1 - Math.min(0.9, dt * 5)); f.m.rotation.x += dt * 12;
+    if (f.t > 0.35 || f.m.position.distanceTo(winL) < 0.3 || state.tool !== 'shaver') { anatomy.remove(f.m); shavFrag.splice(i, 1); }
+  }
+  const now = performance.now();
+  for (const p of activePolyps) {
+    if (p.anim) {   // segmento desprendido: se estira hacia la ventana y desaparece adentro
+      const A = p.anim; A.t += dt; const u = Math.min(1, A.t / A.dur), e = u * u, a = p.cur, n = A.r * PROW, col = p.mesh.geometry.attributes.color;
+      for (let i = p.top * PROW; i < n; i++) {
+        const x = A.from[i * 3], y = A.from[i * 3 + 1], z = A.from[i * 3 + 2];
+        a[i * 3] = x + (A.win.x - x) * e; a[i * 3 + 1] = y + (A.win.y - y) * e; a[i * 3 + 2] = z + (A.win.z - z) * e;
+      }
+      p.pull = 0; polypRefresh(p);
+      if (u >= 1) {
+        if (A.all) { activePolyps.delete(p); p.anim = null; polypRemove(p); continue; }
+        for (let i = p.top * PROW; i < n; i++) { a[i * 3] = A.cen.x; a[i * 3 + 1] = A.cen.y; a[i * 3 + 2] = A.cen.z; col.setXYZ(i, ...RAW); }
+        for (let j = 0; j < PROW; j++) col.setXYZ(A.r * PROW + j, ...RAW);   // cara de corte cruda en el muñón
+        col.needsUpdate = true; p.top = A.r; p.L *= 1 - A.r / (PNR - 1) * 0.9; p.anim = null; polypRefresh(p);
+      }
+      continue;
+    }
+    const on = now - p.touch < 160 && state.tool === 'shaver' && using;
+    const pv = p.pull; p.pull = THREE.MathUtils.clamp(p.pull + (on ? dt * 6 : -dt * 4), 0, 1);
+    if (p.pull > 0 || pv > 0) polypRefresh(p); else activePolyps.delete(p);
+  }
 }
 function polypAt(lp) {
   let best = null, bd = 1e9;
@@ -1426,24 +1518,42 @@ const scalpelM = new THREE.Group(); instr.add(scalpelM);
   const g = new THREE.ExtrudeGeometry(sh, { depth: 0.09, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, 0.045, 0);
   scalpelM.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xdfe4ea, metalness: 0.9, roughness: 0.12 })));
   scalpelM.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 1.2, 12).rotateX(Math.PI / 2).translate(0, 0, 3.9), steel)); }
-// Shaver / microdebridador: hoja recta de 4 mm con ventana lateral dentada y cuchilla interna oscilante (tipo Tricut)
+// Shaver / microdebridador (según fotos de hojas tipo Tricut): tubo externo de 4 mm con punta roma cerrada y ventana lateral
+// de bordes aserrados; adentro, el tubo de la cuchilla con su propia ventana dentada que oscila y corta contra el borde externo.
+// La ventana mira a +y; la luz de aspiración (oscura) se ve cuando las dos ventanas coinciden.
 const shaverM = new THREE.Group(); instr.add(shaverM);
 const shaverBlade = new THREE.Group();
-{ const out = new THREE.MeshStandardMaterial({ color: 0xd2d7dd, metalness: 0.75, roughness: 0.22, side: THREE.DoubleSide });
-  const inner = new THREE.MeshStandardMaterial({ color: 0x8a9098, metalness: 0.8, roughness: 0.3 });
-  // tubo externo: abierto arriba (ventana) cerca de la punta, completo detrás
-  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2.9, 28, 1, true, Math.PI * 0.32, Math.PI * 1.36).rotateX(Math.PI / 2).translate(0, 0, 2.05), out));
-  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 18, 28, 1, true).rotateX(Math.PI / 2).translate(0, 0, 12.5), out));
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(-Math.PI / 2).translate(0, 0, 0.6), out); shaverM.add(cap);
-  // dientes del borde de la ventana
-  for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) {
-    const t = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 4), out); const a = Math.PI / 2 + sd * Math.PI * 0.18;
-    t.position.set(Math.cos(a) * 2.0, Math.sin(a) * 2.0, 0.85 + k * 0.48); t.rotation.z = a - Math.PI / 2; shaverM.add(t);
+const SHAV_WIN = V(0, 2.0, 2.1);   // centro de la ventana (coordenadas del instrumento)
+function serratedTube(rO, rI, z0, z1, w0, amp, nTeeth) {   // tubo con espesor y ventana a +y de borde aserrado
+  const nz = 72, nf = 36, pos = [], idx = [];
+  const w = z => { const f = (z - z0) / (z1 - z0) * nTeeth; return w0 - amp * (f - Math.floor(f)); };   // diente de sierra
+  const P = (r, f, z) => [r * Math.sin(f), r * Math.cos(f), z];
+  const grid = (r, flip) => {
+    const b = pos.length / 3;
+    for (let i = 0; i <= nz; i++) { const z = z0 + (z1 - z0) * i / nz, a = w(z); for (let j = 0; j <= nf; j++) pos.push(...P(r, a + (2 * Math.PI - 2 * a) * j / nf, z)); }
+    for (let i = 0; i < nz; i++) for (let j = 0; j < nf; j++) { const a = b + i * (nf + 1) + j, c = a + nf + 1; flip ? idx.push(a, a + 1, c, a + 1, c + 1, c) : idx.push(a, c, a + 1, a + 1, c, c + 1); }
+  };
+  grid(rO, false); grid(rI, true);
+  for (const side of [0, 1]) {   // cara de corte del borde (une la pared externa con la interna)
+    const b = pos.length / 3;
+    for (let i = 0; i <= nz; i++) { const z = z0 + (z1 - z0) * i / nz, a = w(z), f = side ? 2 * Math.PI - a : a; pos.push(...P(rO, f, z), ...P(rI, f, z)); }
+    for (let i = 0; i < nz; i++) { const a = b + i * 2; side ? idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3) : idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   }
-  // cuchilla interna con dientes (oscila)
-  shaverBlade.add(new THREE.Mesh(new THREE.CylinderGeometry(1.62, 1.62, 3.2, 20, 1, true, 0, Math.PI * 1.2).rotateX(Math.PI / 2).translate(0, 0, 2.2), inner));
-  for (let k = 0; k < 6; k++) { const t = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.45, 4), inner); t.position.set(1.6, 0, 0.9 + k * 0.48); t.rotation.z = -Math.PI / 2; shaverBlade.add(t); }
-  shaverBlade.add(new THREE.Mesh(new THREE.CircleGeometry(1.55, 20).translate(0, 0, 0.75), new THREE.MeshBasicMaterial({ color: 0x120c0b })));   // luz de aspiración
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+{ const out = new THREE.MeshStandardMaterial({ color: 0xe4e8ec, metalness: 0.6, roughness: 0.22 });
+  const inner = new THREE.MeshStandardMaterial({ color: 0xc3c9d0, metalness: 0.65, roughness: 0.15 });
+  const lumen = new THREE.MeshBasicMaterial({ color: 0x1a0b09, side: THREE.BackSide });
+  shaverM.add(new THREE.Mesh(serratedTube(2, 1.82, 0.55, 3.75, Math.PI * 0.31, Math.PI * 0.1, 6), out));                                    // ventana externa aserrada
+  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 18, 32, 1, true).rotateX(Math.PI / 2).translate(0, 0, 12.75), out));          // vástago
+  shaverM.add(new THREE.Mesh(new THREE.SphereGeometry(2, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(-Math.PI / 2).translate(0, 0, 0.55), out));   // punta roma cerrada
+  // cuchilla interna: tubo dentado que oscila; detrás, la luz de aspiración
+  shaverBlade.add(new THREE.Mesh(serratedTube(1.78, 1.6, 0.7, 3.6, Math.PI * 0.27, Math.PI * 0.09, 6), inner));
+  shaverBlade.add(new THREE.Mesh(new THREE.SphereGeometry(1.78, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(-Math.PI / 2).translate(0, 0, 0.7), inner));
+  shaverBlade.add(new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 1.2, 20, 1, true).rotateX(Math.PI / 2).translate(0, 0, 4.2), inner));
+  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 4.2, 20, 1, true).rotateX(Math.PI / 2).translate(0, 0, 2.7), lumen));   // luz de aspiración (sólo bajo la ventana)
+  shaverM.add(new THREE.Mesh(new THREE.CircleGeometry(1.45, 20).translate(0, 0, 0.6), new THREE.MeshBasicMaterial({ color: 0x1a0b09 })));
+  shaverM.add(new THREE.Mesh(new THREE.CircleGeometry(1.45, 20).rotateY(Math.PI).translate(0, 0, 4.8), new THREE.MeshBasicMaterial({ color: 0x1a0b09 })));
   shaverM.add(shaverBlade);
   // banda con la marca en el vástago
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 64; const cx = cv.getContext('2d');
@@ -2194,8 +2304,9 @@ function updateInstrumentCommon(dt) {
   bip.visible = state.tool === 'bipolar'; mono.visible = state.tool === 'monopolar'; asp.visible = state.tool === 'aspirador'; freerM.visible = state.tool === 'freer';
   scalpelM.visible = state.tool === 'scalpel'; shaverM.visible = state.tool === 'shaver'; shaft.scale.x = shaft.scale.y = state.tool === 'shaver' ? 1.82 : 1;
   if (state.tool === 'shaver') shaverBlade.rotation.z = using ? Math.sin(performance.now() / 22) * 1.4 : 0;
+  if (PH6) shavFxUpdate(dt);
   retroM.visible = state.tool === 'retro'; ballM.visible = state.tool === 'ball'; portaM.visible = state.tool === 'suture';
-  { const thin = state.tool === 'ball' ? 0.4 : state.tool === 'suture' ? 0.6 : 1; shaft.scale.x = shaft.scale.y = thin; }
+  { const thin = state.tool === 'ball' ? 0.4 : state.tool === 'suture' ? 0.6 : state.tool === 'shaver' ? 1.82 : 1; shaft.scale.x = shaft.scale.y = thin; }
   retroJaw.rotation.x = jawClose > 0 ? 0 : 0.5;
   shaft.material = state.tool === 'bipolar' ? insBlue : state.tool === 'monopolar' ? insYellow : shaftSteel;
   if (state.tool === 'bipolar') { const k = using ? 0.35 : 1; bip.children[0].position.x = -0.55 * k - 0.2; bip.children[1].position.x = 0.55 * k + 0.2; }

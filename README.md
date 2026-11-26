@@ -51,6 +51,16 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - **Fantoma 3 · angiofibroma** (`?fantoma=3`): angiofibroma juvenil nasofaríngeo derecho en la fosa nasal posterior y la rinofaringe. Pasa por el foramen esfenopalatino a la fosa pterigopalatina (irrigado por la maxilar interna) e invade el basiesfenoides.
 - Cirugía guiada "Angiofibroma juvenil: resección endoscópica" (9 pasos): antrostomía amplia, pared posterior del seno maxilar, fosa pterigopalatina, control de la maxilar interna, resección pterigopalatina y nasal, fresado del basiesfenoides y del remanente. Si se reseca sin controlar la maxilar interna, sangra mucho.
 
+## Fantoma Human Atlas (`?fantoma=4`)
+- **Base**: la fosa del Fantoma 2 (proporciones calibradas con TC). Mismas cirugías guiadas, variantes y recorrido.
+- **Calibración con Z-Anatomy** (modelo masculino detallado de [Human Atlas](https://github.com/ctzurcanu/human-atlas), derivado de BodyParts3D): el globo ocular, los cuatro rectos, el oblicuo superior, el nervio óptico (intraorbitario y en el canal), la carótida interna y la basilar siguen los trayectos medidos en Z-Anatomy. Las alertas de lesión usan esos trayectos.
+  - Registro por dos transformaciones de similitud (escala ≈1): órbita y techo etmoidal (AEA y PEA en la papirácea, pared lateral del etmoides, conducto nasolagrimal) y esfenoides y silla (esquinas del seno, hipófisis, basilar), mezcladas entre la cara del esfenoides y el etmoides posterior. Error en los puntos de registro: 2–10 mm.
+  - Cambios respecto del Fantoma 2: el globo queda ~29 mm más atrás (centro a la altura de la bulla) y la carótida paraclinoidea en el tercio posterior de la pared lateral del esfenoides (receso opticocarotídeo ~8 mm más atrás).
+  - La AEA y la PEA no se modificaron porque son puntos de registro (no son una medición independiente). Como dato: en Z-Anatomy la distancia AEA–PEA es de ~10 mm (regla 24-12-6: 12 mm; Fantoma 2: ~18 mm; Genérico: 25 mm).
+- **Capa Human Atlas**: 37 mallas reales de Z-Anatomy de ambos lados (carótidas, oftálmicas, etmoidales, maxilar interna, palatina descendente, vidiana, cerebrales anterior y media, basilar, senos cavernosos e intercavernosos, venas oftálmicas, nervio óptico, quiasma y cintillas, III, IV, VI, V1 y V2, hipófisis, giro recto, globo, músculos extraoculares, tróclea, glándula lagrimal), en `humanatlas/za_capa.json`. Se prende y apaga en el panel; con "Estructuras de riesgo" se ven por transparencia. No intervienen en colisiones.
+- Scripts del registro y la exportación en `humanatlas/scripts/`.
+- **Licencia de la capa**: Z-Anatomy, CC BY-SA 4.0 (BodyParts3D © DBCLS, CC BY 4.0). Las mallas derivadas (`humanatlas/za_capa.json`) se distribuyen con la misma licencia.
+
 ## Apariencia
 - **Mucosa húmeda**: capa brillante con película de moco (reflejos puntuales donde pega la luz) y translucidez suave en los bordes.
 - **Relieve por tejido** (mapas de normales generados en el navegador): mucosa ondulada con puntillado glandular, hueso poroso, tumor lobulado; grasa, nervios, duramadre y vasos con su propio brillo.

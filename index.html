@@ -1251,7 +1251,7 @@ function polypRemove(p) {
 function polypBleed(p, rate) { if (p.bled && rate < 1) return; p.bled = true; addBleed('pol' + polyps.indexOf(p), 'Lecho de pólipo', p.base.clone(), rate, rate < 1 ? 4 : 8); }
 function polypShave(mesh, dt) {   // el shaver lo va comiendo desde la punta y aspira
   const p = mesh.userData.polyp; if (!p || p.gone) return;
-  p.s -= dt * 2.6 / Math.max(2.5, p.L); polypApply(p); haptic(0.12, 12);
+  p.s -= dt * 2.6 / Math.max(2.5, p.L); polypApply(p); haptic(0.12, 12); SND.cutHit = performance.now();
   if (Math.random() < dt * 0.8) polypBleed(p, 0.6);
   if (p.s < 0.18) polypRemove(p);
 }
@@ -1792,6 +1792,7 @@ const DRILL = { r: 1.5, back: 1.1, inc: 55 };   // fresa: penetra ~0,4 mm por pa
 function doDrill(worldP, dirWorld) {
   const lp = anatomy.worldToLocal(worldP.clone());
   if (herniaBite(lp)) return;
+  SND.drillHit = performance.now();
   let c = lp;
   if (dirWorld) { const ld = anatomy.worldToLocal(worldP.clone().add(dirWorld)).sub(lp).normalize(); c = lp.clone().addScaledVector(ld, -DRILL.back); }
   if (addCutGradual(c, DRILL.r, DRILL.inc)) { state.bites++; haptic(0.2, 20); }
@@ -3241,7 +3242,7 @@ function updateBleeds(dt) {
   if (activeNames.length) { bi.style.display = 'block'; bi.textContent = '🩸 Sangrado activo: ' + [...new Set(activeNames)].join(', ') + ' — coagulá con bipolar y aspirá'; }
   else bi.style.display = 'none';
   if (activeNames.length && state.vr && beat > 0.9) haptic(0.15, 20);
-  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt); itApply(); septoUpdate(dt);
+  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt); itApply(); septoUpdate(dt); updateSound(dt);
 }
 
 /* ---------- fístula de LCR: gotea líquido claro como agua ----------
@@ -3491,7 +3492,7 @@ function shaverAct(lp, dt) {
     if (k === 'hernia') herniaBite(lp); return;
   }
   if (k && SHAVER_OK.includes(k)) {
-    if (now - lastShavTip > 90) { lastShavTip = now; if (addCutGradual(lp, 1.0, 45)) { state.bites++; haptic(0.1, 12); } checkDanger(lp, 0.8); }
+    SND.cutHit = now; if (now - lastShavTip > 90) { lastShavTip = now; if (addCutGradual(lp, 1.0, 45)) { state.bites++; haptic(0.1, 12); } checkDanger(lp, 0.8); }
     return;
   }
   if (k && now - lastShavTip > 2500) { lastShavTip = now; toast('El shaver no reseca hueso: sólo pólipos y mucosa. Para hueso usá pinza o drill.', 3500); }
@@ -3527,12 +3528,64 @@ function septoDanger(lp) {
   if (state.tool !== 'scalpel' && z > -32 && (z > -3 || lp.y > septRoof(lp.z) - 9)) reportDanger({ id: 'lstrut', msg: 'Corte en la L de soporte (dorsal o caudal): riesgo de nariz en silla de montar y caída de la punta.', bad: 2 });
 }
 
+
+/* ---------- sonido: aspiración (ruido de aire, con gorgoteo si hay sangre o LCR) y motor del shaver / drill ---------- */
+const SND = { ctx: null, on: true, touch: 0, drillHit: 0, cutHit: 0 };
+function sndInit() {
+  if (SND.ctx || !SND.on) return;
+  try {
+    const C = new (window.AudioContext || window.webkitAudioContext)(); SND.ctx = C;
+    const buf = C.createBuffer(1, C.sampleRate * 2, C.sampleRate), d = buf.getChannelData(0);
+    let b0 = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b0 = 0.97 * b0 + 0.03 * w; d[i] = w * 0.55 + b0 * 2.2; }   // ruido con algo de grave
+    const src = C.createBufferSource(); src.buffer = buf; src.loop = true;
+    const bp = C.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 0.7;
+    const hp = C.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 180;
+    const airG = C.createGain(); airG.gain.value = 0;
+    src.connect(hp).connect(bp).connect(airG).connect(C.destination); src.start();
+    // gorgoteo: mismo ruido con filtro grave modulado
+    const lp = C.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 6;
+    const gurG = C.createGain(); gurG.gain.value = 0; src.connect(lp).connect(gurG).connect(C.destination);
+    // motor (shaver ~125 Hz oscilante, drill agudo)
+    const mot = C.createOscillator(); mot.type = 'sawtooth'; mot.frequency.value = 125;
+    const motF = C.createBiquadFilter(); motF.type = 'lowpass'; motF.frequency.value = 900;
+    const motG = C.createGain(); motG.gain.value = 0; mot.connect(motF).connect(motG).connect(C.destination); mot.start();
+    const el = C.createOscillator(); el.type = 'square'; el.frequency.value = 240; const elF = C.createBiquadFilter(); elF.type = 'bandpass'; elF.frequency.value = 1800; elF.Q.value = 1.2;
+    const elG = C.createGain(); elG.gain.value = 0; el.connect(elF).connect(elG).connect(C.destination); el.start();
+    const hp2 = C.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = 3500; const fzG = C.createGain(); fzG.gain.value = 0; src.connect(hp2).connect(fzG).connect(C.destination);
+    const bp3 = C.createBiquadFilter(); bp3.type = 'bandpass'; bp3.frequency.value = 2600; bp3.Q.value = 2; const grG = C.createGain(); grG.gain.value = 0; src.connect(bp3).connect(grG).connect(C.destination);
+    const bp4 = C.createBiquadFilter(); bp4.type = 'bandpass'; bp4.frequency.value = 700; bp4.Q.value = 1.5; const chG = C.createGain(); chG.gain.value = 0; src.connect(bp4).connect(chG).connect(C.destination);
+    Object.assign(SND, { airG, gurG, lp, mot, motG, motF, el, elG, fzG, grG, chG });
+  } catch (e) { SND.on = false; }
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, () => { sndInit(); if (SND.ctx && SND.ctx.state === 'suspended') SND.ctx.resume(); }, { passive: true }));
+renderer.xr.addEventListener('sessionstart', () => { sndInit(); if (SND.ctx) SND.ctx.resume(); });
+function updateSound(dt) {
+  if (!SND.ctx) return;
+  const t = SND.ctx.currentTime, suck = using && (state.tool === 'aspirador' || state.tool === 'shaver');
+  let wet = 0;
+  if (suck) { for (const b of bleeds) if (b.r > 0.9 && suctionTipL.distanceTo(b.p) < b.r + 5) wet = Math.max(wet, Math.min(1, b.r / 6));
+    for (const c of csfLeaks) if (!c.sealed && suctionTipL.distanceTo(c.p) < 7) wet = Math.max(wet, 0.6); }
+  const air = suck ? (wet > 0 ? 0.05 : 0.11) : 0, gur = suck ? wet * (0.08 + 0.1 * Math.max(0, Math.sin(t * 23) * Math.sin(t * 7.3))) : 0;
+  SND.airG.gain.setTargetAtTime(air, t, 0.04); SND.gurG.gain.setTargetAtTime(gur, t, 0.03);
+  SND.lp.frequency.setTargetAtTime(300 + 260 * Math.random(), t, 0.02);
+  const shav = using && state.tool === 'shaver', dr = drilling && state.tool === 'drill';
+  SND.mot.frequency.setTargetAtTime(dr ? 620 + 30 * Math.sin(t * 9) : 118 + 14 * Math.sin(t * 40), t, 0.05);
+  SND.motF.frequency.setTargetAtTime(dr ? 3200 : 900, t, 0.05);
+  SND.motG.gain.setTargetAtTime(shav ? 0.035 : dr ? 0.02 : 0, t, 0.05);
+  const now = performance.now(), elec = using && (state.tool === 'bipolar' || state.tool === 'monopolar'), mono = state.tool === 'monopolar', touch = now - SND.touch < 150;
+  SND.el.frequency.setTargetAtTime(mono ? (state.monoMode === 'cut' ? 330 : 240) : 480, t, 0.03);
+  SND.elG.gain.setTargetAtTime(elec ? (mono ? 0.03 : 0.014) : 0, t, 0.03);
+  SND.fzG.gain.setTargetAtTime(elec && touch ? (mono ? 0.09 : 0.04) * (0.6 + 0.4 * Math.random()) : 0, t, 0.015);
+  SND.grG.gain.setTargetAtTime(dr && now - SND.drillHit < 200 ? 0.07 * (0.7 + 0.3 * Math.random()) : 0, t, 0.02);
+  SND.chG.gain.setTargetAtTime(shav && now - SND.cutHit < 200 ? 0.09 * Math.max(0, Math.sin(t * 2 * Math.PI * 14)) : 0, t, 0.01);
+}
+
 function toolContactLocal() {   // punto de contacto de la punta con el tejido (coordenadas de la anatomía)
   if (state.vr) {
     const from = tipWorld.clone().addScaledVector(vrFwd, -2 * state.S);
     const h = pick(from, vrFwd, 4.5 * state.S);
     if (h) return anatomy.worldToLocal(h.point.clone());
-    return state.tool === 'aspirador' ? anatomy.worldToLocal(tipWorld.clone()) : null;
+    return state.tool === 'aspirador' || state.tool === 'shaver' ? anatomy.worldToLocal(tipWorld.clone()) : null;
   }
   if (tipHit && tipHit.distance < 60) return anatomy.worldToLocal(tipHit.point.clone());
   return null;
@@ -3541,6 +3594,7 @@ function updateToolAction(dt) {
   suctionOn = false;
   if (!using) { lastInc = null; return; }
   const lp = toolContactLocal(); if (!lp) return;
+  SND.touch = performance.now();
   if (state.tool === 'monopolar' && state.monoMode === 'cut') {
     const camL = anatomy.worldToLocal(state.vr ? tipWorld.clone().addScaledVector(vrFwd, -10 * state.S) : endoCam.position.clone());
     monoCut(lp, lp.clone().sub(camL).normalize());

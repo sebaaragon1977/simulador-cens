@@ -57,7 +57,7 @@
       if (!m || p.length !== 4) { $('#aErr').textContent = 'Completá el mail y los 4 dígitos.'; return; }
       $('#aGo').disabled = true; $('#aErr').textContent = '';
       try {
-        const uid = await rpc('ingresar', { p_email: m, p_pin: await pinHash(m, p) });
+        const uid = await rpc('cens_ingresar', { p_email: m, p_pin: await pinHash(m, p) });
         if (!uid) { $('#aErr').textContent = 'Mail o clave incorrectos.'; $('#aGo').disabled = false; return; }
         entrar(uid, m);
       } catch (e) { $('#aErr').textContent = e.message; $('#aGo').disabled = false; }
@@ -81,13 +81,13 @@
       if (!pr) { $('#rErr').textContent = 'Completá la provincia o estado.'; return; }
       if (p.length !== 4 || p !== $('#rPin2').value) { $('#rErr').textContent = 'La clave tiene que tener 4 dígitos y coincidir.'; return; }
       $('#rGo').disabled = true; $('#rErr').textContent = '';
-      try { const uid = await rpc('registrar', { p_email: m, p_pais: pa, p_provincia: pr, p_pin: await pinHash(m, p) }); entrar(uid, m); }
+      try { const uid = await rpc('cens_registrar', { p_email: m, p_pais: pa, p_provincia: pr, p_pin: await pinHash(m, p) }); entrar(uid, m); }
       catch (e) { $('#rErr').textContent = e.message; $('#rGo').disabled = false; }
     };
   }
   function entrar(uid, mail) {
     localStorage.setItem(LS_MAIL, mail.trim().toLowerCase()); sessionStorage.setItem(SS_UID, uid);
-    rpc('registrar_sesion', { p_usuario: uid, p_fantoma: fantoma(), p_vr: false }).catch(() => { });
+    rpc('cens_registrar_sesion', { p_usuario: uid, p_fantoma: fantoma(), p_vr: false }).catch(() => { });
     const n = (+localStorage.getItem(LS_N) || 0) + 1; localStorage.setItem(LS_N, n);
     hide();
     if (n === 3 && !localStorage.getItem(LS_ENC)) setTimeout(() => vistaEncuesta(true), 20 * 60 * 1000);   // pedir opinión en la 3.ª sesión, a los 20 minutos
@@ -104,13 +104,13 @@
     $('#eGo').onclick = async () => {
       if (!cal) { $('#eErr').textContent = 'Elegí de 1 a 5 estrellas.'; return; }
       $('#eGo').disabled = true;
-      try { await rpc('enviar_encuesta', { p_usuario: sessionStorage.getItem(SS_UID), p_calificacion: cal, p_mejoraria: $('#eMej').value, p_necesita: $('#eNec').value });
+      try { await rpc('cens_enviar_encuesta', { p_usuario: sessionStorage.getItem(SS_UID), p_calificacion: cal, p_mejoraria: $('#eMej').value, p_necesita: $('#eNec').value });
         localStorage.setItem(LS_ENC, '1'); show('<h2>¡Gracias!</h2><p>Recibimos tu opinión.</p><button id="eOk">Volver al simulador</button>'); $('#eOk').onclick = hide; }
       catch (e) { $('#eErr').textContent = e.message; $('#eGo').disabled = false; }
     };
   }
   // VR: registra que la sesión pasó a realidad virtual
-  window.censAccesoVR = () => { const uid = sessionStorage.getItem(SS_UID); if (uid) rpc('registrar_sesion', { p_usuario: uid, p_fantoma: fantoma(), p_vr: true }).catch(() => { }); };
+  window.censAccesoVR = () => { const uid = sessionStorage.getItem(SS_UID); if (uid) rpc('cens_registrar_sesion', { p_usuario: uid, p_fantoma: fantoma(), p_vr: true }).catch(() => { }); };
   window.censEncuesta = () => vistaEncuesta(false);
   const start = () => {
     const btn = document.createElement('button'); btn.textContent = '★ Calificar y sugerir'; btn.title = 'Contanos qué mejorarías';

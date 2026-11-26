@@ -1674,6 +1674,7 @@ function placeAnatomy() {
   instr.scale.setScalar(s);
 }
 renderer.xr.addEventListener('sessionstart', () => {
+  if (window.censAccesoVR) window.censAccesoVR();
   setLiteLook(true);
   state.vr = true; state.S = VR_S; state.scopeExt = 0; state.instrExt = 0; placeAnatomy(); vrRoom.visible = true; hemi.visible = true; amb.visible = false;
   shaft.scale.z = 0.12 / VR_S - 4.5; endoCam.aspect = 4 / 3; endoCam.updateProjectionMatrix();
@@ -4944,5 +4945,6 @@ $('#vrSmooth').value = VRSET.smooth; $('#vrSmoothV').textContent = Math.round(VR
 $('#vrSmooth').oninput = e => { VRSET.smooth = +e.target.value; $('#vrSmoothV').textContent = Math.round(VRSET.smooth * 100) + '%'; saveVRSet(); };
 window.__sim = { renderer, scene, worldCam, vrRoom, table, VRSET, setBoth, clampFossa, smoothPose, patientG, towerG, updatePatient, STEREO, setStereo, renderEndoEye, traceStart, traceAdd, traceEnd, huAt, huStats, lmDist, TRACE, setFull, retypeLm, showPop, setFree, moveCur, sliceLPS, ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
+<script src="acceso.js"></script>
 </body>
 </html>

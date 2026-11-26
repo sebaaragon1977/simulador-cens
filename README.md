@@ -61,6 +61,10 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - Scripts del registro y la exportación en `humanatlas/scripts/`.
 - **Licencia de la capa**: Z-Anatomy, CC BY-SA 4.0 (BodyParts3D © DBCLS, CC BY 4.0). Las mallas derivadas (`humanatlas/za_capa.json`) se distribuyen con la misma licencia.
 
+## Fístula de LCR y herniación de grasa orbitaria
+- **Fístula de LCR**: al lesionar la base de cráneo (fóvea etmoidal, lámina cribosa, pared posterior del frontal, diafragma selar o dura del clivus) gotea líquido claro como agua: una gota colgante crece con el latido y cae con la gravedad real (también en VR, con el paciente acostado) y lava la sangre acumulada. No se cierra con bipolar; se sella rotando el colgajo nasoseptal a la base de cráneo sobre el defecto.
+- **Herniación de grasa orbitaria**: al perforar la lámina papirácea la grasa protruye hacia medial sobre el etmoides y el meato medio. Se indica coagular su superficie con bipolar y se retrae; resecarla con pinza o drill cuenta como complicación.
+
 ## Apariencia
 - **Mucosa húmeda**: capa brillante con película de moco (reflejos puntuales donde pega la luz) y translucidez suave en los bordes.
 - **Relieve por tejido** (mapas de normales generados en el navegador): mucosa ondulada con puntillado glandular, hueso poroso, tumor lobulado; grasa, nervios, duramadre y vasos con su propio brillo.

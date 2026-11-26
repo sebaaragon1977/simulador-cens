@@ -352,6 +352,7 @@ let cutVol = new Uint8Array(CV.nx * CV.ny * CV.nz);
 let cutTex = new THREE.Data3DTexture(cutVol, CV.nx, CV.ny, CV.nz);
 cutTex.format = THREE.RedFormat; cutTex.type = THREE.UnsignedByteType;
 cutTex.minFilter = cutTex.magFilter = THREE.LinearFilter; cutTex.unpackAlignment = 1; cutTex.needsUpdate = true;
+const solidCam = { value: new THREE.Vector3(0, 0, 50) }; const SOLID_MATS = [];   // cámara en coordenadas de la anatomía (para la tapa de los cornetes macizos)
 const cutU = { uSag: { value: 1e9 }, uCutVol: { value: cutTex }, uCutO: { value: CV.o }, uCutSize: { value: V(CV.nx * CV.vox, CV.ny * CV.vox, CV.nz * CV.vox) } };
 let cutDirty = false, nCuts = 0;
 function setCutVolume(o, size, vox) {
@@ -389,6 +390,8 @@ function patchSurf(m, cut) {
   if (cut) m.userData.cut = true;
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, cutU, fxU);
+    const SOL = m.userData.solid;
+    if (SOL) { sh.uniforms.uSolC = { value: SOL.c }; sh.uniforms.uSolR = SOL.rU; sh.uniforms.uCamL = solidCam; }
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vLP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLP = position;');
@@ -397,6 +400,7 @@ function patchSurf(m, cut) {
         varying vec3 vLP;
         uniform highp sampler3D uCutVol; uniform vec3 uCutO; uniform vec3 uCutSize; uniform float uSag;
         uniform vec4 uBlood[${FX_MAXB}]; uniform int uBloodN; uniform vec4 uBurn[${FX_MAXBURN}]; uniform int uBurnN;
+        ${SOL ? 'uniform vec3 uSolC; uniform vec3 uSolR; uniform vec3 uCamL; uniform mat3 normalMatrix;' : ''}
         float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
         float n3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
@@ -406,6 +410,24 @@ function patchSurf(m, cut) {
         ${cut ? `float cv = texture(uCutVol, (vLP - uCutO) / uCutSize).r;
         if (cv > 0.5) discard;
         float cutEdge = smoothstep(0.04, 0.5, cv); float cutHalo = smoothstep(0.0, 0.3, cv);` : 'float cutEdge = 0.0; float cutHalo = 0.0;'}
+        bool capHit = false; vec3 capN = vec3(0.0), capP = vec3(0.0); float capBone = 0.0;
+        ${SOL ? `if (!gl_FrontFacing) {   // se ve el interior por un corte: buscar la superficie de corte del cornete macizo
+          vec3 dir = normalize(uCamL - vLP); float L = min(distance(uCamL, vLP), 70.0);
+          for (int i = 0; i < 220; i++) {
+            float t = L - float(i) * 0.3; if (t < 0.0) break;
+            vec3 P = vLP + dir * t, q = (vec3(abs(P.x), P.y, P.z) - uSolC) / uSolR;
+            if (dot(q, q) > 1.0) continue;
+            if (texture(uCutVol, (P - uCutO) / uCutSize).r < 0.5) {
+              vec3 e = vec3(0.45, 0.0, 0.0);
+              vec3 g = vec3(texture(uCutVol, (P + e.xyy - uCutO) / uCutSize).r - texture(uCutVol, (P - e.xyy - uCutO) / uCutSize).r,
+                            texture(uCutVol, (P + e.yxy - uCutO) / uCutSize).r - texture(uCutVol, (P - e.yxy - uCutO) / uCutSize).r,
+                            texture(uCutVol, (P + e.yyx - uCutO) / uCutSize).r - texture(uCutVol, (P - e.yyx - uCutO) / uCutSize).r);
+              capN = dot(g, g) > 1e-6 ? normalize(g) : dir; capP = P; capHit = true;
+              capBone = 1.0 - smoothstep(0.3, 0.42, length(q));
+              break;
+            }
+          }
+        }` : ''}
         float bl = 0.0;
         for (int i = 0; i < ${FX_MAXB}; i++) {
           if (i >= uBloodN) break;
@@ -419,14 +441,24 @@ function patchSurf(m, cut) {
         }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         ${TISSUE_CUT[m.userData.tissue || 'soft']}
+        if (capHit) {   // tejido macizo: submucosa (cuerpo cavernoso) con el hueso del cornete en el centro
+          float nn = n3(capP * 1.6), sp = smoothstep(0.72, 0.8, n3(capP * 4.3));
+          vec3 sub = vec3(0.6, 0.12, 0.12) * (0.8 + 0.35 * nn) - sp * vec3(0.2, 0.06, 0.06);
+          diffuseColor.rgb = mix(sub, vec3(0.88, 0.79, 0.64) * (0.88 + 0.22 * n3(capP * 3.1)), capBone);
+        }
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.92, 0.86, 0.78), bn * 0.75);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.22, 0.15, 0.1), bn * bn * bn * 0.7);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.0, 0.004), bl * 0.97);`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        ${SOL ? 'if (capHit) normal = normalize(normalMatrix * capN);' : ''}`)
+      .replace('#include <clearcoat_normal_fragment_maps>', `#include <clearcoat_normal_fragment_maps>
+        ${SOL ? 'if (capHit) clearcoatNormal = normal;' : ''}`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = mix(roughnessFactor, 0.16, bl);
+        if (capHit) roughnessFactor = 0.5;
         roughnessFactor = mix(roughnessFactor, ${m.userData.tissue === 'bone' ? '0.6' : '0.2'}, cutEdge);`);
   };
-  m.customProgramCacheKey = () => (cut ? 'surfC' : 'surf') + (m.userData.tissue || 'soft');
+  m.customProgramCacheKey = () => (cut ? 'surfC' : 'surf') + (m.userData.tissue || 'soft') + (m.userData.solid ? 'S' : '');
   return m;
 }
 const patchCut = m => patchSurf(m, true);
@@ -891,11 +923,14 @@ function buildAnatomy() {
   add(quad([0, 48, -26], [0, 48, -6], [0, 70, -26], 0.2), M.bone, 'frontsept', { noMirror: true });
   map2d.push({ t: 'box', x: [0, 24], y: [48, 70], z: [-26, -6], c: '#b98' , n: 'Frontal'});
   // Cornetes
-  add(ellipsoid([12, 10, -32], [5, 5.5, 26]), M.turb, 'it', { map: { t: 'e', c: [12, 10, -32], r: [5, 5.5, 26], col: '#e07a72', n: 'CI' } });
-  add(ellipsoid([6, 26, -42], [2, 8, 18]), M.turbC, 'mt', { map: { t: 'e', c: [6, 26, -42], r: [2, 8, 18], col: '#e07a72', n: 'CM' } });
-  add(ellipsoid([6.2, 27, -27.5], [2.7, 6, 5.5]), M.turbC, 'mt');
+  // Cornetes macizos: material propio con su elipsoide (la tapa del corte muestra submucosa y hueso, no un hueco)
+  const solidTurb = (c, r) => { const m = mat('#c85a56', { cut: true }), zs = WZK ? (WZ(c[2] + r[2]) - WZ(c[2] - r[2])) / (2 * r[2]) : 1;
+    m.userData.solid = { c: V(c[0], c[1], WZK ? WZ(c[2]) : c[2]), r0: V(r[0] * 0.97, r[1] * 0.97, r[2] * zs * 0.97), rU: { value: V(r[0] * 0.97, r[1] * 0.97, r[2] * zs * 0.97) } }; SOLID_MATS.push(m); return m; };
+  add(ellipsoid([12, 10, -32], [5, 5.5, 26]), solidTurb([12, 10, -32], [5, 5.5, 26]), 'it', { map: { t: 'e', c: [12, 10, -32], r: [5, 5.5, 26], col: '#e07a72', n: 'CI' } });
+  add(ellipsoid([6, 26, -42], [2, 8, 18]), solidTurb([6, 26, -42], [2, 8, 18]), 'mt', { map: { t: 'e', c: [6, 26, -42], r: [2, 8, 18], col: '#e07a72', n: 'CM' } });
+  add(ellipsoid([6.2, 27, -27.5], [2.7, 6, 5.5]), solidTurb([6.2, 27, -27.5], [2.7, 6, 5.5]), 'mt');
   add(quad([6, 32, -27], [6, 32, -43], [6, 46.5, -27], 0.15), M.turbC, 'mtatt');   // segmento anterior: vertical (sagital) a la lamela lateral de la cribosa
-  add(ellipsoid([6.5, 37, -58], [1.8, 4, 7]), M.turbC, 'st', { map: { t: 'e', c: [6.5, 37, -58], r: [1.8, 4, 7], col: '#e07a72', n: 'CS' } });
+  add(ellipsoid([6.5, 37, -58], [1.8, 4, 7]), solidTurb([6.5, 37, -58], [1.8, 4, 7]), 'st', { map: { t: 'e', c: [6.5, 37, -58], r: [1.8, 4, 7], col: '#e07a72', n: 'CS' } });
   // Apófisis unciforme (lámina en media luna)
   add(uncinateGeom(), M.unc, 'unc', { map: { t: 'unc', col: '#f0a090' } });
   // Ostium maxilar, ostium accesorio y válvula de Hasner
@@ -1413,7 +1448,7 @@ function onTrigger(c, down) {
   if (state.tool === 'suture' && down) doStitch(anatomy.worldToLocal(tipWorld.clone()));
   if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = down;
   if (state.tool === 'freer') { if (down) startFreerVR(); else { using = false; if (freerGrab) endFreer(); } }
-  if (state.tool === 'grasp') { if (down) grabFlapAt(anatomy.worldToLocal(tipWorld.clone()), null, 0); else releaseFlap(); }
+  if (state.tool === 'grasp') { if (down) { const q = anatomy.worldToLocal(tipWorld.clone()); if (!herniaBite(q)) grabFlapAt(q, null, 0); } else releaseFlap(); }
   if (state.tool === 'drill') drilling = down;
 }
 const S = () => state.S;
@@ -1528,6 +1563,7 @@ function keyOfHit(h) {
 /* ============================== CORTE ============================== */
 function doBiteRetro(worldP) {   // muerde hacia anterior (hacia la óptica): cápsula de ~3 mm
   const lp = anatomy.worldToLocal(worldP.clone());
+  if (herniaBite(lp)) return;
   jawClose = 0.2; let any = false;
   for (let k = 0; k < 3; k++) { const q = lp.clone(); q.z += k * 1.1; if (addCut(q, 1.3)) any = true; checkDanger(q, 1.3); }
   if (any) { state.bites++; haptic(0.35, 30); }
@@ -1550,6 +1586,7 @@ function addCutGradual(p, r, inc) {   // sube el corte de a poco: hacen falta va
 const DRILL = { r: 1.5, back: 1.1, inc: 55 };   // fresa: penetra ~0,4 mm por pasada y cada vóxel necesita 3 pasadas
 function doDrill(worldP, dirWorld) {
   const lp = anatomy.worldToLocal(worldP.clone());
+  if (herniaBite(lp)) return;
   let c = lp;
   if (dirWorld) { const ld = anatomy.worldToLocal(worldP.clone().add(dirWorld)).sub(lp).normalize(); c = lp.clone().addScaledVector(ld, -DRILL.back); }
   if (addCutGradual(c, DRILL.r, DRILL.inc)) { state.bites++; haptic(0.2, 20); }
@@ -1559,8 +1596,8 @@ function doBite(worldP, r) {
   if (state.tool === 'none') return;
   const lp = anatomy.worldToLocal(worldP.clone());
   if (state.tool === 'pinza') jawClose = 0.18;
+  if (herniaBite(lp)) return;
   if (addCut(lp, r)) { state.bites++; haptic(0.35, 30); }
-  herniaBite(lp);
   checkDanger(lp, r);
 }
 
@@ -1803,7 +1840,7 @@ cv.addEventListener('pointerdown', e => {
     if (state.tool === 'drill') drilling = true;
     if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = true;
     if (state.tool === 'freer') startFreerDesktop(e);
-    if (state.tool === 'grasp') { if (!(tipHit && tipHit.object.userData.flap && grabFlapAt(anatomy.worldToLocal(tipHit.point.clone()), tipHit.object.userData.flap, tipHit.distance))) { if (!flaps.length) toast('La pinza de agarre toma el colgajo despegado (no corta).'); } }
+    if (state.tool === 'grasp') { if (tipHit && herniaBite(anatomy.worldToLocal(tipHit.point.clone()))) return; if (!(tipHit && tipHit.object.userData.flap && grabFlapAt(anatomy.worldToLocal(tipHit.point.clone()), tipHit.object.userData.flap, tipHit.distance))) { if (!flaps.length) toast('La pinza de agarre toma el colgajo despegado (no corta).'); } }
   }
 });
 addEventListener('pointerup', e => {
@@ -1962,6 +1999,7 @@ function updateInstrumentCommon(dt) {
   if (state.tool === 'drill') burr.rotation.z += dt * (drilling ? 60 : 4);
 }
 function updateEffects(dt) {
+  anatomy.updateMatrixWorld(); solidCam.value.copy(anatomy.worldToLocal(endoCam.getWorldPosition(new THREE.Vector3())));
   updateBleeds(dt);
   updateFlaps(dt);
   $('#bleed').style.opacity = state.bleed * 0.85;
@@ -2996,7 +3034,7 @@ function updateBleeds(dt) {
   if (activeNames.length) { bi.style.display = 'block'; bi.textContent = '🩸 Sangrado activo: ' + [...new Set(activeNames)].join(', ') + ' — coagulá con bipolar y aspirá'; }
   else bi.style.display = 'none';
   if (activeNames.length && state.vr && beat > 0.9) haptic(0.15, 20);
-  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt);
+  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt); itApply();
 }
 
 /* ---------- fístula de LCR: gotea líquido claro como agua ----------
@@ -3088,11 +3126,11 @@ function addHernia(lp) {
     const gm = new THREE.SphereGeometry(1, 22, 16), pa = gm.attributes.position;
     for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), w = 1 + 0.07 * Math.sin(7 * x + 3 * y) * Math.cos(5 * z - 2 * y); pa.setXYZ(i, x * w, y * w, z * w); }
     gm.computeVertexNormals();
-    const m = new THREE.Mesh(gm, herniaMat); m.userData = { lobe: [ox, oy, oz, k] }; grp.add(m);
+    const m = new THREE.Mesh(gm, herniaMat); m.userData = { lobe: [ox, oy, oz, k], key: 'hernia' }; grp.add(m); meshes.push(m);
   }
   grp.visible = state.model === 'generic'; anatomy.add(grp);
   hernias.push({ c: V(sx * 18.4, lp.y, lp.z), sx, grp, r: 0.3, rmax: 5.6 + Math.random() * 1.0, st: 'grow', coag: 0, t: 0, warned: 0 });
-  setTimeout(() => toast('🟡 Grasa orbitaria herniada hacia el meato medio. No la reseques: coagulá su superficie con bipolar para que se retraiga.', 7000, true), 900);
+  setTimeout(() => toast('🟡 Grasa orbitaria herniada hacia el meato medio. Coagulá su superficie con bipolar para que se retraiga, o tomala y sacala con pinza.', 7000, true), 900);
 }
 function placeHernia(h) {
   for (const m of h.grp.children) {
@@ -3104,45 +3142,112 @@ function placeHernia(h) {
 function updateHernias(dt) {
   for (const h of hernias) {
     h.t += dt;
+    if (h.st === 'gone') { h.grp.visible = false; continue; }
     if (h.st === 'grow') h.r += (h.rmax - h.r) * Math.min(1, dt * 0.45);
     else if (h.st === 'retract') { h.r += (1.0 - h.r) * Math.min(1, dt * 1.6); if (h.r < 1.15) h.st = 'done'; }
     const breathe = h.st === 'grow' ? 1 + 0.03 * Math.sin(h.t * 1.6) : 1;
     const r0 = h.r; h.r *= breathe; placeHernia(h); h.r = r0;
-    h.grp.visible = state.model === 'generic';
+    h.grp.visible = state.model === 'generic' && h.r > 0.3;
   }
 }
 function herniaCoag(lp, dt, isMono) {
   for (const h of hernias) {
-    if (h.st !== 'grow') continue;
+    if (h.st !== 'grow' && h.st !== 'taken') continue;
     const cen = V(h.c.x - h.sx * h.r * 0.75, h.c.y, h.c.z);
-    if (lp.distanceTo(cen) > h.r + 2.8) continue;
+    if (lp.distanceTo(cen) > h.r + 3.5) continue;
     if (isMono) { if (performance.now() - h.warned > 3000) { h.warned = performance.now(); toast('Sobre la grasa orbitaria usá bipolar (el monopolar puede dañar el recto medial).', 4000, true); } continue; }
     h.coag += dt;
     if (h.coag > 1.0) { h.st = 'retract'; herniaMat.color.set('#d9a94a'); toast('✔ Grasa orbitaria coagulada: se retrae hacia la órbita.', 4000); haptic(0.4, 80); }
   }
 }
-function herniaBite(lp) {
-  if (state.tool !== 'pinza' && state.tool !== 'drill') return;
+function herniaBite(lp) {   // pinza cortante o de agarre: se toma y se saca de a trozos; el drill sobre la grasa es una complicación
+  if (!['pinza', 'grasp', 'retro', 'drill'].includes(state.tool)) return false;
   for (const h of hernias) {
-    if (h.st !== 'grow') continue;
+    if (h.st === 'gone') continue;
     const cen = V(h.c.x - h.sx * h.r * 0.75, h.c.y, h.c.z);
-    if (lp.distanceTo(cen) < h.r + 1.5 && performance.now() - h.warned > 3000) { h.warned = performance.now(); reportDanger({ id: 'herniacut', msg: 'Resección de grasa orbitaria herniada: riesgo de hematoma orbitario y de lesión del recto medial. Coagulá con bipolar para retraerla.' }); }
+    if (lp.distanceTo(cen) > h.r + 2.2) continue;
+    if (state.tool === 'drill') { if (performance.now() - h.warned > 3000) { h.warned = performance.now(); reportDanger({ id: 'herniadrill', msg: 'Drill sobre la grasa orbitaria: se enrolla y puede arrastrar el recto medial. Sacala con pinza o retraela con bipolar.' }); } return true; }
+    const now = performance.now(); if (now - (h.lastBite || 0) < 280) return true; h.lastBite = now;
+    h.r = Math.max(0, h.r - 1.3); h.rmax = Math.min(h.rmax, h.r + 0.4); if (h.st === 'grow') h.st = 'taken';
+    jawClose = 0.2; haptic(0.3, 30);
+    if (h.r < 0.9) { h.st = 'gone'; h.grp.visible = false; h.grp.children.forEach(m => { const k = meshes.indexOf(m); if (k >= 0) meshes.splice(k, 1); });
+      toast('✔ Grasa orbitaria herniada resecada con pinza. Revisá que no quede tracción sobre el recto medial y no sigas hacia la órbita.', 5000); }
+    else if (!h.toldBite) { h.toldBite = true; toast('Tomando la grasa orbitaria con pinza: sacala de a trozos, sin traccionar hacia la órbita (recto medial).', 4500); }
+    return true;
   }
+  return false;
 }
 function resetCSFHernia() {
   csfLeaks.length = 0; csfDrops.forEach(d => d.life = 0);
-  hernias.forEach(h => anatomy.remove(h.grp)); hernias.length = 0; herniaMat.color.set('#f1cd52');
+  hernias.forEach(h => { anatomy.remove(h.grp); h.grp.children.forEach(m => { const k = meshes.indexOf(m); if (k >= 0) meshes.splice(k, 1); }); }); hernias.length = 0; herniaMat.color.set('#f1cd52');
+  itShrinkReset();
 }
 let fxInfoT = 0;
 function updateFxInfo(dt) {
   const msg = [];
   const open = csfLeaks.filter(c => !c.sealed);
   if (open.length) msg.push('💧 Fístula de LCR: ' + [...new Set(open.map(c => c.name))].join(', ') + ' — reparación con colgajo nasoseptal a base de cráneo');
-  if (hernias.some(h => h.st === 'grow')) msg.push('🟡 Grasa orbitaria herniada — coagulá con bipolar para retraerla');
+  if (hernias.some(h => h.st === 'grow' || h.st === 'taken')) msg.push('🟡 Grasa orbitaria herniada — coagulá con bipolar para retraerla o sacala con pinza');
   const el = $('#fxInfo');
   if (msg.length) { el.style.display = 'block'; el.innerHTML = msg.join('<br>'); } else el.style.display = 'none';
   fxInfoT -= dt;
   if (msg.length && state.vr && fxInfoT <= 0 && hudWarnT <= 0) { hudWarn = msg.join(' · '); hudWarnT = 4; fxInfoT = 8; }
+}
+
+
+/* ---------- reducción del cornete inferior por coagulación (bipolar / monopolar en coagulación) ----------
+   Cada vértice del cornete acumula una retracción local (hasta 45 %) hacia el eje óseo; la inserción lateral queda fija.
+   Se combina con el desplazamiento de la espátula de Freer (applyTurb). */
+const IT_AX = { x: 12.6, y: 10.2 };
+let itShrinkMsg = false, itShrinkDirty = false;
+function itMeshes() { return meshes.filter(m => m.userData.key === 'it'); }
+function itBase(m) {
+  if (!m.userData.base) m.userData.base = m.geometry.attributes.position.array.slice();
+  if (!m.userData.shr) m.userData.shr = new Float32Array(m.geometry.attributes.position.count);
+  return m.userData.base;
+}
+function itShrunk(m, i) {   // posición de base con la retracción aplicada (x, y)
+  const b = m.userData.base, s = m.userData.shr ? m.userData.shr[i] : 0, x = b[i * 3], y = b[i * 3 + 1], sx = x < 0 ? -1 : 1;
+  const w = THREE.MathUtils.clamp((16.6 - Math.abs(x)) / 6, 0, 1) * s;   // la inserción lateral no se mueve
+  return [sx * (IT_AX.x + (Math.abs(x) - IT_AX.x) * (1 - w)), IT_AX.y + (y - IT_AX.y) * (1 - w)];
+}
+function itShrink(lp, dt) {
+  if (state.model === 'ct') return;
+  let any = false, tot = 0, n = 0;
+  for (const m of itMeshes()) {
+    const b = itBase(m), sh = m.userData.shr, pa = m.geometry.attributes.position;
+    if ((b[0] < 0) !== (lp.x < 0) && Math.abs(lp.x) > 1) continue;
+    for (let i = 0; i < pa.count; i++) {
+      const d = Math.hypot(pa.array[i * 3] - lp.x, pa.array[i * 3 + 1] - lp.y, pa.array[i * 3 + 2] - lp.z);
+      if (d < 6.5 && sh[i] < 0.45) { sh[i] = Math.min(0.45, sh[i] + dt * 0.5 * (1 - d / 6.5)); any = true; }
+      tot += sh[i]; n++;
+    }
+  }
+  if (!any) return;
+  itShrinkDirty = true;
+  if (!itShrinkMsg && tot / Math.max(1, n) > 0.04) { itShrinkMsg = true; toast('✔ Cornete inferior: reducción del volumen submucoso por coagulación (como la radiofrecuencia). Coagulá a lo largo del borde para achicarlo parejo.', 6000); }
+}
+function itApply() {
+  if (!itShrinkDirty) return; itShrinkDirty = false;
+  for (const m of itMeshes()) {
+    if (!m.userData.shr) continue;
+    const pa = m.geometry.attributes.position, b = m.userData.base, orig = !m.userData.mirror;
+    for (let i = 0; i < pa.count; i++) {
+      const [x, y] = itShrunk(m, i);
+      let nx = x;
+      if (orig) { nx = x + turbDisp.it * weightTurb('it', b[i * 3], b[i * 3 + 1], b[i * 3 + 2]); nx = Math.min(nx, 16.8); }
+      pa.array[i * 3] = nx; pa.array[i * 3 + 1] = y;
+    }
+    pa.needsUpdate = true; m.geometry.computeVertexNormals(); m.geometry.computeBoundingSphere();
+    // la tapa maciza sigue al cornete achicado
+    if (m.material.userData.solid) { let a = 0; for (let i = 0; i < m.userData.shr.length; i++) a += m.userData.shr[i]; a /= m.userData.shr.length;
+      const S = m.material.userData.solid; S.rU.value.set(S.r0.x * (1 - a), S.r0.y * (1 - a), S.r0.z); }
+  }
+}
+function itShrinkReset() {
+  itShrinkMsg = false;
+  for (const m of itMeshes()) if (m.userData.shr) { m.userData.shr.fill(0); itShrinkDirty = true; }
+  itApply();
 }
 
 function toolContactLocal() {   // punto de contacto de la punta con el tejido (coordenadas de la anatomía)
@@ -3174,7 +3279,7 @@ function updateToolAction(dt) {
   if (state.tool === 'bipolar' || state.tool === 'monopolar') {
     const isMono = state.tool === 'monopolar', now = performance.now();
     if (now - lastFx > 110) { lastFx = now; addBurn(lp, isMono ? 1.9 : 1.0); spawnSmoke(lp); thermalDanger(lp, isMono); haptic(0.12, 15); }
-    herniaCoag(lp, dt, isMono);
+    herniaCoag(lp, dt, isMono); itShrink(lp, dt);
     for (const b of bleeds) if (b.active && lp.distanceTo(b.p) < (isMono ? 4.5 : 3.6)) {
       b.coag += dt;
       if (b.coag > (isMono ? 0.35 : 0.7)) { b.active = false; toast('✔ Hemostasia: ' + b.name + ' coagulada. Aspirá la sangre que quedó.', 4000); haptic(0.4, 80); }
@@ -3216,6 +3321,7 @@ function applyTurb(k) {
     for (let i = 0; i < pa.count; i++) {
       const x = b[i * 3], y = b[i * 3 + 1], z = b[i * 3 + 2];
       let nx = x + turbDisp[k] * weightTurb(k, x, y, z);
+      if (k === 'it' && m.userData.shr) { const q = itShrunk(m, i); nx = q[0] + turbDisp[k] * weightTurb(k, x, y, z); pa.array[i * 3 + 1] = q[1]; }
       nx = k === 'it' ? Math.min(nx, 16.8) : k === 'unc' ? Math.max(nx, 4.5) : Math.max(nx, 0.6);
       pa.array[i * 3] = nx;
     }

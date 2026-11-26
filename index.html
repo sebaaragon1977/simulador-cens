@@ -120,7 +120,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ph3" title="Angiofibroma juvenil nasofaríngeo">Fantoma 3 · angiofibroma</button><button data-v="ph4" title="Fantoma 2 con órbita, nervio óptico, carótida y vasos/nervios de base de cráneo de Z-Anatomy (Human Atlas)">Human Atlas</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ph3" title="Angiofibroma juvenil nasofaríngeo">Fantoma 3 · angiofibroma</button><button data-v="ph4" title="Fantoma 2 con órbita, nervio óptico, carótida y vasos/nervios de base de cráneo de Z-Anatomy (Human Atlas)">Human Atlas</button><button data-v="ph5" title="Desviación septal en C con espolón condrovomeriano: septoplastia">Septum desviado</button><button data-v="ph6" title="Poliposis nasosinusal (base Human Atlas): pólipos en meato medio, receso frontal y etmoides">Poliposis</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -139,7 +139,7 @@
   <div class="grp"><label>Óptica</label>
     <div class="seg" id="optic"><button data-v="0" class="on">0°</button><button data-v="30">30°</button><button data-v="45">45°</button><button data-v="70">70°</button></div></div>
   <div class="grp"><label>Instrumento</label>
-    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button><button data-v="grasp">Pinza de agarre</button><button data-v="retro">Pinza retrógrada</button><button data-v="ball">Palpador bolita</button><button data-v="suture">Porta-agujas (sutura)</button></div>
+    <div class="seg" id="tool"><button data-v="none">Explorar</button><button data-v="pinza" class="on">Pinza cortante</button><button data-v="drill">Drill</button><button data-v="bipolar">Bipolar</button><button data-v="monopolar">Monopolar</button><button data-v="aspirador">Aspirador</button><button data-v="freer">Freer</button><button data-v="grasp">Pinza de agarre</button><button data-v="retro">Pinza retrógrada</button><button data-v="ball">Palpador bolita</button><button data-v="suture">Porta-agujas (sutura)</button><button data-v="scalpel">Bisturí</button><button data-v="shaver" title="Microdebridador: sólo pólipos y mucosa, no corta hueso">Shaver (microdebridador)</button></div>
     <div class="seg" id="monoMode" style="display:none;margin-top:6px"><button data-v="coag" class="on">Monopolar: coagular</button><button data-v="cut">Monopolar: cortar</button></div></div>
   <div class="grp" id="ifacGrp"><label>Variantes del receso frontal (IFAC)</label>
     <div class="mut" style="margin-top:0">Anteriores</div>
@@ -160,7 +160,7 @@
     <div class="seg" id="perfSel"><button data-p="small">Pequeña &lt;1 cm</button><button data-p="mid">Mediana 1–2 cm</button><button data-p="ant">Anterior extrema</button><button data-p="large">Grande &gt;2 cm</button></div>
     <div class="seg" style="margin-top:4px"><button data-p="antL">Grande anterior · racket-on-donut</button><button data-p="largeL">Grande · pared lateral</button></div>
     <div class="mut" id="perfAlg">Algoritmo (Alobid): &lt;1 cm → colgajos de avance bipediculados · 1–2 cm media/anterior → colgajo de arteria etmoidal anterior · anterior extrema (hasta la columela) → colgajo de arteria palatina mayor · grande anterior → racket-on-donut (palatina mayor modificado + bordes invertidos) · &gt;2 cm → etmoidal anterior extendido o colgajo pediculado de pared lateral. Verde = incisiones · naranja = pedículo.</div>
-    <div class="seg" style="margin-top:4px"><button id="btnRotSkull">Rotar colgajo a base de cráneo</button><button id="btnRotPerf">Llevar a la perforación</button><button id="btnRepos">Reposicionar colgajo</button></div>
+    <div class="seg" style="margin-top:4px"><button id="btnRotSkull">Rotar colgajo a base de cráneo</button><button id="btnRotPerf">Llevar a la perforación</button><button id="btnRepos">Reposicionar colgajo</button><button id="btnRetract" style="display:none">Separar colgajos (espéculo)</button></div>
     <div class="mut">Monopolar en <b>cortar</b> (tecla <kbd>M</kbd>): dibujá las incisiones manteniendo el clic. <b>Freer</b> apoyada y arrastrada adentro del área: despega el colgajo de a poco (queda unido por el pedículo). <b>Pinza de agarre</b> (<kbd>8</kbd>): tomalo del borde y movelo. <b>Porta-agujas</b> (<kbd>U</kbd>): clic sobre el borde del colgajo apoyado en el tabique = un punto que lo fija.</div></div>
   <div class="grp checks">
     <label><input type="checkbox" id="chkLabels" checked> Etiquetas anatómicas</label>
@@ -391,7 +391,7 @@ function patchSurf(m, cut) {
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, cutU, fxU);
     const SOL = m.userData.solid;
-    if (SOL) { sh.uniforms.uSolC = { value: SOL.c }; sh.uniforms.uSolR = SOL.rU; sh.uniforms.uCamL = solidCam; }
+    if (SOL) { sh.uniforms.uSolC = { value: SOL.c }; sh.uniforms.uSolR = SOL.rU; sh.uniforms.uCamL = solidCam; sh.uniforms.uSolRot = { value: SOL.rot || new THREE.Matrix3() }; sh.uniforms.uSolAbs = { value: SOL.abs === false ? 0 : 1 }; }
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vLP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLP = position;');
@@ -400,7 +400,7 @@ function patchSurf(m, cut) {
         varying vec3 vLP;
         uniform highp sampler3D uCutVol; uniform vec3 uCutO; uniform vec3 uCutSize; uniform float uSag;
         uniform vec4 uBlood[${FX_MAXB}]; uniform int uBloodN; uniform vec4 uBurn[${FX_MAXBURN}]; uniform int uBurnN;
-        ${SOL ? 'uniform vec3 uSolC; uniform vec3 uSolR; uniform vec3 uCamL; uniform mat3 normalMatrix;' : ''}
+        ${SOL ? 'uniform vec3 uSolC; uniform vec3 uSolR; uniform vec3 uCamL; uniform mat3 normalMatrix; uniform mat3 uSolRot; uniform float uSolAbs;' : ''}
         float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
         float n3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
@@ -412,19 +412,29 @@ function patchSurf(m, cut) {
         float cutEdge = smoothstep(0.04, 0.5, cv); float cutHalo = smoothstep(0.0, 0.3, cv);` : 'float cutEdge = 0.0; float cutHalo = 0.0;'}
         bool capHit = false; vec3 capN = vec3(0.0), capP = vec3(0.0); float capBone = 0.0;
         ${SOL ? `if (!gl_FrontFacing) {   // se ve el interior por un corte: buscar la superficie de corte del cornete macizo
-          vec3 dir = normalize(uCamL - vLP); float L = min(distance(uCamL, vLP), 70.0);
-          for (int i = 0; i < 220; i++) {
-            float t = L - float(i) * 0.3; if (t < 0.0) break;
-            vec3 P = vLP + dir * t, q = (vec3(abs(P.x), P.y, P.z) - uSolC) / uSolR;
-            if (dot(q, q) > 1.0) continue;
-            if (texture(uCutVol, (P - uCutO) / uCutSize).r < 0.5) {
-              vec3 e = vec3(0.45, 0.0, 0.0);
-              vec3 g = vec3(texture(uCutVol, (P + e.xyy - uCutO) / uCutSize).r - texture(uCutVol, (P - e.xyy - uCutO) / uCutSize).r,
-                            texture(uCutVol, (P + e.yxy - uCutO) / uCutSize).r - texture(uCutVol, (P - e.yxy - uCutO) / uCutSize).r,
-                            texture(uCutVol, (P + e.yyx - uCutO) / uCutSize).r - texture(uCutVol, (P - e.yyx - uCutO) / uCutSize).r);
-              capN = dot(g, g) > 1e-6 ? normalize(g) : dir; capP = P; capHit = true;
-              capBone = 1.0 - smoothstep(0.3, 0.42, length(q));
-              break;
+          vec3 cam = uCamL; if (uSolAbs > 0.5 && vLP.x < 0.0) cam.x = -cam.x;
+          vec3 Pl = vec3(mix(vLP.x, abs(vLP.x), uSolAbs), vLP.y, vLP.z);
+          vec3 o = (uSolRot * (cam - uSolC)) / uSolR, dq = (uSolRot * (Pl - cam)) / uSolR;
+          float qa = dot(dq, dq), qb = 2.0 * dot(o, dq), qc = dot(o, o) - 1.0, disc = qb * qb - 4.0 * qa * qc;
+          float t0 = disc > 0.0 ? max(0.0, (-qb - sqrt(disc)) / (2.0 * qa)) : 1.0;
+          vec3 E = cam + (Pl - cam) * t0;   // entrada del rayo al elipsoide (la superficie de adelante)
+          vec3 Ew = vec3(vLP.x < 0.0 && uSolAbs > 0.5 ? -E.x : E.x, E.y, E.z);
+          if (t0 < 0.999 && texture(uCutVol, (Ew - uCutO) / uCutSize).r > 0.5) {   // sólo si adelante está cortado
+            vec3 dir = normalize(Pl - E); float L = distance(Pl, E);
+            for (int i = 0; i < 90; i++) {
+              float t = float(i) * 0.3; if (t > L) break;
+              vec3 P = E + dir * t, q = (uSolRot * (P - uSolC)) / uSolR;
+              if (dot(q, q) > 1.0) continue;
+              vec3 Pw = vec3(vLP.x < 0.0 && uSolAbs > 0.5 ? -P.x : P.x, P.y, P.z);
+              if (texture(uCutVol, (Pw - uCutO) / uCutSize).r < 0.5) {
+                vec3 e = vec3(0.45, 0.0, 0.0);
+                vec3 g = vec3(texture(uCutVol, (Pw + e.xyy - uCutO) / uCutSize).r - texture(uCutVol, (Pw - e.xyy - uCutO) / uCutSize).r,
+                              texture(uCutVol, (Pw + e.yxy - uCutO) / uCutSize).r - texture(uCutVol, (Pw - e.yxy - uCutO) / uCutSize).r,
+                              texture(uCutVol, (Pw + e.yyx - uCutO) / uCutSize).r - texture(uCutVol, (Pw - e.yyx - uCutO) / uCutSize).r);
+                capN = dot(g, g) > 1e-6 ? normalize(g) : -dir; capP = Pw; capHit = true;
+                capBone = 1.0 - smoothstep(0.3, 0.42, length(q));
+                break;
+              }
             }
           }
         }` : ''}
@@ -543,6 +553,9 @@ applyTissues(M);
 /* ============================== INFO ANATÓMICA ============================== */
 const INFO = {
   septum: ['Tabique nasal (septum)', 'Límite medial de la fosa. Se puede fresar: septectomía superior (Draf III) o posterior (esfenoidotomía bilateral). Arriba, el contacto con la lámina cribosa es zona de riesgo.'],
+  polyp: ['Pólipo nasal', 'Mucosa edematosa pediculada (rinosinusitis crónica con pólipos, inflamación tipo 2). Se reseca con shaver o pinza cortante, sin arrancar mucosa sana ni tocar hueso.'],
+  spur: ['Espolón septal', 'Cresta ósea/cartilaginosa en la unión condrovomeriana que se proyecta hacia la fosa y contacta el cornete inferior. Se reseca después de despegar ambos colgajos mucopericóndricos.'],
+  hernia: ['Grasa orbitaria herniada', 'Prolapso por una apertura de la lámina papirácea. Se retrae con bipolar o se toma con pinza; nunca con shaver.'],
   septcart: ['Cartílago cuadrangular', 'Se expone al elevar el colgajo mucopericóndrico. En la septoplastia se reseca la parte desviada conservando una L de ~1 cm dorsal y caudal.'],
   septbone: ['Lámina perpendicular del etmoides / vómer', 'Porción ósea posterior del septum, debajo del colgajo mucoperióstico.'],
   flap: ['Colgajo mucopericóndrico', 'Despegalo con la Freer (queda unido por el pedículo y los bordes no incididos); tomalo con la pinza de agarre para moverlo, o usá los botones de rotar y reposicionar.'],
@@ -687,7 +700,7 @@ function add(geom, material, key, opt = {}) {
 const noise3 = (x, y, z) => Math.sin(x * 0.45 + z * 0.31) * Math.cos(y * 0.52 - z * 0.17) + 0.5 * Math.sin(x * 1.1 + y * 0.9 + z * 0.7);
 function quad(p0, p1, p3, amp = 0.3) {
   const a = V(...p0), u = V(...p1).sub(a), v = V(...p3).sub(a);
-  const nu = Math.max(2, Math.ceil(u.length() / 2.2)), nv = Math.max(2, Math.ceil(v.length() / 2.2));
+  const nu = Math.max(2, Math.ceil(u.length() / QRES)), nv = Math.max(2, Math.ceil(v.length() / QRES));
   const g = new THREE.PlaneGeometry(1, 1, nu, nv), pos = g.attributes.position;
   const nrm = u.clone().cross(v).normalize();
   for (let i = 0; i < pos.count; i++) {
@@ -797,7 +810,40 @@ const PH3 = new URLSearchParams(location.search).get('fantoma') === '3';
    (órbita/techo etmoidal y esfenoides/silla). Coordenadas de diseño (antes de la deformación WZ). Además se carga la capa de
    mallas reales de Z-Anatomy desde humanatlas/za_capa.json. */
 const PH4 = new URLSearchParams(location.search).get('fantoma') === '4';
-const HA = PH4 ? {"GLOBE_C":[35.66,40.42,-25.14],"GLOBE_R":12.69,"MRECT":[[20.9,35.37,-73.71],[20.9,34.38,-70.32],[20.9,33.43,-66.53],[21.94,41.64,-49.14],[22.64,43.13,-39.9],[22.38,42.23,-33.55],[22.25,41.09,-29.62],[22.7,38.92,-25.42],[25.46,35.84,-20.76],[26.85,36.78,-18.41]],"IRECT":[[20.9,33.49,-75.89],[21.95,31.43,-72.7],[21.87,27.1,-66.9],[23.17,29.27,-57.68],[25.55,33.76,-43.11],[26.81,32.01,-38.79],[29.45,29.13,-32.41],[32.82,27.9,-27.58],[36.85,27.95,-23.45],[39.72,30.52,-19.86]],"SRECT":[[21.37,38.63,-74.14],[25.18,37.42,-69.51],[27.42,36.93,-66.48],[28.79,41.4,-58.31],[32.85,50.6,-43.71],[35.31,51.52,-35.3],[36.29,52.04,-33.79],[38.63,52.56,-26.93],[39.86,50.94,-22.03],[39.64,48.36,-18.35]],"LRECT":[[23.08,37.24,-75.23],[25.83,36.41,-71.7],[29.59,35.77,-68.17],[35.54,42.29,-51.66],[39.46,46.54,-42.75],[41.76,45.47,-38.42],[46.27,44.35,-33.82],[47.71,43.16,-30.05],[47.68,41.07,-24.29],[46.13,38.67,-21.01]],"SOBL":[[20.0,35.92,-72.67],[20.0,36.48,-67.16],[20.0,50.92,-44.11],[20.44,52.16,-33.6],[21.44,54.63,-23.63],[21.07,55.27,-14.88],[27.09,53.14,-21.3],[32.33,52.36,-26.42],[39.1,50.74,-31.53],[42.32,45.79,-35.87]],"OPTORB":[[34.83,43.01,-30.33],[33.83,43.26,-36.02],[32.29,44.02,-42.01],[30.38,42.66,-47.75],[28.72,38.85,-53.94],[26.79,35.23,-62.33],[23.88,34.74,-68.12]],"OPTIC":[[23.88,34.74,-68.12],[18.36,38.07,-74.96],[13.21,41.32,-82.1],[6.59,44.24,-88.0]],"CAROTID":[[28.82,5.15,-108.7],[27.37,9.97,-106.47],[24.74,12.72,-102.39],[22.57,14.52,-97.48],[20.8,16.3,-92.39],[19.21,18.64,-87.52],[18.38,22.95,-84.07],[18.74,28.45,-82.94],[17.83,33.94,-83.17],[15.37,38.63,-85.03]],"BASILAR":[[0.0,15.39,-109.93],[0.0,25.43,-102.89],[0.0,37.2,-99.4]]} : null;
+const PH5 = new URLSearchParams(location.search).get('fantoma') === '5';   // septum desviado con espolón (septoplastia)
+const PH6 = new URLSearchParams(location.search).get('fantoma') === '6';   // poliposis nasosinusal (base Human Atlas)
+const HAB = PH4 || PH6;   // fantomas con la órbita y la base de cráneo de Z-Anatomy
+const HA = HAB ? {"GLOBE_C":[35.66,40.42,-25.14],"GLOBE_R":12.69,"MRECT":[[20.9,35.37,-73.71],[20.9,34.38,-70.32],[20.9,33.43,-66.53],[21.94,41.64,-49.14],[22.64,43.13,-39.9],[22.38,42.23,-33.55],[22.25,41.09,-29.62],[22.7,38.92,-25.42],[25.46,35.84,-20.76],[26.85,36.78,-18.41]],"IRECT":[[20.9,33.49,-75.89],[21.95,31.43,-72.7],[21.87,27.1,-66.9],[23.17,29.27,-57.68],[25.55,33.76,-43.11],[26.81,32.01,-38.79],[29.45,29.13,-32.41],[32.82,27.9,-27.58],[36.85,27.95,-23.45],[39.72,30.52,-19.86]],"SRECT":[[21.37,38.63,-74.14],[25.18,37.42,-69.51],[27.42,36.93,-66.48],[28.79,41.4,-58.31],[32.85,50.6,-43.71],[35.31,51.52,-35.3],[36.29,52.04,-33.79],[38.63,52.56,-26.93],[39.86,50.94,-22.03],[39.64,48.36,-18.35]],"LRECT":[[23.08,37.24,-75.23],[25.83,36.41,-71.7],[29.59,35.77,-68.17],[35.54,42.29,-51.66],[39.46,46.54,-42.75],[41.76,45.47,-38.42],[46.27,44.35,-33.82],[47.71,43.16,-30.05],[47.68,41.07,-24.29],[46.13,38.67,-21.01]],"SOBL":[[20.0,35.92,-72.67],[20.0,36.48,-67.16],[20.0,50.92,-44.11],[20.44,52.16,-33.6],[21.44,54.63,-23.63],[21.07,55.27,-14.88],[27.09,53.14,-21.3],[32.33,52.36,-26.42],[39.1,50.74,-31.53],[42.32,45.79,-35.87]],"OPTORB":[[34.83,43.01,-30.33],[33.83,43.26,-36.02],[32.29,44.02,-42.01],[30.38,42.66,-47.75],[28.72,38.85,-53.94],[26.79,35.23,-62.33],[23.88,34.74,-68.12]],"OPTIC":[[23.88,34.74,-68.12],[18.36,38.07,-74.96],[13.21,41.32,-82.1],[6.59,44.24,-88.0]],"CAROTID":[[28.82,5.15,-108.7],[27.37,9.97,-106.47],[24.74,12.72,-102.39],[22.57,14.52,-97.48],[20.8,16.3,-92.39],[19.21,18.64,-87.52],[18.38,22.95,-84.07],[18.74,28.45,-82.94],[17.83,33.94,-83.17],[15.37,38.63,-85.03]],"BASILAR":[[0.0,15.39,-109.93],[0.0,25.43,-102.89],[0.0,37.2,-99.4]]} : null;
+/* Fantoma 5: desviación septal en C hacia la fosa derecha + espolón en la unión condrovomeriana (cresta posteroinferior oblicua)
+   Coordenadas de diseño: x lateral de la fosa derecha. SEPT.k (desviación) y SEPT.spur (espolón) bajan a 0 cuando se corrigen. */
+const SEPT = { k: 1, spur: 1, kT: 1, spurT: 1, A: 3.4, a: [-15, 4.5], b: [-50, 13.5], rx: 2.5, ry: 2.0, h: 5.6, done: false, cartDone: false };
+{ const dz = SEPT.b[0] - SEPT.a[0], dy = SEPT.b[1] - SEPT.a[1], L = Math.hypot(dz, dy); SEPT.u = [dz / L, dy / L]; SEPT.L = L / 2; SEPT.c = [(SEPT.a[0] + SEPT.b[0]) / 2, (SEPT.a[1] + SEPT.b[1]) / 2]; }
+function septDev(y, z) {   // desviación en C (máx. ~3,4 mm a ~2 cm del piso, en la mitad anterior)
+  if (!PH5) return 0;
+  const fz = THREE.MathUtils.smoothstep(z, -68, -52) * (1 - THREE.MathUtils.smoothstep(z, 0, 6));
+  return SEPT.A * SEPT.k * Math.exp(-(((y - 17) / 10) ** 2) - ((z + 24) / 17) ** 2) * fz;
+}
+function spurBaseX() { return SEPT.A * Math.exp(-(((SEPT.c[1] - 17) / 10) ** 2) - ((SEPT.c[0] + 24) / 17) ** 2) + SEPT.h - SEPT.rx; }
+function spurX(y, z) {   // borde lateral del espolón (elipsoide alargado) en (y, z); -1e9 si no hay espolón ahí
+  if (!PH5 || SEPT.spur <= 0) return -1e9;
+  const dz = z - SEPT.c[0], dy = y - SEPT.c[1], t = dz * SEPT.u[0] + dy * SEPT.u[1], p = dz * SEPT.u[1] - dy * SEPT.u[0];
+  const q = 1 - (t / SEPT.L) ** 2 - (p / SEPT.ry) ** 2;
+  return q <= 0 ? -1e9 : spurBaseX() * SEPT.k + (SEPT.rx * Math.sqrt(q)) * SEPT.spur;
+}
+function spurMucX(y, z) {   // mucosa que cubre el espolón: mismo eje, un poco más ancha y redondeada
+  if (!PH5 || SEPT.spur <= 0) return -1e9;
+  const dz = z - SEPT.c[0], dy = y - SEPT.c[1], t = dz * SEPT.u[0] + dy * SEPT.u[1], p = dz * SEPT.u[1] - dy * SEPT.u[0];
+  const q = 1 - (t / (SEPT.L + 1.6)) ** 2 - (p / (SEPT.ry + 1.6)) ** 2;
+  return q <= 0 ? -1e9 : spurBaseX() * SEPT.k + (SEPT.rx + 0.75) * Math.pow(q, 0.42) * SEPT.spur;
+}
+function skelX(y, z) { return septDev(y, z); }                              // cartílago / hueso
+function septX(y, z, sx) {                                                   // superficie de la mucosa septal de cada lado
+  const d = septDev(y, z);
+  if (sx > 0) return Math.max(d + 0.8, spurMucX(y, z));
+  return d - 0.8;
+}
+function septSolidX(y, z, sx) { return sx > 0 ? Math.max(skelX(y, z), spurX(y, z)) : skelX(y, z); }
+let QRES = 2.2;   // resolución de quad() (el septum del fantoma 5 necesita malla fina para el espolón)
 const JNA = { imaOK: false, imaT: 0,
   lobes: [ { c: [8.2, 17.5, -59], r: [5.6, 5.8, 9.5] },      // componente nasal: fosa posterior y rinofaringe
            { c: [15.6, 20.2, -61], r: [3.0, 2.6, 2.6] },     // cuello en el foramen esfenopalatino (origen)
@@ -805,7 +851,7 @@ const JNA = { imaOK: false, imaT: 0,
            { c: [9.0, 16.8, -71], r: [4.6, 2.6, 5.0] } ],    // invasión del basiesfenoides
   inside(p, r) { return this.lobes.some(L => ((p.x - L.c[0]) / (L.r[0] + r * 0.5)) ** 2 + ((p.y - L.c[1]) / (L.r[1] + r * 0.5)) ** 2 + ((p.z - L.c[2]) / (L.r[2] + r * 0.5)) ** 2 < 1); } };
 const JNA_ART = [[8.2, 17.5, -59], [15.6, 20.2, -61], [21.2, 20, -60], [24, 21.5, -60]];
-const WZK = (PH2 || PH4) ? [[-28, -28], [-40.8, -39.4], [-43, -40.5], [-50, -45.5], [-66, -51.5]] : null;
+const WZK = (PH2 || HAB) ? [[-28, -28], [-40.8, -39.4], [-43, -40.5], [-50, -45.5], [-66, -51.5]] : null;
 function WZ(z) {   // coordenada de diseño → fantoma
   if (!WZK || z >= WZK[0][0]) return z;
   for (let i = 1; i < WZK.length; i++) if (z >= WZK[i][0]) { const [a0, b0] = WZK[i - 1], [a1, b1] = WZK[i]; return b0 + (z - a0) * (b1 - b0) / (a1 - a0); }
@@ -821,16 +867,16 @@ const yr = z => 46 + (z + 24) * 0.0952;     // altura del techo etmoidal (descie
 const AEA = [[18.8, 44.6, -31.5], [12, 44.85, -30], [5, 45.1, -28.5]];
 const PEA = [[18.8, 42.0, -56.5], [12, 42.2, -55.5], [6, 42.4, -54.5]];
 const SPA = [[17.6, 22, -61], [16, 20.5, -62], [14.5, 19, -63]];
-const OPTIC = PH4 ? HA.OPTIC : [[18.3, 38.8, -67.5], [16.2, 39.3, -77], [12.5, 39.6, -87]];
+const OPTIC = HAB ? HA.OPTIC : [[18.3, 38.8, -67.5], [16.2, 39.3, -77], [12.5, 39.6, -87]];
 // Órbita: nervio óptico intraorbitario (del polo posterior del globo al conducto óptico) y músculos rectos desde el anillo de Zinn
-const OPTORB = PH4 ? HA.OPTORB : [[31.4, 38.8, -9.5], [29.6, 39.2, -20], [27.4, 39.8, -32], [24.8, 40.4, -44], [22.6, 40.2, -54], [20.4, 39.3, -63.5], [18.3, 38.8, -67.5]];
-const MRECT = PH4 ? HA.MRECT : [[22.4, 35.8, -64], [22.6, 35.6, -50], [23.3, 36.4, -36], [23.6, 37.6, -22], [23.4, 38.2, -10], [24.2, 38.4, -4]];
-const IRECT = PH4 ? HA.IRECT : [[23, 36, -64], [25, 34.4, -54], [27, 30.4, -40], [28.6, 29.2, -24], [30, 30.4, -8]];
-const SRECT = PH4 ? HA.SRECT : [[22.8, 42.2, -64], [25.5, 46.2, -48], [28.5, 48.2, -30], [30.5, 48.6, -14], [31.5, 48, -5]];
-const LRECT = PH4 ? HA.LRECT : [[23.6, 38, -64], [29.5, 38, -45], [32.4, 38.2, -25], [33.2, 38.4, -10]];
-const SOBL = PH4 ? HA.SOBL : [[21.4, 40.8, -64], [21.8, 44.4, -40], [22.4, 45.6, -20], [23.2, 45.8, -8]];
-const GLOBE_C = PH4 ? HA.GLOBE_C : [33, 38.5, 4], GLOBE_R = PH4 ? HA.GLOBE_R : 12;
-const CAROTID = PH4 ? HA.CAROTID : [[15, 6, -98], [13, 14, -93], [13, 24, -91.5], [14.5, 28.5, -89.4], [17.3, 30.5, -84], [18.0, 32, -77], [18.4, 34.5, -71], [17.6, 38.2, -71.5], [15, 42.5, -74]];
+const OPTORB = HAB ? HA.OPTORB : [[31.4, 38.8, -9.5], [29.6, 39.2, -20], [27.4, 39.8, -32], [24.8, 40.4, -44], [22.6, 40.2, -54], [20.4, 39.3, -63.5], [18.3, 38.8, -67.5]];
+const MRECT = HAB ? HA.MRECT : [[22.4, 35.8, -64], [22.6, 35.6, -50], [23.3, 36.4, -36], [23.6, 37.6, -22], [23.4, 38.2, -10], [24.2, 38.4, -4]];
+const IRECT = HAB ? HA.IRECT : [[23, 36, -64], [25, 34.4, -54], [27, 30.4, -40], [28.6, 29.2, -24], [30, 30.4, -8]];
+const SRECT = HAB ? HA.SRECT : [[22.8, 42.2, -64], [25.5, 46.2, -48], [28.5, 48.2, -30], [30.5, 48.6, -14], [31.5, 48, -5]];
+const LRECT = HAB ? HA.LRECT : [[23.6, 38, -64], [29.5, 38, -45], [32.4, 38.2, -25], [33.2, 38.4, -10]];
+const SOBL = HAB ? HA.SOBL : [[21.4, 40.8, -64], [21.8, 44.4, -40], [22.4, 45.6, -20], [23.2, 45.8, -8]];
+const GLOBE_C = HAB ? HA.GLOBE_C : [33, 38.5, 4], GLOBE_R = HAB ? HA.GLOBE_R : 12;
+const CAROTID = HAB ? HA.CAROTID : [[15, 6, -98], [13, 14, -93], [13, 24, -91.5], [14.5, 28.5, -89.4], [17.3, 30.5, -84], [18.0, 32, -77], [18.4, 34.5, -71], [17.6, 38.2, -71.5], [15, 42.5, -74]];
 // Seno cavernoso: pares craneales (pared lateral III, IV, V1, V2; VI libre junto a la carótida)
 const N3 = [[18.5, 39, -100], [20.8, 38.5, -88], [20.5, 38.8, -76.5]];
 const N4 = [[19, 37.4, -100], [21, 37, -88], [20.8, 37.4, -76.5]];
@@ -844,17 +890,27 @@ const IMA = [[44, 16, -74], [36, 19, -66], [29, 21, -61], [24, 21.5, -60], [19.5
 const DPA = [[21, 21.6, -60.2], [20.5, 14, -59], [20, 5, -58]];
 const IOA = [[24, 21.5, -60], [24.5, 26, -57], [25, 28.4, -54.6]];
 const PSAA = [[29, 21, -61], [30, 15, -56.5], [31, 10, -55]];
-const BASILAR = PH4 ? HA.BASILAR : [[0, 4, -99], [0, 20, -98], [0, 40, -97]];
+const BASILAR = HAB ? HA.BASILAR : [[0, 4, -99], [0, 20, -98], [0, 40, -97]];
 const PSA = [[15.5, 21, -65.7], [8, 21.6, -65.8], [1.6, 22.2, -65.6], [1.4, 23.5, -58]];
 const NLD = [[17.6, 3.5, -16], [18.2, 14, -15.5], [18.6, 28, -14.5]];
 
 function buildAnatomy() {
   // Septum y piso
+  if (PH5) QRES = 0.6;
   add(quad([0.8, 0, 6], [0.8, 0, -66], [0.8, 48, 6], 0.4), M.septC, 'septum');
   add(quad([0.8, 0, -66], [0.8, 0, -71], [0.8, 14, -66]), M.septC, 'septum');
   add(quad([0, 0, 6], [0, 0, -30], [0, 48, 6], 0.05), M.cart, 'septcart', { noMirror: true });
   add(quad([0, 0, -30], [0, 0, -66], [0, 48, -30], 0.05), M.septbone, 'septbone', { noMirror: true });
   add(quad([0, 0, -66], [0, 0, -71], [0, 14, -66], 0.05), M.septbone, 'septbone', { noMirror: true });
+  QRES = 2.2;
+  if (PH5) {   // espolón: elipsoide óseo macizo a lo largo de la cresta condrovomeriana
+    const g = new THREE.SphereGeometry(1, 40, 24); g.scale(SEPT.rx, SEPT.ry, SEPT.L);
+    const al = Math.atan2(-SEPT.u[1], SEPT.u[0]); g.rotateX(al); g.translate(spurBaseX(), SEPT.c[1], SEPT.c[0]);
+    const m = mat('#e6d2ae', { cut: true, map: false }); m.userData.tissue = 'bone';
+    const inv = new THREE.Matrix3().setFromMatrix4(new THREE.Matrix4().makeRotationX(-al));
+    m.userData.solid = { c: V(spurBaseX(), SEPT.c[1], SEPT.c[0]), r0: V(SEPT.rx * 0.97, SEPT.ry * 0.97, SEPT.L * 0.97), rU: { value: V(SEPT.rx * 0.97, SEPT.ry * 0.97, SEPT.L * 0.97) }, rot: inv, abs: false };
+    SOLID_MATS.push(m); add(g, m, 'spur', { noMirror: true });
+  }
   add(quad([0, 0, 6], [17, 0, 6], [0, 0, -70]), M.floor, 'floor');
   add(quad([0, 0, 6], [17, 0, 6], [0, 22, 6]), M.muc, 'vest');
   add(quad([0, 22, 6], [17, 22, 6], [0, 44, -14]), M.muc, 'roofant');
@@ -893,7 +949,7 @@ function buildAnatomy() {
   // Lámina papirácea + órbita
   add(quad([18.5, 25, -18], [18.5, 25, -66], [18.5, 47, -18], 0.15), M.lamina, 'lamina', { map: { t: 'lineX', x: 18.5, y: [25, 46], z: [-18, -66], c: '#e8c060' } });
   add(quad([20.2, 26.5, -15], [20.2, 26.5, -69], [20.2, 49, -15], 0.4), M.fatC, 'orbit');
-  const ORBX = PH4 ? 54 : 36;
+  const ORBX = HAB ? 54 : 36;
   // Cavidad orbitaria (grasa profunda, no resecable) con músculos extraoculares, globo y nervio óptico
   add(quad([ORBX, 26.6, 2], [ORBX, 26.6, -66], [ORBX, 51.5, 2], 0.3), M.fat, 'orbfat');
   add(quad([18.5, 26.6, -14], [ORBX, 26.6, -14], [18.5, 26.6, -54], 0.2), M.fat, 'orbfat');
@@ -980,7 +1036,7 @@ function buildAnatomy() {
   map2d.push({ t: 'box', x: [0, 18.5], y: [19, 42], z: [-90, -66.3], c: '#b98', n: 'Esfenoides' });
   add(tube(OPTIC, 2.2), M.optic, 'optic', { map: { t: 'poly', pts: OPTIC, col: '#fff3b0' } });
   add(tube(CAROTID, 2.8, 80), M.carotid, 'carotid', { map: { t: 'poly', pts: CAROTID, col: '#ff5d7a' } });
-  add(ellipsoid(PH4 ? [17.9, 36, -78.5] : [17.9, 36.4, -70.5], [1.3, 1.5, 1.5], 20), M.darkN, 'ocr');
+  add(ellipsoid(HAB ? [17.9, 36, -78.5] : [17.9, 36.4, -70.5], [1.3, 1.5, 1.5], 20), M.darkN, 'ocr');
   // En la vida real no están descubiertos: una lámina ósea fina cubre el óptico y la carótida; se ven sus improntas
   add(keepTris(tube(OPTIC, 2.75, 70), inSphSinus), M.bone, 'opticcan');
   add(keepTris(tube(CAROTID, 3.4, 110), inSphSinus), M.bone, 'carcan');
@@ -1099,6 +1155,121 @@ for (const m of [...anatomy.children]) {   // fosa contralateral (modelo bilater
   if (overlays.includes(m)) overlays.push(c);
 }
 
+const SEPT_M = [];
+function septApply() {   // recalcula x de mucosa y esqueleto septal según la desviación y el espolón
+  for (const m of SEPT_M) {
+    const pa = m.geometry.attributes.position, b = m.userData.sb, k = m.userData.key;
+    for (let i = 0; i < pa.count; i++) {
+      const y = pa.array[i * 3 + 1], z = pa.array[i * 3 + 2], off = b[i];
+      const sx = k === 'septum' ? (m.userData.mirror ? -1 : 1) : 0;
+      pa.array[i * 3] = (sx ? septX(y, WZi(z), sx) : skelX(y, WZi(z))) + off;
+    }
+    pa.needsUpdate = true; m.geometry.computeVertexNormals(); m.geometry.computeBoundingSphere();
+  }
+}
+if (PH5) {
+  for (const m of meshes) {
+    const k = m.userData.key; if (!['septum', 'septcart', 'septbone'].includes(k)) continue;
+    const pa = m.geometry.attributes.position, plane = k === 'septum' ? (m.userData.mirror ? -0.8 : 0.8) : 0, sb = new Float32Array(pa.count);
+    for (let i = 0; i < pa.count; i++) sb[i] = pa.array[i * 3] - plane;
+    m.userData.sb = sb; SEPT_M.push(m);
+  }
+  septApply();
+}
+
+/* ============================== FANTOMA 6: POLIPOSIS NASOSINUSAL ==============================
+   Pólipos edematosos pediculados (gris amarillento a rosado, brillantes) en el meato medio, el receso frontal,
+   el interior de las celdas etmoidales anteriores y posteriores, la hendidura olfatoria y el receso esfenoetmoidal.
+   Se ubican tirando rayos desde el aire hacia las paredes de la fosa ya armada. Se resecan con shaver
+   (los va comiendo y aspira), con pinza cortante (de a trozos) o con pinza de agarre (avulsión, sangra más). */
+const polyps = [];
+const POLY_REG = { mm: 'Meato medio', fr: 'Receso frontal', ea: 'Etmoides anterior', ep: 'Etmoides posterior', olf: 'Hendidura olfatoria', ser: 'Receso esfenoetmoidal' };
+if (PH6) {
+  const pmA = mat('#efe2cf', { rough: 0.2, bump: 0.35 }), pmB = mat('#f3d9cf', { rough: 0.22, bump: 0.35 }), pmC = mat('#e6e0cf', { rough: 0.18, bump: 0.35 });
+  for (const m of [pmA, pmB, pmC]) { m.clearcoat = 1; m.clearcoatRoughness = 0.05; m.sheen = 0.35; m.sheenColor.set('#ffd2c4'); m.emissive.set('#3a1d16'); m.emissiveIntensity = 0.1; m.color.multiplyScalar(0.72); }
+  const PM = [pmA, pmB, pmC];
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  anatomy.updateMatrixWorld(true);
+  const rc = new THREE.Raycaster(), tgt = meshes.filter(m => m.isMesh && !['septcart', 'septbone'].includes(m.userData.key));
+  const castL = (o, d, far) => {   // rayo en coordenadas de la anatomía
+    const ow = anatomy.localToWorld(o.clone()), dw = anatomy.localToWorld(o.clone().add(d)).sub(ow).normalize();
+    rc.set(ow, dw); rc.far = far * anatomy.scale.y; const h = rc.intersectObjects(tgt, false)[0];
+    return h ? anatomy.worldToLocal(h.point.clone()) : null;
+  };
+  function makePolyp(base, gdir, L, R, reg, mat) {
+    const g = new THREE.SphereGeometry(1, 26, 18), pa = g.attributes.position, ph = rnd() * 10, fl = 0.8 + 0.35 * rnd();
+    for (let i = 0; i < pa.count; i++) {
+      const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), t = (y + 1) / 2;   // t: 0 pedículo, 1 extremo libre
+      const rad = (0.28 + 0.72 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.12 + t * 0.95)), 0.55)) * (1 + 0.09 * Math.sin(6 * x + ph) * Math.cos(5 * z + 2 * y));
+      pa.setXYZ(i, x * R * rad, t * L, z * R * rad * fl);
+    }
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); m.position.copy(base); m.quaternion.setFromUnitVectors(V(0, 1, 0), gdir.clone().normalize());
+    m.userData = { key: 'polyp' }; anatomy.add(m); meshes.push(m);
+    const p = { mesh: m, base: base.clone(), dir: gdir.clone().normalize(), L, R, s: 1, reg, bled: false, gone: false };
+    m.userData.polyp = p; polyps.push(p); return p;
+  }
+  const down = V(0, -1, 0);
+  // meato medio: desde el aire medial al cornete medio hacia la unciforme, la bulla y la pared lateral
+  for (let z = -13; z >= -47; z -= 3.2) for (let y = 15; y <= 31; y += 3.6) {
+    const o = V(8.4 + rnd() * 0.8, y + rnd(), WZ(z + rnd())), d = V(1, (rnd() - 0.4) * 0.6, (rnd() - 0.5) * 0.5).normalize(), h = castL(o, d, 11);
+    if (!h || rnd() < 0.25) continue;
+    const g = d.clone().negate().multiplyScalar(0.55).addScaledVector(down, 0.75).add(V(0, 0, (rnd() - 0.5) * 0.4));
+    makePolyp(h.addScaledVector(d, -0.2), g, 3.5 + rnd() * 4, 1.5 + rnd() * 1.3, 'mm', PM[(rnd() * 3) | 0]);
+  }
+  // receso frontal
+  for (let k = 0; k < 9; k++) {
+    const o = V(10.5 + rnd() * 2, 38 + rnd() * 4, WZ(-17 - rnd() * 8)), d = V(rnd() - 0.3, 0.6 + rnd() * 0.4, rnd() - 0.5).normalize(), h = castL(o, d, 9);
+    if (!h) continue;
+    makePolyp(h.addScaledVector(d, -0.2), d.clone().negate().addScaledVector(down, 0.5), 3 + rnd() * 3, 1.3 + rnd() * 1.1, 'fr', PM[(rnd() * 3) | 0]);
+  }
+  // dentro de las celdas etmoidales (se ven al abrirlas)
+  const CELLS = [[[13.6, 30, -34.6], [4.8, 6.4, 6.2], 'ea', 3], [[15, 40.6, -41.4], [2.6, 2.6, 2.6], 'ea', 1], [[13.8, 40.2, -36.2], [3.3, 3.3, 3.3], 'ea', 2], [[13.6, 33.5, -18.5], [4, 4.2, 4.4], 'ea', 2],
+    [[13.5, 31, -54], [4.6, 4.6, 4.6], 'ep', 3], [[13.5, 38.3, -57], [4.2, 4.2, 4.2], 'ep', 2], [[14, 30, -61.5], [3.5, 3.5, 3.5], 'ep', 2], [[12.5, 38, -51], [3.4, 3.4, 3.4], 'ep', 2]];
+  for (const [c, r, reg, n] of CELLS) for (let k = 0; k < n; k++) {
+    const d = V(rnd() - 0.5, 0.3 + rnd() * 0.7, rnd() - 0.5).normalize(), cc = V(c[0], c[1], WZ(c[2]));
+    const base = cc.clone().add(V(d.x * r[0], d.y * r[1], d.z * r[2]).multiplyScalar(0.86));
+    const rm = Math.min(r[0], r[1], r[2]);
+    makePolyp(base, d.clone().negate().addScaledVector(down, 0.3), rm * (0.9 + rnd() * 0.5), rm * (0.38 + rnd() * 0.15), reg, PM[(rnd() * 3) | 0]);
+  }
+  // hendidura olfatoria (entre cornete medio y tabique) y receso esfenoetmoidal
+  for (let k = 0; k < 7; k++) {
+    const o = V(2.2, 30 + rnd() * 12, WZ(-20 - rnd() * 28)), d = V(1, (rnd() - 0.5) * 0.5, (rnd() - 0.5) * 0.4).normalize(), h = castL(o, d, 7);
+    if (h) makePolyp(h.addScaledVector(d, -0.2), V(-0.5, -1, 0), 3 + rnd() * 3, 1.1 + rnd() * 0.8, 'olf', PM[(rnd() * 3) | 0]);
+  }
+  for (let k = 0; k < 4; k++) {
+    const o = V(2.4, 30 + rnd() * 6, WZ(-60 - rnd() * 3)), d = V(1, (rnd() - 0.5) * 0.4, -0.2).normalize(), h = castL(o, d, 8);
+    if (h) makePolyp(h.addScaledVector(d, -0.2), V(-0.4, -1, 0.3), 2.5 + rnd() * 2.5, 1.1 + rnd() * 0.7, 'ser', PM[(rnd() * 3) | 0]);
+  }
+}
+function polypApply(p) { p.mesh.scale.setScalar(Math.max(0.001, p.s)); }
+function polypRemove(p) {
+  p.gone = true; p.mesh.visible = false; const k = meshes.indexOf(p.mesh); if (k >= 0) meshes.splice(k, 1);
+  const left = polyps.filter(q => !q.gone && q.reg === p.reg).length;
+  if (!left) toast('✔ ' + POLY_REG[p.reg] + ': sin pólipos.', 3500);
+}
+function polypBleed(p, rate) { if (p.bled && rate < 1) return; p.bled = true; addBleed('pol' + polyps.indexOf(p), 'Lecho de pólipo', p.base.clone(), rate, rate < 1 ? 4 : 8); }
+function polypShave(mesh, dt) {   // el shaver lo va comiendo desde la punta y aspira
+  const p = mesh.userData.polyp; if (!p || p.gone) return;
+  p.s -= dt * 2.6 / Math.max(2.5, p.L); polypApply(p); haptic(0.12, 12);
+  if (Math.random() < dt * 0.8) polypBleed(p, 0.6);
+  if (p.s < 0.18) polypRemove(p);
+}
+function polypAt(lp) {
+  let best = null, bd = 1e9;
+  for (const p of polyps) { if (p.gone) continue; const mid = p.base.clone().addScaledVector(p.dir, p.L * p.s * 0.5), d = lp.distanceTo(mid) - (p.L * p.s * 0.5 + p.R * p.s);
+    if (d < 1.2 && d < bd) { bd = d; best = p; } }
+  return best;
+}
+function polypBite(lp, avulse) {
+  const p = polypAt(lp); if (!p) return false;
+  jawClose = 0.2; haptic(0.3, 30);
+  if (avulse) { polypBleed(p, 1.4); polypRemove(p); toast('Pólipo avulsionado con la pinza de agarre: sangra más que con shaver o pinza cortante.', 3500); return true; }
+  p.s -= 0.38; polypApply(p); polypBleed(p, 0.6);
+  if (p.s < 0.2) polypRemove(p);
+  return true;
+}
+
 /* ============================== ANCLAS DE ETIQUETAS ============================== */
 const ANCHORS = [
   ['septum', [0.9, 18, -14]], ['beak', [9, 42.6, -15.6]], ['frontsept', [0.2, 56, -16]], ['psa', [7, 21.6, -65.4]], ['it', [7.1, 10, -16]], ['mt', [4.1, 26, -32]], ['unc', [11.2, 26, -24]],
@@ -1116,7 +1287,7 @@ const ANCHORS = [
   ['mrect', [21.4, 36.4, -36]], ['irect', [26.4, 29.6, -34]], ['srect', [27.5, 46.4, -34]], ['sobl', [21.9, 44.6, -34]], ['opticorb', [24.9, 39.9, -46]], ['globe', [21.2, 38.5, 1]],
   ['torus', [13, 10, -84]], ['np', [4, 9, -78]], ['septsph', [6, 30, -73]]
 ].map(([k, p]) => ({ key: k, p: V(...p), el: null }));
-if (PH4) { const A = { optic: [16.2, 38.1, -75], ica_pc: [16.5, 18.6, -87.5], ica_ps: [16, 28.5, -83], ica_pcl: [15, 34, -83.2], ocr: [16.7, 36, -78.5], basilar: [0, 25.4, -102.9],
+if (HAB) { const A = { optic: [16.2, 38.1, -75], ica_pc: [16.5, 18.6, -87.5], ica_ps: [16, 28.5, -83], ica_pcl: [15, 34, -83.2], ocr: [16.7, 36, -78.5], basilar: [0, 25.4, -102.9],
   mrect: [20.4, 42.2, -33.6], irect: [26.8, 30, -38.8], srect: [35.3, 49.6, -35.3], sobl: [19.4, 52.2, -33.6], opticorb: [28.3, 42.7, -47.8], globe: [23.2, 40.4, -25.1] };
   ANCHORS.forEach(a => { if (A[a.key]) a.p.set(...A[a.key]); }); }
 if (WZK) ANCHORS.forEach(a => a.p.z = WZ(a.p.z));
@@ -1175,6 +1346,7 @@ function checkDanger(lp, r) {
   const now = performance.now();
   if (state.prepping) return;
   if (state.model === 'ct') { checkDangerCT(lp, r); return; }
+  septoDanger(lp);
   const pm = V(Math.abs(lp.x), lp.y, WZi(lp.z)), sx = lp.x < 0 ? -1 : 1;
   for (const d of DANGERS) if (!(PH3 && JNA.imaOK && (d.id === 'spa' || d.id === 'ima')) && d.test(pm, r)) { reportDanger(d); if (CSF_IDS.includes(d.id)) addCSF(lp, d.id); if (d.id === 'lamina') addHernia(lp); if (d.art) { const q = closestOnPoly(pm, d.art); q.x *= sx; q.z = WZ(q.z); addBleed(d.id + sx, d.name, q, d.rate, d.max); } if (d.ven) addBleed(d.id + sx, d.name, lp.clone(), d.rate, d.max); }
 }
@@ -1247,6 +1419,38 @@ const portaM = new THREE.Group(); instr.add(portaM);   // porta-agujas con aguja
   const ndl = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.075, 6, 20, Math.PI), new THREE.MeshStandardMaterial({ color: 0xe8edf2, metalness: 0.9, roughness: 0.15 }));
   ndl.position.set(0, -0.3, 2.55); portaM.add(ndl);
   portaM.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6, 6).rotateX(Math.PI / 2).translate(-1.05, -0.3, -0.5), thread)); }
+
+// Bisturí: hoja tipo 15c en mango fino
+const scalpelM = new THREE.Group(); instr.add(scalpelM);
+{ const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.quadraticCurveTo(1.05, 1.0, 0.95, 2.4); sh.lineTo(0.1, 3.4); sh.lineTo(-0.25, 3.4); sh.lineTo(-0.25, 0.5); sh.lineTo(0, 0);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: 0.09, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, 0.045, 0);
+  scalpelM.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xdfe4ea, metalness: 0.9, roughness: 0.12 })));
+  scalpelM.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 1.2, 12).rotateX(Math.PI / 2).translate(0, 0, 3.9), steel)); }
+// Shaver / microdebridador: hoja recta de 4 mm con ventana lateral dentada y cuchilla interna oscilante (tipo Tricut)
+const shaverM = new THREE.Group(); instr.add(shaverM);
+const shaverBlade = new THREE.Group();
+{ const out = new THREE.MeshStandardMaterial({ color: 0xd2d7dd, metalness: 0.75, roughness: 0.22, side: THREE.DoubleSide });
+  const inner = new THREE.MeshStandardMaterial({ color: 0x8a9098, metalness: 0.8, roughness: 0.3 });
+  // tubo externo: abierto arriba (ventana) cerca de la punta, completo detrás
+  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2.9, 28, 1, true, Math.PI * 0.32, Math.PI * 1.36).rotateX(Math.PI / 2).translate(0, 0, 2.05), out));
+  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 18, 28, 1, true).rotateX(Math.PI / 2).translate(0, 0, 12.5), out));
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(-Math.PI / 2).translate(0, 0, 0.6), out); shaverM.add(cap);
+  // dientes del borde de la ventana
+  for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) {
+    const t = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 4), out); const a = Math.PI / 2 + sd * Math.PI * 0.18;
+    t.position.set(Math.cos(a) * 2.0, Math.sin(a) * 2.0, 0.85 + k * 0.48); t.rotation.z = a - Math.PI / 2; shaverM.add(t);
+  }
+  // cuchilla interna con dientes (oscila)
+  shaverBlade.add(new THREE.Mesh(new THREE.CylinderGeometry(1.62, 1.62, 3.2, 20, 1, true, 0, Math.PI * 1.2).rotateX(Math.PI / 2).translate(0, 0, 2.2), inner));
+  for (let k = 0; k < 6; k++) { const t = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.45, 4), inner); t.position.set(1.6, 0, 0.9 + k * 0.48); t.rotation.z = -Math.PI / 2; shaverBlade.add(t); }
+  shaverBlade.add(new THREE.Mesh(new THREE.CircleGeometry(1.55, 20).translate(0, 0, 0.75), new THREE.MeshBasicMaterial({ color: 0x120c0b })));   // luz de aspiración
+  shaverM.add(shaverBlade);
+  // banda con la marca en el vástago
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 64; const cx = cv.getContext('2d');
+  cx.fillStyle = '#c9ced4'; cx.fillRect(0, 0, 512, 64); cx.fillStyle = '#1b2a4a'; cx.font = 'bold 40px Arial, sans-serif'; cx.textBaseline = 'middle';
+  for (let k = 0; k < 2; k++) cx.fillText('XOMED', 30 + k * 256, 34);
+  const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace;
+  shaverM.add(new THREE.Mesh(new THREE.CylinderGeometry(2.03, 2.03, 6, 32, 1, true).rotateX(Math.PI / 2).translate(0, 0, 9.5), new THREE.MeshStandardMaterial({ map: tx, metalness: 0.5, roughness: 0.35 }))); }
 const freerM = new THREE.Group(); instr.add(freerM);
 freerM.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.28, 5.2).translate(0, 0, 3.0), steel));
 freerM.add(new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.28, 20).translate(0, 0, 0.45), steel));
@@ -1405,7 +1609,7 @@ function clampFossa(wp) {   // sólo VR y con una fosa: no se cruza el plano del
   const l = anatomy.worldToLocal(wp.clone()); let hit = false;
   if (state.model === 'ct') {
     const b = CT.cx; if (state.side > 0 && l.x > b - 0.8) { l.x = b - 0.8; hit = true; } else if (state.side < 0 && l.x < b + 0.8) { l.x = b + 0.8; hit = true; }
-  } else if (l.x < 0.8) { l.x = 0.8; hit = true; }
+  } else { const lim = PH5 ? septX(l.y, WZi(l.z), 1) : 0.8; if (l.x < lim) { l.x = lim; hit = true; } }
   if (hit) wp.copy(anatomy.localToWorld(l)); return hit;
 }
 let lastSeptHaptic = 0;
@@ -1427,7 +1631,7 @@ function haptic(i, ms) {
   if (!state.vr) return;
   for (const c of ctrls) { const h = c.userData.gp && c.userData.gp.hapticActuators && c.userData.gp.hapticActuators[0]; if (h) try { h.pulse(i, ms); } catch (e) { } }
 }
-const VR_TOOLS = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'grasp', 'retro', 'ball', 'suture', 'none'];
+const VR_TOOLS = ['pinza', 'drill', 'bipolar', 'monopolar', 'aspirador', 'freer', 'grasp', 'retro', 'ball', 'suture', 'scalpel', 'shaver', 'none'];
 function vrCycleTool(step) {
   if (drilling) drilling = false; using = false; if (typeof freerGrab !== 'undefined' && freerGrab) endFreer();
   setTool(VR_TOOLS[(VR_TOOLS.indexOf(state.tool) + step + VR_TOOLS.length) % VR_TOOLS.length]); state.instrExt = 0; haptic(0.3, 30);
@@ -1446,9 +1650,9 @@ function onTrigger(c, down) {
   if (state.tool === 'retro' && down) doBiteRetro(tipWorld.clone());
   if (state.tool === 'ball') { if (down) startBallVR(); else if (freerGrab) endFreer(); }
   if (state.tool === 'suture' && down) doStitch(anatomy.worldToLocal(tipWorld.clone()));
-  if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = down;
+  if (['bipolar', 'monopolar', 'aspirador', 'scalpel', 'shaver'].includes(state.tool)) using = down;
   if (state.tool === 'freer') { if (down) startFreerVR(); else { using = false; if (freerGrab) endFreer(); } }
-  if (state.tool === 'grasp') { if (down) { const q = anatomy.worldToLocal(tipWorld.clone()); if (!herniaBite(q)) grabFlapAt(q, null, 0); } else releaseFlap(); }
+  if (state.tool === 'grasp') { if (down) { const q = anatomy.worldToLocal(tipWorld.clone()); if (!herniaBite(q) && !polypBite(q, true)) grabFlapAt(q, null, 0); } else releaseFlap(); }
   if (state.tool === 'drill') drilling = down;
 }
 const S = () => state.S;
@@ -1563,7 +1767,7 @@ function keyOfHit(h) {
 /* ============================== CORTE ============================== */
 function doBiteRetro(worldP) {   // muerde hacia anterior (hacia la óptica): cápsula de ~3 mm
   const lp = anatomy.worldToLocal(worldP.clone());
-  if (herniaBite(lp)) return;
+  if (herniaBite(lp) || polypBite(lp, false)) return;
   jawClose = 0.2; let any = false;
   for (let k = 0; k < 3; k++) { const q = lp.clone(); q.z += k * 1.1; if (addCut(q, 1.3)) any = true; checkDanger(q, 1.3); }
   if (any) { state.bites++; haptic(0.35, 30); }
@@ -1596,7 +1800,7 @@ function doBite(worldP, r) {
   if (state.tool === 'none') return;
   const lp = anatomy.worldToLocal(worldP.clone());
   if (state.tool === 'pinza') jawClose = 0.18;
-  if (herniaBite(lp)) return;
+  if (herniaBite(lp) || polypBite(lp, false)) return;
   if (addCut(lp, r)) { state.bites++; haptic(0.35, 30); }
   checkDanger(lp, r);
 }
@@ -1838,9 +2042,9 @@ cv.addEventListener('pointerdown', e => {
     if (state.tool === 'ball') startBallDesktop(e);
     if (state.tool === 'suture' && tipHit && tipHit.distance < 60) doStitch(anatomy.worldToLocal(tipHit.point.clone()));
     if (state.tool === 'drill') drilling = true;
-    if (['bipolar', 'monopolar', 'aspirador'].includes(state.tool)) using = true;
+    if (['bipolar', 'monopolar', 'aspirador', 'scalpel', 'shaver'].includes(state.tool)) using = true;
     if (state.tool === 'freer') startFreerDesktop(e);
-    if (state.tool === 'grasp') { if (tipHit && herniaBite(anatomy.worldToLocal(tipHit.point.clone()))) return; if (!(tipHit && tipHit.object.userData.flap && grabFlapAt(anatomy.worldToLocal(tipHit.point.clone()), tipHit.object.userData.flap, tipHit.distance))) { if (!flaps.length) toast('La pinza de agarre toma el colgajo despegado (no corta).'); } }
+    if (state.tool === 'grasp') { if (tipHit && (herniaBite(anatomy.worldToLocal(tipHit.point.clone())) || polypBite(anatomy.worldToLocal(tipHit.point.clone()), true))) return; if (!(tipHit && tipHit.object.userData.flap && grabFlapAt(anatomy.worldToLocal(tipHit.point.clone()), tipHit.object.userData.flap, tipHit.distance))) { if (!flaps.length) toast('La pinza de agarre toma el colgajo despegado (no corta).'); } }
   }
 });
 addEventListener('pointerup', e => {
@@ -1986,6 +2190,8 @@ function updateInstrumentDesktop(dt) {
 function updateInstrumentCommon(dt) {
   pinza.visible = state.tool === 'pinza' || state.tool === 'grasp'; drill.visible = state.tool === 'drill';
   bip.visible = state.tool === 'bipolar'; mono.visible = state.tool === 'monopolar'; asp.visible = state.tool === 'aspirador'; freerM.visible = state.tool === 'freer';
+  scalpelM.visible = state.tool === 'scalpel'; shaverM.visible = state.tool === 'shaver'; shaft.scale.x = shaft.scale.y = state.tool === 'shaver' ? 1.82 : 1;
+  if (state.tool === 'shaver') shaverBlade.rotation.z = using ? Math.sin(performance.now() / 22) * 1.4 : 0;
   retroM.visible = state.tool === 'retro'; ballM.visible = state.tool === 'ball'; portaM.visible = state.tool === 'suture';
   { const thin = state.tool === 'ball' ? 0.4 : state.tool === 'suture' ? 0.6 : 1; shaft.scale.x = shaft.scale.y = thin; }
   retroJaw.rotation.x = jawClose > 0 ? 0 : 0.5;
@@ -2799,11 +3005,11 @@ function setModel(m) {
   resetCuts(); setXray(state.xray); placeAnatomy(); lookKey = '__';
   if (m === 'ct') placeScopeStart(); else goTo(TOUR[0]);
 }
-function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; if (id === 'model' && v === 'generic' && PH3) v = 'ph3'; if (id === 'model' && v === 'generic' && PH4) v = 'ph4'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; if (id === 'model' && v === 'generic' && PH3) v = 'ph3'; if (id === 'model' && v === 'generic' && PH4) v = 'ph4'; if (id === 'model' && v === 'generic' && PH5) v = 'ph5'; if (id === 'model' && v === 'generic' && PH6) v = 'ph6'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
 document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'ph1') { location.href = 'basico.html'; return; }
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
-  else if ((b.dataset.v === 'ph2') !== PH2 || (b.dataset.v === 'ph3') !== PH3 || (b.dataset.v === 'ph4') !== PH4) { const u = new URL(location.href), f = b.dataset.v === 'ph2' ? '2' : b.dataset.v === 'ph3' ? '3' : b.dataset.v === 'ph4' ? '4' : null; if (f) u.searchParams.set('fantoma', f); else u.searchParams.delete('fantoma'); location.href = u.toString(); }
+  else if (({ ph2: '2', ph3: '3', ph4: '4', ph5: '5', ph6: '6' }[b.dataset.v] || null) !== (new URLSearchParams(location.search).get('fantoma') || null)) { const u = new URL(location.href), f = { ph2: '2', ph3: '3', ph4: '4', ph5: '5', ph6: '6' }[b.dataset.v] || null; if (f) u.searchParams.set('fantoma', f); else u.searchParams.delete('fantoma'); location.href = u.toString(); }
   else setModel('generic');
 });
 $('#btnFolder').onclick = () => $('#inFolder').click();
@@ -2972,7 +3178,7 @@ function resetFx() {
   resetCSFHernia();
   drops.forEach(d => d.life = 0); smokes.forEach(d => d.life = 0);
   turbDisp.mt = 0; turbDisp.it = 0; turbDisp.unc = 0; applyTurb('mt'); applyTurb('it'); applyTurb('unc');
-  incisions.length = 0; lastInc = null; flapGrab = null; flaps.forEach(f => { anatomy.remove(f.mesh); const k = meshes.indexOf(f.mesh); if (k >= 0) meshes.splice(k, 1); }); flaps.length = 0; perforation = null;
+  incisions.length = 0; lastInc = null; flapGrab = null; flaps.forEach(f => { anatomy.remove(f.mesh); if (f.thick) anatomy.remove(f.thick.mesh); const k = meshes.indexOf(f.mesh); if (k >= 0) meshes.splice(k, 1); }); flaps.length = 0; perforation = null;
   state.stitches = 0; state.edgeStitches = 0; try { clearStitches(); } catch (e) { }
 }
 // partículas: gotas de sangre (chorro pulsátil) y humo de cauterio, en coordenadas de la anatomía
@@ -3034,7 +3240,7 @@ function updateBleeds(dt) {
   if (activeNames.length) { bi.style.display = 'block'; bi.textContent = '🩸 Sangrado activo: ' + [...new Set(activeNames)].join(', ') + ' — coagulá con bipolar y aspirá'; }
   else bi.style.display = 'none';
   if (activeNames.length && state.vr && beat > 0.9) haptic(0.15, 20);
-  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt); itApply();
+  updateCSF(dt, camL, beat); updateHernias(dt); updateFxInfo(dt); itApply(); septoUpdate(dt);
 }
 
 /* ---------- fístula de LCR: gotea líquido claro como agua ----------
@@ -3188,6 +3394,7 @@ function updateFxInfo(dt) {
   const open = csfLeaks.filter(c => !c.sealed);
   if (open.length) msg.push('💧 Fístula de LCR: ' + [...new Set(open.map(c => c.name))].join(', ') + ' — reparación con colgajo nasoseptal a base de cráneo');
   if (hernias.some(h => h.st === 'grow' || h.st === 'taken')) msg.push('🟡 Grasa orbitaria herniada — coagulá con bipolar para retraerla o sacala con pinza');
+  if (PH6 && polyps.length) { const g = polyps.filter(p => p.gone).length; if (g < polyps.length) msg.push('🫧 Pólipos resecados: ' + g + ' / ' + polyps.length); }
   const el = $('#fxInfo');
   if (msg.length) { el.style.display = 'block'; el.innerHTML = msg.join('<br>'); } else el.style.display = 'none';
   fxInfoT -= dt;
@@ -3250,6 +3457,75 @@ function itShrinkReset() {
   itApply();
 }
 
+
+/* ---------- bisturí y shaver ---------- */
+let lastScalp = 0, lastShavTip = 0;
+function scalpelCut(lp, dirL) {
+  if (lastInc && lastInc.distanceTo(lp) < 0.3) return;
+  const pts = [];
+  if (lastInc && lastInc.distanceTo(lp) < 8) { const n = Math.ceil(lastInc.distanceTo(lp) / 0.3); for (let k = 1; k <= n; k++) pts.push(lastInc.clone().lerp(lp, k / n)); }
+  else pts.push(lp.clone());
+  for (const q of pts) {
+    addCut(q.clone().addScaledVector(dirL, 0.25), 0.4); incisions.push(q.clone());
+    const zq = WZi(q.z), sk = skelX(q.y, zq);
+    if (Math.abs(q.x - sk) < 1.5 && septValid(q.z, q.y)) {   // sobre el cartílago/hueso: condrotomía, incide ambos lados
+      addCut(V(sk, q.y, q.z), 0.5); incisions.push(V(septX(q.y, zq, 1), q.y, q.z), V(septX(q.y, zq, -1), q.y, q.z));
+    }
+  }
+  lastInc = lp.clone();
+  const now = performance.now(); if (now - lastScalp > 250) { lastScalp = now; checkDanger(lp, 0.4); haptic(0.06, 10); }
+}
+const SHAVER_OK = ['polyp', 'septum', 'ethmuc', 'it', 'mt', 'st', 'axila', 'np', 'torus', 'sphface', 'dcrmuc', 'muc', 'floor', 'vest', 'roofant', 'mtpost', 'turbC'];
+function contactHit() {   // objeto tocado por la punta (VR y escritorio)
+  if (state.vr) { const from = tipWorld.clone().addScaledVector(vrFwd, -2 * state.S); return pick(from, vrFwd, 4.5 * state.S); }
+  return tipHit && tipHit.distance < 60 ? tipHit : null;
+}
+function shaverAct(lp, dt) {
+  suctionOn = true; suctionTipL.copy(lp);
+  const h = contactHit(), k = h ? h.object.userData.key : null, now = performance.now();
+  if (k === 'polyp') { polypShave(h.object, dt); return; }
+  if (k === 'flap') return;
+  if (k === 'hernia' || k === 'orbfat' || k === 'mrect') {
+    reportDanger({ id: 'shavorb', msg: '¡Microdebridador en la órbita! Aspira y secciona la grasa y puede tomar el recto medial: diplopía grave. Retirá el shaver.', bad: 3 });
+    if (k === 'hernia') herniaBite(lp); return;
+  }
+  if (k && SHAVER_OK.includes(k)) {
+    if (now - lastShavTip > 90) { lastShavTip = now; if (addCutGradual(lp, 1.0, 45)) { state.bites++; haptic(0.1, 12); } checkDanger(lp, 0.8); }
+    return;
+  }
+  if (k && now - lastShavTip > 2500) { lastShavTip = now; toast('El shaver no reseca hueso: sólo pólipos y mucosa. Para hueso usá pinza o drill.', 3500); }
+}
+
+
+/* ---------- septoplastia (fantoma 5): control del espolón, del cartílago desviado y de la L de soporte ---------- */
+const SPUR_PTS = [];
+if (PH5) for (let i = 0; i < 400 && SPUR_PTS.length < 90; i++) {
+  const t = (Math.random() * 2 - 1) * 0.85, a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * 0.8;
+  const z = SEPT.c[0] + SEPT.u[0] * t * SEPT.L + SEPT.u[1] * Math.sin(a) * rr * SEPT.ry, y = SEPT.c[1] + SEPT.u[1] * t * SEPT.L - SEPT.u[0] * Math.sin(a) * rr * SEPT.ry;
+  const x = spurBaseX() + Math.cos(a) * rr * SEPT.rx; if (x > skelX(y, z) + 0.6) SPUR_PTS.push(V(x, y, z));
+}
+let septoT = 0;
+function septoUpdate(dt) {
+  if (!PH5) return;
+  const k0 = SEPT.k, s0 = SEPT.spur;
+  SEPT.k += (SEPT.kT - SEPT.k) * Math.min(1, dt * 1.2); SEPT.spur += (SEPT.spurT - SEPT.spur) * Math.min(1, dt * 1.2);
+  if (Math.abs(SEPT.k - k0) + Math.abs(SEPT.spur - s0) > 1e-4) { septApply(); const sp = meshes.find(m => m.userData.key === 'spur'); if (sp) sp.visible = SEPT.spur > 0.08; }
+  septoT -= dt; if (septoT > 0) return; septoT = 0.5;
+  if (!SEPT.done && SPUR_PTS.length) {
+    let c = 0; for (const q of SPUR_PTS) if (isCut(q)) c++;
+    if (c / SPUR_PTS.length > 0.55) { SEPT.done = true; SEPT.spurT = 0; toast('✔ Espolón resecado: la fosa derecha queda libre a nivel del cornete inferior.', 5000); }
+  }
+  if (!SEPT.cartDone && fracCut(['septcart'], box(-6, 6, 6, 28, -34, -8)) > 0.3) { SEPT.cartDone = true; SEPT.kT = 0.15; toast('✔ Cartílago desviado resecado: el tabique se endereza. Reposicioná los colgajos.', 5000); }
+}
+function septoDanger(lp) {
+  if (!PH5 || state.prepping) return;
+  const z = WZi(lp.z), sk = skelX(lp.y, z);
+  if (Math.abs(lp.x - sk) > 2.2 && !(spurX(lp.y, z) > -1e8 && Math.abs(lp.x - spurX(lp.y, z)) < 2.2)) return;
+  if (!['pinza', 'drill', 'retro', 'scalpel'].includes(state.tool)) return;
+  if (spurX(lp.y, z) > -1e8 && !flaps.some(f => f.sx > 0 && detFrac(f) > 0.5)) reportDanger({ id: 'spurtear', msg: 'Mordiste el espolón sin despegar la mucosa: desgarro mucoso y riesgo de perforación septal. Elevá primero los colgajos.' });
+  if (state.tool !== 'scalpel' && z > -32 && (z > -3 || lp.y > septRoof(lp.z) - 9)) reportDanger({ id: 'lstrut', msg: 'Corte en la L de soporte (dorsal o caudal): riesgo de nariz en silla de montar y caída de la punta.', bad: 2 });
+}
+
 function toolContactLocal() {   // punto de contacto de la punta con el tejido (coordenadas de la anatomía)
   if (state.vr) {
     const from = tipWorld.clone().addScaledVector(vrFwd, -2 * state.S);
@@ -3270,7 +3546,9 @@ function updateToolAction(dt) {
     const now = performance.now(); if (now - lastFx > 250) { lastFx = now; thermalDanger(lp, true); checkDanger(lp, 0.45); haptic(0.08, 10); }
     return;
   }
-  if (state.tool === 'freer') { const q = state.vr ? anatomy.worldToLocal(tipWorld.clone()) : lp; if (Math.abs(q.x) < 3.5) dissect(V(q.x < 0 ? -0.8 : 0.8, q.y, q.z)); else if (flaps.some(f => f.lat)) dissectLat(q); return; }
+  if (state.tool === 'scalpel') { const camL = anatomy.worldToLocal(state.vr ? tipWorld.clone().addScaledVector(vrFwd, -10 * state.S) : endoCam.position.clone()); scalpelCut(lp, lp.clone().sub(camL).normalize()); return; }
+  if (state.tool === 'shaver') { shaverAct(lp, dt); return; }
+  if (state.tool === 'freer') { const q = state.vr ? anatomy.worldToLocal(tipWorld.clone()) : lp, zq = WZi(q.z), sd = q.x < skelX(q.y, zq) ? -1 : 1; if (Math.abs(q.x - septX(q.y, zq, sd)) < 3.5) dissect(V(sd * 0.8, q.y, q.z)); else if (flaps.some(f => f.lat)) dissectLat(q); return; }
   if (state.tool === 'aspirador') { suctionOn = true; suctionTipL.copy(lp); return; }
   if (PH3 && !JNA.imaOK && (state.tool === 'bipolar' || state.tool === 'monopolar') && lp.x > 0 && distPoly(lp, IMA) < 2.6 && lp.x > 22) {
     JNA.imaT += dt;
@@ -3414,17 +3692,17 @@ function septValid(z, y) { z = WZi(z); if (z > 6 || z < -71 || y < 0) return fal
 const FG = { z0: -71, y0: 0, st: 0.5, nz: 155, ny: 97 };
 function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo deja adherido; la Freer lo despega de a poco
   if (state.model !== 'generic') return null;
-  const sx = lp.x < 0 ? -1 : 1, { z0, y0, st, nz, ny } = FG, N = nz * ny;
+  const sx = lp.x < skelX(lp.y, WZi(lp.z)) ? -1 : 1, { z0, y0, st, nz, ny } = FG, N = nz * ny;
   const valid = new Uint8Array(N), blocked = new Uint8Array(N);
   let nValid = 0;
   for (let j = 0; j < ny; j++) for (let i = 0; i < nz; i++) {
     const z = z0 + i * st, y = y0 + j * st;
     if (!septValid(z, y)) continue;
     valid[i + j * nz] = 1; nValid++;
-    if (isCut(V(sx * 0.8, y, z))) blocked[i + j * nz] = 1;
+    if (isCut(V(septX(y, z, sx), y, z))) blocked[i + j * nz] = 1;
   }
   for (const q of incisions) {
-    if (Math.abs(q.x) > 2.5 || (q.x < 0 ? -1 : 1) !== sx) continue;
+    if (Math.abs(q.x - septX(q.y, WZi(q.z), sx)) > 2.5 || (q.x < skelX(q.y, WZi(q.z)) ? -1 : 1) !== sx) continue;
     const ci = Math.round((q.z - z0) / st), cj = Math.round((q.y - y0) / st);
     for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const i = ci + di, j = cj + dj; if (i >= 0 && j >= 0 && i < nz && j < ny) blocked[i + j * nz] = 1; }
   }
@@ -3462,14 +3740,14 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
   for (let k = 0; k < N; k++) {
     if (!reg[k]) continue;
     const z = z0 + (k % nz) * st, y = y0 + ((k / nz) | 0) * st;
-    addCut(V(sx * 0.8, y, z), 0.68); cz += z; cy += y;
+    addCut(V(septX(y, z, sx), y, z), 0.68); cz += z; cy += y;
     if (z < -56 && y > 19.5 && y < 25.5) ped = true;
     if (y > 41 && z < -24 && z > -62) olf = true;
   }
   state.prepping = false; cz /= n; cy /= n;
   // malla de la lámina (1 mm): vértices, aristas (estructurales y de corte) y estado de cada vértice
   const S1 = 1, vid = new Map(), rest = [];
-  for (let z = Math.ceil(z0); z <= 6; z += S1) for (let y = 0; y <= 48; y += S1) if (inReg(z, y)) { vid.set(z + ',' + y, rest.length / 3); rest.push(sx * 0.86, y, z); }
+  for (let z = Math.ceil(z0); z <= 6; z += S1) for (let y = 0; y <= 48; y += S1) if (inReg(z, y)) { vid.set(z + ',' + y, rest.length / 3); rest.push(septX(y, z, sx) + sx * 0.06, y, z); }
   const nv = rest.length / 3, stt = new Uint8Array(nv), idx = [], edges = [];
   for (const [key, v] of vid) {
     const [z, y] = key.split(',').map(Number);
@@ -3492,7 +3770,7 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
   f.rlen = new Float32Array(edges.length / 2);
   for (let e = 0; e < edges.length; e += 2) { const a = edges[e] * 3, b = edges[e + 1] * 3; f.rlen[e / 2] = Math.hypot(rest[a] - rest[b], rest[a + 1] - rest[b + 1], rest[a + 2] - rest[b + 2]); }
   mesh.userData = { key: 'flap', flap: f };
-  anatomy.add(mesh); meshes.push(mesh); flaps.push(f);
+  anatomy.add(mesh); meshes.push(mesh); flaps.push(f); makeFlapThick(f);
   if (useTpl) {
     f.tpl = perfTpl.id; let ok = true;
     if (perfTpl.id === 'rod' && Math.hypot(cz - perforation.z, cy - perforation.y) < perforation.r + 5) {
@@ -3508,10 +3786,36 @@ function elevateFlap(lp) {   // delimita el colgajo (por las incisiones) y lo de
   toast(`Colgajo delimitado: ${f.area.toFixed(1)} cm². Pasá la Freer por toda el área para despegarlo. ` + (ped ? 'Incluye el pedículo de la arteria septal posterior ✓.' : '⚠ No incluye la arteria septal posterior.') + (olf ? ' ⚠ Incluye la franja olfatoria superior: riesgo de hiposmia.' : ''), 7000, !ped || olf);
   return f;
 }
+
+/* ---------- espesor del colgajo mucopericóndrico (~0,8 mm): cara profunda (pericondrio) y borde ---------- */
+const FLAP_T = 0.8;
+const flapUnderMat = mat('#e9c6b8', { map: false, rough: 0.5 });
+function makeFlapThick(f) {
+  const g0 = f.mesh.geometry, nv = f.pos.length / 3, idx = g0.index.array, cnt = new Map();
+  for (let t = 0; t < idx.length; t += 3) for (let e = 0; e < 3; e++) { const a = idx[t + e], b = idx[t + (e + 1) % 3], k = a < b ? a + ',' + b : b + ',' + a; cnt.set(k, (cnt.get(k) || 0) + 1); }
+  const ind = [];
+  for (let t = 0; t < idx.length; t += 3) ind.push(idx[t] + nv, idx[t + 2] + nv, idx[t + 1] + nv);   // cara profunda (invertida)
+  for (let t = 0; t < idx.length; t += 3) for (let e = 0; e < 3; e++) {                              // borde
+    const a = idx[t + e], b = idx[t + (e + 1) % 3], k = a < b ? a + ',' + b : b + ',' + a;
+    if (cnt.get(k) === 1) ind.push(a, b, b + nv, a, b + nv, a + nv);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 6), 3)); g.setIndex(ind);
+  const mesh = new THREE.Mesh(g, flapUnderMat); mesh.frustumCulled = false; anatomy.add(mesh);
+  g0.computeVertexNormals(); const n0 = g0.attributes.normal.array;
+  f.thick = { mesh, nv, sg: (n0[0] * -f.sx) >= 0 ? 1 : -1 };
+  updateFlapThick(f);
+}
+function updateFlapThick(f) {
+  if (!f.thick) return;
+  const P = f.pos, N = f.mesh.geometry.attributes.normal.array, A = f.thick.mesh.geometry.attributes.position.array, nv = f.thick.nv, k = FLAP_T * f.thick.sg;
+  for (let i = 0; i < nv * 3; i++) { A[i] = P[i]; A[i + nv * 3] = P[i] + N[i] * k; }
+  f.thick.mesh.geometry.attributes.position.needsUpdate = true; f.thick.mesh.geometry.computeVertexNormals(); f.thick.mesh.geometry.computeBoundingSphere();
+}
+
 function flapAt(lp) {   // colgajo cuyo área contiene el punto (por su posición de reposo)
   for (const f of flaps) {
     if (f.lat) continue;
-    if ((lp.x < 0 ? -1 : 1) !== f.sx) continue;
+    if ((lp.x < skelX(lp.y, WZi(lp.z)) ? -1 : 1) !== f.sx) continue;
     for (let v = 0; v < f.rest.length; v += 3) if (Math.abs(f.rest[v + 2] - lp.z) < 1.2 && Math.abs(f.rest[v + 1] - lp.y) < 1.2) return f;
   }
   return null;
@@ -3524,7 +3828,7 @@ function dissect(lp) {   // Freer: despega los vértices adheridos cerca de la p
     for (let v = 0; v < f.st.length; v++) {
       if (f.st[v] !== 0) continue;
       const i = v * 3, d = Math.hypot(f.rest[i + 2] - lp.z, f.rest[i + 1] - lp.y);
-      if (d < 3.2) { f.st[v] = 1; f.pos[i] = f.prev[i] = f.sx * (0.86 + 0.9 * (1 - d / 3.2)); changed++; }
+      if (d < 3.2) { f.st[v] = 1; f.pos[i] = f.prev[i] = f.rest[i] + f.sx * 0.9 * (1 - d / 3.2); changed++; }
     }
     if (changed && !f.notified && detFrac(f) > 0.95) { f.notified = true; toast('Colgajo despegado. Tomalo con la pinza de agarre para moverlo, o usá los botones de rotar.', 5000); }
   }
@@ -3549,6 +3853,11 @@ function grabFlapAt(lp, f, depth) {
 function releaseFlap() { if (flapGrab) { flapGrab = null; jawClose = 0; } }
 function placeFlap(target) {
   if (target === 'perf' && perforation && flaps.some(ff => ff.tpl)) { placeTplFlaps(); return; }
+  if (PH5 && (target === 'retract' || target === 'rest') && !placeFlap.one) {   // septoplastia: ambos colgajos a la vez
+    if (!flaps.length) { toast('Primero incidí y despegá los colgajos mucopericóndricos con la Freer.'); return; }
+    placeFlap.one = true; for (const ff of flaps.slice()) { flaps.push(flaps.splice(flaps.indexOf(ff), 1)[0]); placeFlap(target); } placeFlap.one = false;
+    toast(target === 'retract' ? 'Colgajos separados del esqueleto septal (como con el espéculo): ya podés resecar el espolón y el cartílago desviado.' : 'Colgajos reposicionados sobre el tabique' + (SEPT.done ? ', ahora recto.' : '.'), 5000); return;
+  }
   const f = flaps[flaps.length - 1];
   if (!f) { toast('Primero delimitá y despegá un colgajo.'); return; }
   if (target !== 'rest' && detFrac(f) < 0.8) { toast('Despegá más el colgajo con la Freer antes de moverlo (' + Math.round(detFrac(f) * 100) + '% despegado).'); return; }
@@ -3557,11 +3866,13 @@ function placeFlap(target) {
   for (let v = 0; v < f.st.length; v++) {
     if (f.st[v] === 2 || (target !== 'rest' && f.st[v] === 0)) continue;
     const i = v * 3, z = f.rest[i + 2], y = f.rest[i + 1];
+    if (target === 'retract') { to[i] = septX(y, WZi(z), f.sx) + f.sx * (y > 20 ? 3.0 : 4.2); to[i + 1] = y; to[i + 2] = z; continue; }
     if (target === 'skull') { to[i] = (z - f.cz) * 0.55; to[i + 1] = 31 + (y - f.cy) * 0.75; to[i + 2] = WZ(-84.2); }
     else if (target === 'perf') { to[i] = f.sx * 0.98; to[i + 1] = perforation.y + (y - f.cy); to[i + 2] = perforation.z + (z - f.cz); }
-    else { to[i] = f.rest[i]; to[i + 1] = y; to[i + 2] = z; }
+    else { if (PH5) f.rest[i] = septX(y, WZi(z), f.sx) + f.sx * 0.06; to[i] = f.rest[i]; to[i + 1] = y; to[i + 2] = z; }
   }
   f.anim = { t: 0, from, to, target }; releaseFlap();
+  if (placeFlap.one) return;
   toast(target === 'skull' ? (f.ped ? '✔ Colgajo nasoseptal rotado sobre el defecto selar / clival; el pedículo queda unido.' : '⚠ Colgajo rotado a la base de cráneo, pero sin pedículo de la septal posterior: necrosaría.')
     : target === 'perf' ? '✔ Colgajo llevado sobre la perforación septal.' : 'Colgajo reposicionado sobre el tabique.', 6000, target === 'skull' && !f.ped);
 }
@@ -3611,7 +3922,8 @@ function updateFlaps(dt) {
           // choques simples: no atravesar el tabique (salvo por una ventana), el piso ni la pared lateral
           for (let v = 0; v < n; v++) {
             if (st[v] !== 1 || v === gv) continue; const i = v * 3, z = P[i + 2], y = P[i + 1];
-            if (f.sx * P[i] < 0.9 && septValid(z, y) && !isCut(_fp.set(0, y, z))) P[i] = f.sx * 0.9;
+            if (PH5) { const sk = septSolidX(y, WZi(z), f.sx); if (f.sx * (P[i] - sk) < 0.9 && septValid(z, y) && !isCut(_fp.set(sk, y, z))) P[i] = sk + f.sx * 0.9; }
+            else if (f.sx * P[i] < 0.9 && septValid(z, y) && !isCut(_fp.set(0, y, z))) P[i] = f.sx * 0.9;
             if (y < 0.6 && z > -96) P[i + 1] = 0.6;
             if (z > -66 && Math.abs(P[i]) > 16.6) P[i] = Math.sign(P[i]) * 16.6;
           }
@@ -3619,7 +3931,7 @@ function updateFlaps(dt) {
       }
     }
     const pa = f.mesh.geometry.attributes.position; pa.needsUpdate = true;
-    if (flapFrame % 2 === 0) f.mesh.geometry.computeVertexNormals();
+    if (flapFrame % 2 === 0) { f.mesh.geometry.computeVertexNormals(); updateFlapThick(f); }
     if (flapFrame % 6 === 0) f.mesh.geometry.computeBoundingSphere();
   }
   guideGroup.visible = state.model === 'generic' && guideMode !== 'none';
@@ -3902,6 +4214,7 @@ document.querySelectorAll('#perfSel button').forEach(b => b.onclick = () => { if
 $('#btnRotSkull').onclick = () => rotateFlap('skull');
 $('#btnRotPerf').onclick = () => rotateFlap('perf');
 $('#btnRepos').onclick = () => placeFlap('rest');
+$('#btnRetract').onclick = () => placeFlap('retract'); if (PH5) $('#btnRetract').style.display = '';
 
 
 /* ============================== CIRUGÍA GUIADA ============================== */
@@ -4008,6 +4321,25 @@ const PROCS = {
     { t: 'Elevá el colgajo mucopericóndrico', d: 'Con la Freer, pasándola por detrás de la incisión, despegá la mucosa (≥ 50%) hasta ver el cartílago.', hl: 'septum', tool: 'freer', check: { fn: () => flaps.some(f => detFrac(f) >= 0.5) } },
     { t: 'Resecá el cartílago desviado', d: 'Con pinza, en la zona central, conservando una L de ~1 cm dorsal y caudal.', hl: 'septcart', tool: 'pinza', check: CUT('septcart', box(-0.5, 0.5, 6, 26, -26, -8), 0.3) }
   ], finish: () => (fracCut(['septcart'], box(-0.5, 0.5, 0, 48, -3, 6)) > 0.1 || fracCut(['septcart'], box(-0.5, 0.5, 36, 48, -30, 6)) > 0.1) ? '⚠ Comprometiste la L de soporte (dorsal o caudal): riesgo de nariz en silla de montar.' : 'L de soporte conservada ✓.' },
+  septo5: { name: 'Septoplastia: desviación y espolón (fantoma 5)', only: 'ph5', guide: 'killian', steps: [
+    { t: 'Evaluá el tabique', d: 'Desviación en C hacia la fosa derecha y espolón condrovomeriano que toca el cornete inferior. Centrá la cruz sobre el espolón.', hl: 'spur', view: 0, tool: 'none', check: LOOK('spur') },
+    { t: 'Incisión de Killian / hemitransfixión', d: 'Con bisturí (o monopolar en corte), incisión vertical en la mucosa del lado derecho ~1 cm por detrás del borde caudal, siguiendo la guía.', hl: 'septum', view: 26, tool: 'scalpel', check: { fn: () => incisions.filter(q => q.x > skelX(q.y, WZi(q.z)) && Math.abs(q.z + 4) < 3).length > 25 } },
+    { t: 'Colgajo mucopericóndrico derecho', d: 'Con la Freer, por detrás de la incisión, despegá el mucopericondrio y el mucoperiostio del cartílago y del hueso, también sobre el espolón (≥ 70%).', hl: 'septum', tool: 'freer', check: { fn: () => flaps.some(f => f.sx > 0 && detFrac(f) >= 0.7) } },
+    { t: 'Condrotomía y colgajo izquierdo', d: 'Con el bisturí cortá el cartílago sobre la incisión (sin perforar la mucosa contralateral) y, por esa condrotomía, despegá con la Freer el colgajo del lado izquierdo (≥ 50%).', hl: 'septcart', tool: 'scalpel', check: { fn: () => flaps.some(f => f.sx < 0 && detFrac(f) >= 0.5) } },
+    { t: 'Separá los colgajos', d: 'Botón "Separar colgajos (espéculo)": queda expuesto el esqueleto septal entre ambos colgajos.', tool: 'freer', check: { fn: () => flaps.some(f => f.rotated === 'retract') } },
+    { t: 'Resecá el espolón', d: 'Con pinza cortante (o bisturí y pinza), resecá la cresta ósea/cartilaginosa hasta dejarla al ras.', hl: 'spur', tool: 'pinza', check: { fn: () => SEPT.done } },
+    { t: 'Resecá el cartílago desviado', d: 'Con bisturí o pinza, la zona central desviada, conservando la L de soporte (~1 cm dorsal y caudal).', hl: 'septcart', tool: 'pinza', check: { fn: () => SEPT.cartDone } },
+    { t: 'Reposicioná los colgajos', d: 'Botón "Reposicionar colgajo": la mucosa vuelve sobre el tabique, ahora recto. Podés fijarla con puntos transeptales (porta-agujas).', tool: 'freer', check: { fn: () => flaps.length > 0 && flaps.every(f => !f.rotated && !f.anim) } }
+  ], finish: () => (fracCut(['septcart'], box(-6, 6, 0, 48, -3, 6)) > 0.1 || fracCut(['septcart'], box(-6, 6, 36, 48, -30, 6)) > 0.1) ? '⚠ Comprometiste la L de soporte (dorsal o caudal): riesgo de nariz en silla de montar.' : 'L de soporte conservada ✓. Tabique recto y espolón resecado.' },
+  poli: { name: 'Poliposis: polipectomía y CENS', only: 'ph6', guide: 'none', steps: [
+    { t: 'Evaluá la poliposis', d: 'Pólipos que salen del meato medio por debajo del cornete medio (Meltzer 3). Centrá la cruz sobre un pólipo.', hl: 'polyp', view: 1, tool: 'none', check: LOOK('polyp') },
+    { t: 'Meato medio', d: 'Shaver sobre los pólipos (sólo pólipos y mucosa, no corta hueso) hasta liberar el meato medio. Aspira la sangre al mismo tiempo.', hl: 'polyp', view: 1, tool: 'shaver', check: { fn: () => polyps.filter(p => p.reg === 'mm').every(p => p.gone || p.s < 0.3) } },
+    { t: 'Uncinectomía y antrostomía', d: 'Con pinza retrógrada y cortante abrí la unciforme y el ostium maxilar.', hl: 'unc', view: 2, tool: 'retro', check: CUT('unc', box(9, 16, 14, 30, -36, -18), 0.3) },
+    { t: 'Etmoides anterior', d: 'Abrí la bulla y las celdas anteriores con pinza; adentro hay pólipos: sacalos con shaver.', hl: 'bulla', view: 4, tool: 'pinza', check: { fn: () => polyps.filter(p => p.reg === 'ea').filter(p => !p.gone).length <= 2 } },
+    { t: 'Receso frontal', d: 'Óptica de 45–70°: resecá los pólipos del receso frontal sin denudar el hueso del ostium.', hl: 'frontost', view: 6, tool: 'shaver', check: { fn: () => polyps.filter(p => p.reg === 'fr').every(p => p.gone) } },
+    { t: 'Etmoides posterior', d: 'Atravesá la lamela basal y limpiá las celdas posteriores (cuidado con la base de cráneo y la papirácea).', hl: 'postcell', view: 7, tool: 'pinza', check: { fn: () => polyps.filter(p => p.reg === 'ep').filter(p => !p.gone).length <= 1 } },
+    { t: 'Hemostasia y control', d: 'Coagulá con bipolar los puntos que sangran y aspirá.', tool: 'bipolar', check: { fn: () => !bleeds.some(b => b.active) } }
+  ], finish: () => { const g = polyps.filter(p => p.gone).length; return `Pólipos resecados: ${g} de ${polyps.length}.`; } },
   hadad: { name: 'Colgajo nasoseptal de Hadad', guide: 'hadad', steps: [
     { t: 'Incisión superior', d: 'Monopolar en corte, 1–1,5 cm por debajo del techo, desde el nivel del ostium esfenoidal hacia adelante (guía verde).', hl: 'septum', view: 25, tool: 'monopolar', mono: 'cut', check: { fn: () => guideCov(0) >= 0.75 } },
     { t: 'Incisión anterior', d: 'Vertical, del extremo anterior de la superior hasta el piso.', check: { fn: () => guideCov(1) >= 0.75 } },
@@ -4104,8 +4436,8 @@ Object.assign(PROCS, {
   perf_rod: { name: 'Perforación grande anterior · racket-on-donut (Alobid)', guide: 'perf', after: () => makePerforation('antL'), steps: perfSteps('rod'), finish: perfFinish },
   perf_plnw: { name: 'Perforación grande · colgajo de pared lateral (Alobid)', guide: 'perf', after: () => makePerforation('largeL'), steps: perfSteps('plnw'), finish: perfFinish }
 });
-$('#procSel').innerHTML = Object.entries(PROCS).filter(([k, v]) => !v.only || (v.only === 'ph3' && PH3)).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
-if (PH3) $('#procSel').value = 'jna';
+$('#procSel').innerHTML = Object.entries(PROCS).filter(([k, v]) => !v.only || (v.only === 'ph3' && PH3) || (v.only === 'ph5' && PH5) || (v.only === 'ph6' && PH6)).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+if (PH3) $('#procSel').value = 'jna'; if (PH5) $('#procSel').value = 'septo5'; if (PH6) $('#procSel').value = 'poli';
 const G = { on: false, proc: null, i: 0, t0: 0, hold: 0, wait: 0, done: false, chk: 0 };
 // anillo naranja que señala la estructura objetivo
 const hl = new THREE.Group(); anatomy.add(hl);
@@ -4530,7 +4862,7 @@ var HA_DUP = ['globe', 'mrect', 'irect', 'srect', 'lrect', 'sobl', 'opticorb', '
 var HA_MATS = [];
 function haApply() { try { haApply_(); } catch (e) { /* todavía no se creó la escena */ } }
 function haApply_() {
-  if (!PH4 || !HA_MATS) return;
+  if (!HAB || !HA_MATS) return;
   const on = $('#chkHA').checked && state.model === 'generic';
   haGroup.visible = on;
   HA_MATS.forEach(m => { m.transparent = state.xray; m.opacity = state.xray ? 0.5 : 1; m.depthTest = !state.xray; m.depthWrite = !state.xray; m.needsUpdate = true; });
@@ -4560,13 +4892,15 @@ async function loadHumanAtlas() {
     haApply();
   } catch (e) { $('#haLeg').textContent = 'No se pudo cargar la capa Human Atlas (' + e.message + ').'; }
 }
-if (PH4) { $('#chkHA').onchange = haApply; loadHumanAtlas(); }
+if (HAB) { if (PH6) $('#chkHA').checked = false; $('#chkHA').onchange = haApply; loadHumanAtlas(); }
 
 /* ============================== LOOP ============================== */
 let last = performance.now(), frameN = 0;
 placeAnatomy();
 goTo(TOUR[0]); state.anim.t = 1;
 if (PH3) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Fantoma 3 (angiofibroma)'; setTimeout(() => toast('Fantoma 3: angiofibroma juvenil nasofaríngeo derecho. Ocupa la fosa nasal posterior, pasa por el foramen esfenopalatino a la fosa pterigopalatina e invade el basiesfenoides. Hacé la resección en Cirugía guiada.', 9000), 600); }
+if (PH5) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Septum desviado'; setTimeout(() => toast('Septum desviado: desviación en C hacia la fosa derecha y espolón condrovomeriano que toca el cornete inferior. Septoplastia: incisión con bisturí, colgajos mucopericóndricos con Freer de ambos lados, separar, resecar espolón y cartílago desviado, reposicionar. Seguila en Cirugía guiada.', 10000), 800); }
+if (PH6) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Poliposis nasosinusal'; setTimeout(() => toast('Poliposis nasosinusal: pólipos en el meato medio, el receso frontal, el etmoides anterior y posterior, la hendidura olfatoria y el receso esfenoetmoidal. Usá el shaver (sólo tejido blando), la pinza cortante o la de agarre. Base: Fantoma Human Atlas.', 10000), 800); }
 if (PH4) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Fantoma Human Atlas'; setTimeout(() => toast('Fantoma Human Atlas: la fosa del Fantoma 2 con la órbita (globo, rectos, oblicuo superior), el nervio óptico, la carótida interna y la basilar ubicados según Z-Anatomy. La capa de mallas reales (vasos, senos cavernosos, pares craneales, hipófisis, quiasma) se activa en el panel; con rayos X se ven por transparencia.', 10000), 800); }
 if (PH2) { segOn('model', 'generic'); setAtlas(true); $('h1').textContent = 'Simulador CENS · Fantoma 2'; setTimeout(() => toast('Fantoma 2: proporciones del promedio de TC normales. Etmoides más corto (bulla grande, receso retrobullar corto, lamela basal oblicua a ~11 mm del esfenoides) y arterias etmoidales según la regla 24-12-6. Colores de atlas activados (podés pasar a mucosa).', 9000), 800); }
 renderer.setAnimationLoop(() => {

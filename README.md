@@ -65,6 +65,23 @@ Botón **Fantoma 2** en "Modelo anatómico" (o el link con `?fantoma=2`). Mismas
 - **Fístula de LCR**: al lesionar la base de cráneo (fóvea etmoidal, lámina cribosa, pared posterior del frontal, diafragma selar o dura del clivus) gotea líquido claro como agua: una gota colgante crece con el latido y cae con la gravedad real (también en VR, con el paciente acostado) y lava la sangre acumulada. No se cierra con bipolar; se sella rotando el colgajo nasoseptal a la base de cráneo sobre el defecto.
 - **Herniación de grasa orbitaria**: al perforar la lámina papirácea la grasa protruye hacia medial sobre el etmoides y el meato medio. Se indica coagular su superficie con bipolar y se retrae; resecarla con pinza o drill cuenta como complicación.
 
+## Fantoma septum desviado (`?fantoma=5`) y septoplastia
+- Desviación septal en C hacia la fosa derecha (máx. ~3,4 mm) y **espolón** óseo macizo en la unión condrovomeriana que toca el cornete inferior.
+- **Bisturí** (nuevo instrumento): incisión de Killian/hemitransfixión; sobre el cartílago hace la condrotomía, que sirve para despegar el colgajo contralateral.
+- Colgajos mucopericóndricos con **espesor** (~0,8 mm, con cara profunda de pericondrio y borde), despegables con Freer de ambos lados, también sobre el espolón.
+- Botón **"Separar colgajos (espéculo)"**; resección del espolón y del cartílago desviado con pinza o bisturí (el tabique se endereza); **"Reposicionar colgajo"** devuelve ambos colgajos sobre el tabique recto.
+- Alertas: morder el espolón sin despegar la mucosa (desgarro/perforación) y cortar la L de soporte. Cirugía guiada "Septoplastia: desviación y espolón".
+
+## Fantoma poliposis (`?fantoma=6`) y shaver
+- Base: Fantoma Human Atlas (fosa calibrada con TC + órbita y base de cráneo de Z-Anatomy).
+- ~70 pólipos pediculados en meato medio, receso frontal, celdas etmoidales anteriores y posteriores (se ven al abrirlas), hendidura olfatoria y receso esfenoetmoidal.
+- **Shaver / microdebridador** (nuevo instrumento): hoja recta de 4 mm con ventana dentada y cuchilla interna oscilante, vástago con la marca XOMED. Reseca sólo pólipos y mucosa (no hueso) y aspira la sangre. En la órbita es una complicación grave.
+- También se resecan con pinza cortante (de a trozos) o con pinza de agarre (avulsión, sangra más). Contador de pólipos y cirugía guiada "Poliposis: polipectomía y CENS".
+
+## Cornetes macizos y reducción del cornete inferior
+- Los cornetes son macizos: al cortarlos o fresarlos la superficie de corte muestra submucosa con el hueso en el centro.
+- Bipolar o monopolar en coagulación achican el cornete inferior localmente (reducción del volumen submucoso).
+
 ## Apariencia
 - **Mucosa húmeda**: capa brillante con película de moco (reflejos puntuales donde pega la luz) y translucidez suave en los bordes.
 - **Relieve por tejido** (mapas de normales generados en el navegador): mucosa ondulada con puntillado glandular, hueso poroso, tumor lobulado; grasa, nervios, duramadre y vasos con su propio brillo.

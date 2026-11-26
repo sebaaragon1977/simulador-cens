@@ -96,7 +96,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="generic" class="on" title="El fantoma original">Fantoma 1 · básico</button><button data-v="gen" title="Abre el genérico actual">Genérico</button><button data-v="ph2" title="Abre el Fantoma 2">Fantoma 2</button><button data-v="ph3" title="Abre el Fantoma 3 (angiofibroma juvenil)">Fantoma 3 · angiofibroma</button><button data-v="ph4" title="Abre el Fantoma Human Atlas (órbita y base de cráneo de Z-Anatomy)">Human Atlas</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="generic" class="on" title="El fantoma original">Fantoma 1 · básico</button><button data-v="gen" title="Abre el genérico actual">Genérico</button><button data-v="ph2" title="Abre el Fantoma 2">Fantoma 2</button><button data-v="ph3" title="Abre el Fantoma 3 (angiofibroma juvenil)">Fantoma 3 · angiofibroma</button><button data-v="ph4" title="Abre el Fantoma Human Atlas (órbita y base de cráneo de Z-Anatomy)">Human Atlas</button><button data-v="ph5" title="Abre el fantoma de septum desviado">Septum desviado</button><button data-v="ph6" title="Abre el fantoma de poliposis">Poliposis</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -2410,6 +2410,8 @@ document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'ph2') { location.href = 'index.html?fantoma=2'; return; }
   if (b.dataset.v === 'ph3') { location.href = 'index.html?fantoma=3'; return; }
   if (b.dataset.v === 'ph4') { location.href = 'index.html?fantoma=4'; return; }
+  if (b.dataset.v === 'ph5') { location.href = 'index.html?fantoma=5'; return; }
+  if (b.dataset.v === 'ph6') { location.href = 'index.html?fantoma=6'; return; }
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
   else setModel('generic');
 });

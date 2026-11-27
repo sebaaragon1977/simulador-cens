@@ -3,7 +3,7 @@
   "short_name": "EndoNasal 3DSim",
   "description": "Simulador de cirugía endoscópica nasosinusal: anatomía, márgenes de seguridad y práctica en 3D y realidad virtual.",
   "lang": "es",
-  "id": "./",
+  "id": "/simulador-cens/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

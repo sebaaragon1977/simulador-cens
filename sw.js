@@ -1,6 +1,6 @@
 // EndoNasal 3DSim: service worker mínimo para que la app se pueda instalar.
 // Siempre busca la versión más nueva en internet; sólo si no hay conexión muestra la última guardada.
-const CACHE = 'endonasal-v4';
+const CACHE = 'endonasal-v5';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', e => {

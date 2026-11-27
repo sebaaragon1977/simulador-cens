@@ -22,6 +22,12 @@
   };
   const install = async () => {
     if (deferred) { deferred.prompt(); const r = await deferred.userChoice; deferred = null; if (r.outcome === 'accepted') { btn.remove(); big.remove(); } return; }
+    // Chrome / Edge nuevos: instalación directa con un clic (Web Install API)
+    if (!iOS && !safari && typeof navigator.install === 'function') {
+      const t0 = Date.now();
+      try { await navigator.install(); btn.remove(); big.remove(); return; }
+      catch (e) { if (e && e.name === 'AbortError' && Date.now() - t0 > 700) return; }  // el usuario cerró el diálogo
+    }
     if (iOS) help('Tocá el botón <b>Compartir</b> (el cuadrado con la flecha) y elegí <b>“Agregar a inicio”</b>. El ícono queda en la pantalla y la app abre a pantalla completa.');
     else if (safari) help('En la barra de menú de Safari elegí <b>Archivo → Agregar al Dock…</b> y confirmá. El ícono queda en el Dock y en Aplicaciones, y la app abre en su propia ventana.');
     else if (/Chrome|Chromium|Edg/.test(ua)) help('En <b>Chrome</b>: tocá el menú <b>⋮</b> (arriba a la derecha) → <b>Transmitir, guardar y compartir</b> → <b>Instalar página como app…</b> (o el ícono de instalar ⊕ a la derecha de la barra de direcciones).<br><br>En <b>Edge</b>: menú <b>…</b> → <b>Aplicaciones</b> → <b>Instalar este sitio como aplicación</b>.<br><br>Si ya la instalaste antes, buscala en el Launchpad como <b>EndoNasal 3DSim</b>.');

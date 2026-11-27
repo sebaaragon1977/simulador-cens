@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EndoNasal 3DSim">
 <meta name="application-name" content="EndoNasal 3DSim">
-<title>Simulador de Cirugía Endoscópica Nasosinusal</title>
+<title>EndoNasal 3DSim · Simulador de Cirugía Endoscópica Nasosinusal</title>
 <style>
   :root{--bg:rgba(14,16,20,.86);--fg:#e9ecef;--mut:#9aa3ad;--acc:#4fd1a5;--warn:#ff5a5a;--line:rgba(255,255,255,.1)}
   *{box-sizing:border-box}
@@ -120,7 +120,7 @@
 <button id="toggleP">☰ Controles</button><button id="toggleI">ℹ Info</button>
 
 <div id="panel" class="panel">
-  <h1>Simulador CENS</h1>
+  <h1>EndoNasal 3DSim</h1>
   <div class="sub">Cirugía endoscópica nasosinusal — anatomía y márgenes de seguridad</div>
   <div class="grp"><label>Modo de práctica</label>
     <div class="seg" id="pmode"><button data-v="free" class="on">Libre</button><button data-v="guided">Cirugía guiada</button></div>
@@ -5072,11 +5072,11 @@ if (HAB) { if (PH6) $('#chkHA').checked = false; $('#chkHA').onchange = haApply;
 let last = performance.now(), frameN = 0;
 placeAnatomy();
 goTo(TOUR[0]); state.anim.t = 1;
-if (PH3) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Fantoma 3 (angiofibroma)'; setTimeout(() => toast('Fantoma 3: angiofibroma juvenil nasofaríngeo derecho. Ocupa la fosa nasal posterior, pasa por el foramen esfenopalatino a la fosa pterigopalatina e invade el basiesfenoides. Hacé la resección en Cirugía guiada.', 9000), 600); }
-if (PH5) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Septum desviado'; setTimeout(() => toast('Septum desviado: desviación en C hacia la fosa derecha y espolón condrovomeriano que toca el cornete inferior. Septoplastia: incisión con bisturí, colgajos mucopericóndricos con Freer de ambos lados, separar, resecar espolón y cartílago desviado, reposicionar. Seguila en Cirugía guiada.', 10000), 800); }
-if (PH6) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Poliposis nasosinusal'; setTimeout(() => toast('Poliposis nasosinusal: pólipos en el meato medio, el receso frontal, el etmoides anterior y posterior, la hendidura olfatoria y el receso esfenoetmoidal. Usá el shaver (sólo tejido blando), la pinza cortante o la de agarre. Base: Fantoma Human Atlas.', 10000), 800); }
-if (PH4) { segOn('model', 'generic'); $('h1').textContent = 'Simulador CENS · Fantoma Human Atlas'; setTimeout(() => toast('Fantoma Human Atlas: la fosa del Fantoma 2 con la órbita (globo, rectos, oblicuo superior), el nervio óptico, la carótida interna y la basilar ubicados según Z-Anatomy. La capa de mallas reales (vasos, senos cavernosos, pares craneales, hipófisis, quiasma) se activa en el panel; con rayos X se ven por transparencia.', 10000), 800); }
-if (PH2) { segOn('model', 'generic'); setAtlas(true); $('h1').textContent = 'Simulador CENS · Fantoma 2'; setTimeout(() => toast('Fantoma 2: proporciones del promedio de TC normales. Etmoides más corto (bulla grande, receso retrobullar corto, lamela basal oblicua a ~11 mm del esfenoides) y arterias etmoidales según la regla 24-12-6. Colores de atlas activados (podés pasar a mucosa).', 9000), 800); }
+if (PH3) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Fantoma 3 (angiofibroma)'; setTimeout(() => toast('Fantoma 3: angiofibroma juvenil nasofaríngeo derecho. Ocupa la fosa nasal posterior, pasa por el foramen esfenopalatino a la fosa pterigopalatina e invade el basiesfenoides. Hacé la resección en Cirugía guiada.', 9000), 600); }
+if (PH5) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Septum desviado'; setTimeout(() => toast('Septum desviado: desviación en C hacia la fosa derecha y espolón condrovomeriano que toca el cornete inferior. Septoplastia: incisión con bisturí, colgajos mucopericóndricos con Freer de ambos lados, separar, resecar espolón y cartílago desviado, reposicionar. Seguila en Cirugía guiada.', 10000), 800); }
+if (PH6) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Poliposis nasosinusal'; setTimeout(() => toast('Poliposis nasosinusal: pólipos en el meato medio, el receso frontal, el etmoides anterior y posterior, la hendidura olfatoria y el receso esfenoetmoidal. Usá el shaver (sólo tejido blando), la pinza cortante o la de agarre. Base: Fantoma Human Atlas.', 10000), 800); }
+if (PH4) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Fantoma Human Atlas'; setTimeout(() => toast('Fantoma Human Atlas: la fosa del Fantoma 2 con la órbita (globo, rectos, oblicuo superior), el nervio óptico, la carótida interna y la basilar ubicados según Z-Anatomy. La capa de mallas reales (vasos, senos cavernosos, pares craneales, hipófisis, quiasma) se activa en el panel; con rayos X se ven por transparencia.', 10000), 800); }
+if (PH2) { segOn('model', 'generic'); setAtlas(true); $('h1').textContent = 'EndoNasal 3DSim · Fantoma 2'; setTimeout(() => toast('Fantoma 2: proporciones del promedio de TC normales. Etmoides más corto (bulla grande, receso retrobullar corto, lamela basal oblicua a ~11 mm del esfenoides) y arterias etmoidales según la regla 24-12-6. Colores de atlas activados (podés pasar a mucosa).', 9000), 800); }
 renderer.setAnimationLoop(() => {
   if (state.busy && !state.vr) return;   // durante la carga de la TC se pausa el render para acelerar
   const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;

@@ -44,7 +44,7 @@
 
   function vistaIngreso(msg = '') {
     const mail = localStorage.getItem(LS_MAIL) || '';
-    show(`<h2>Simulador CENS</h2><p>Ingresá con tu mail y tu clave de 4 dígitos.</p>
+    show(`<h2>EndoNasal 3DSim</h2><p>Ingresá con tu mail y tu clave de 4 dígitos.</p>
       <label>Mail</label><input id="aMail" type="email" autocomplete="email" value="${mail.replace(/"/g, '')}">
       <label>Clave (4 dígitos)</label><input id="aPin" class="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="4">
       <div class="err" id="aErr">${msg}</div>

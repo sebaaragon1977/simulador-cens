@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b1218">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EndoNasal 3DSim">
+<meta name="application-name" content="EndoNasal 3DSim">
 <title>Simulador de Cirugía Endoscópica Nasosinusal</title>
 <style>
   :root{--bg:rgba(14,16,20,.86);--fg:#e9ecef;--mut:#9aa3ad;--acc:#4fd1a5;--warn:#ff5a5a;--line:rgba(255,255,255,.1)}
@@ -5111,5 +5119,6 @@ $('#vrSmooth').oninput = e => { VRSET.smooth = +e.target.value; $('#vrSmoothV').
 window.__sim = { renderer, scene, worldCam, vrRoom, table, VRSET, setBoth, clampFossa, smoothPose, patientG, towerG, updatePatient, STEREO, setStereo, renderEndoEye, traceStart, traceAdd, traceEnd, huAt, huStats, lmDist, TRACE, setFull, retypeLm, showPop, setFree, moveCur, sliceLPS, ANNOT, annotStart, annotPlace, annotExport, kerosOf, setLiteLook, doDrill, isCut: (x, y, z) => isCut(V(x, y, z)), FR, updateCtDrain, lmOf, addCut, loadCaseZip, buildCaseZip, refreshCases, CASES, latFreer, dissectLat, perf: () => perforation, perfCutCov, perfCoverage, placeTplFlaps, doStitch, getTpl: () => perfTpl, setGuide, ifacOn, rebuildRecess, dissect, grabFlapAt, releaseFlap, detFrac, placeFlap, enterStep, G, PROCS, startProc, fracCut, monoCut, GUIDES, makePerforation, elevateFlap, rotateFlap, setMono, incisions, flaps, runPrep, dbg: () => ({ tipHit: tipHit ? { k: keyOfHit(tipHit), d: tipHit.distance, p: anatomy.worldToLocal(tipHit.point.clone()).toArray().map(v=>+v.toFixed(1)) } : null, using, tool: state.tool, mouseIn, freer: !!freerGrab }), endoCam, bleeds, turbDisp, applyTurb, setToolX: v => setTool(v), setUsing: v => { using = v; }, CT, loadCT, addLandmark, setModel, startFly, flyToCenter, biteLocal:(x,y,z,r)=>{ const w=anatomy.localToWorld(V(x,y,z)); doBite(w, r||2.2); }, state, scope, goTo, TOUR, doBite, anatomy, setAngle, setTool, setSide, setXray, V, pick };
 </script>
 <script src="acceso.js"></script>
+<script src="pwa.js"></script>
 </body>
 </html>

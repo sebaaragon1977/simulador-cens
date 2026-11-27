@@ -128,7 +128,7 @@
   <div class="grp"><label>Fosa nasal</label>
     <div class="seg" id="side"><button data-v="1" class="on">Derecha</button><button data-v="-1">Izquierda</button></div></div>
   <div class="grp"><label>Modelo anatómico</label>
-    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ph3" title="Angiofibroma juvenil nasofaríngeo">Fantoma 3 · angiofibroma</button><button data-v="ph4" title="Fantoma 2 con órbita, nervio óptico, carótida y vasos/nervios de base de cráneo de Z-Anatomy (Human Atlas)">Human Atlas</button><button data-v="ph5" title="Desviación septal en C con espolón condrovomeriano: septoplastia">Septum desviado</button><button data-v="ph6" title="Poliposis nasosinusal (base Human Atlas): pólipos en meato medio, receso frontal y etmoides">Poliposis</button><button data-v="ct">TC del paciente</button></div>
+    <div class="seg" id="model"><button data-v="ph1" title="El fantoma original, más simple (abre basico.html)">Fantoma 1 · básico</button><button data-v="generic" class="on">Genérico</button><button data-v="ph2" title="Proporciones del promedio de TC normales, colores de atlas">Fantoma 2</button><button data-v="ph3" title="Angiofibroma juvenil nasofaríngeo">Fantoma 3 · angiofibroma</button><button data-v="ph4" title="Fantoma 2 con órbita, nervio óptico, carótida y vasos/nervios de base de cráneo de Z-Anatomy (Human Atlas)">Human Atlas</button><button data-v="ph5" title="Desviación septal en C con espolón condrovomeriano: septoplastia">Septum desviado</button><button data-v="ph6" title="Poliposis nasosinusal (base Human Atlas): pólipos en meato medio, receso frontal y etmoides">Poliposis</button><button data-v="ph7" title="TC real (CT-SCOPE P13) con tus referencias marcadas, la capa Human Atlas llevada a esa TC y cornetes afinados para entrar con el endoscopio">Fantoma 7 · TC real</button><button data-v="ct">TC del paciente</button></div>
     <div id="ctBox" style="display:none">
       <div class="row"><button id="btnFolder">📁 Carpeta DICOM</button><button id="btnFiles">🗂 Archivos / .zip</button></div>
       <input type="file" id="inFolder" webkitdirectory multiple hidden>
@@ -820,6 +820,7 @@ const PH3 = new URLSearchParams(location.search).get('fantoma') === '3';
 const PH4 = new URLSearchParams(location.search).get('fantoma') === '4';
 const PH5 = new URLSearchParams(location.search).get('fantoma') === '5';   // septum desviado con espolón (septoplastia)
 const PH6 = new URLSearchParams(location.search).get('fantoma') === '6';   // poliposis nasosinusal (base Human Atlas)
+const PH7 = new URLSearchParams(location.search).get('fantoma') === '7';   // TC real (CT-SCOPE P13) con referencias, atlas y cornetes afinados
 const HAB = PH4 || PH6;   // fantomas con la órbita y la base de cráneo de Z-Anatomy
 const HA = HAB ? {"GLOBE_C":[35.66,40.42,-25.14],"GLOBE_R":12.69,"MRECT":[[20.9,35.37,-73.71],[20.9,34.38,-70.32],[20.9,33.43,-66.53],[21.94,41.64,-49.14],[22.64,43.13,-39.9],[22.38,42.23,-33.55],[22.25,41.09,-29.62],[22.7,38.92,-25.42],[25.46,35.84,-20.76],[26.85,36.78,-18.41]],"IRECT":[[20.9,33.49,-75.89],[21.95,31.43,-72.7],[21.87,27.1,-66.9],[23.17,29.27,-57.68],[25.55,33.76,-43.11],[26.81,32.01,-38.79],[29.45,29.13,-32.41],[32.82,27.9,-27.58],[36.85,27.95,-23.45],[39.72,30.52,-19.86]],"SRECT":[[21.37,38.63,-74.14],[25.18,37.42,-69.51],[27.42,36.93,-66.48],[28.79,41.4,-58.31],[32.85,50.6,-43.71],[35.31,51.52,-35.3],[36.29,52.04,-33.79],[38.63,52.56,-26.93],[39.86,50.94,-22.03],[39.64,48.36,-18.35]],"LRECT":[[23.08,37.24,-75.23],[25.83,36.41,-71.7],[29.59,35.77,-68.17],[35.54,42.29,-51.66],[39.46,46.54,-42.75],[41.76,45.47,-38.42],[46.27,44.35,-33.82],[47.71,43.16,-30.05],[47.68,41.07,-24.29],[46.13,38.67,-21.01]],"SOBL":[[20.0,35.92,-72.67],[20.0,36.48,-67.16],[20.0,50.92,-44.11],[20.44,52.16,-33.6],[21.44,54.63,-23.63],[21.07,55.27,-14.88],[27.09,53.14,-21.3],[32.33,52.36,-26.42],[39.1,50.74,-31.53],[42.32,45.79,-35.87]],"OPTORB":[[34.83,43.01,-30.33],[33.83,43.26,-36.02],[32.29,44.02,-42.01],[30.38,42.66,-47.75],[28.72,38.85,-53.94],[26.79,35.23,-62.33],[23.88,34.74,-68.12]],"OPTIC":[[23.88,34.74,-68.12],[18.36,38.07,-74.96],[13.21,41.32,-82.1],[6.59,44.24,-88.0]],"CAROTID":[[28.82,5.15,-108.7],[27.37,9.97,-106.47],[24.74,12.72,-102.39],[22.57,14.52,-97.48],[20.8,16.3,-92.39],[19.21,18.64,-87.52],[18.38,22.95,-84.07],[18.74,28.45,-82.94],[17.83,33.94,-83.17],[15.37,38.63,-85.03]],"BASILAR":[[0.0,15.39,-109.93],[0.0,25.43,-102.89],[0.0,37.2,-99.4]]} : null;
 /* Fantoma 5: desviación septal en C hacia la fosa derecha + espolón en la unión condrovomeriana (cresta posteroinferior oblicua)
@@ -2093,7 +2094,7 @@ function setSide(sd) {
 }
 $('#chkLabels').onchange = e => { state.labels = e.target.checked; if (!state.labels) $('#labels').innerHTML = ''; };
 $('#chkXray').onchange = e => setXray(e.target.checked);
-function setXray(v) { state.xray = v; $('#chkXray').checked = v; setTimeout(haApply, 0); overlays.forEach(o => o.visible = v && state.model === 'generic'); CT.landmarks.forEach(l => l.mesh.visible = v && state.model === 'ct'); }
+function setXray(v) { state.xray = v; $('#chkXray').checked = v; setTimeout(haApply, 0); if (typeof F7 !== 'undefined' && F7) setTimeout(f7AtlasApply, 0); overlays.forEach(o => o.visible = v && state.model === 'generic'); CT.landmarks.forEach(l => l.mesh.visible = v && state.model === 'ct'); }
 $('#chkCollide').onchange = e => state.collide = e.target.checked;
 $('#chkViewMove').onchange = e => state.viewMove = e.target.checked;
 $('#btnReset').onclick = () => { resetCuts(); toast('Tejido restaurado.'); };
@@ -3079,6 +3080,7 @@ async function loadCT(files, pre) {
     const vol = buildVolume(slices);
     const cr = cropHead(vol);
     Object.assign(CT, cr); CT.cur = null; if (typeof setFree === "function") setFree(false, true);
+    if (typeof F7 !== 'undefined' && F7) { if (F7.pending) { F7.pending = false; F7.active = true; f7Turbinates(); } else if (F7.active) f7Leave(); }
     CT.landmarks.forEach(l => { ctGroup.remove(l.mesh); l.el && l.el.remove(); }); CT.landmarks = []; renderLmList();
     await rebuildCT();
     if (CT.src) $('#caseName').value = CT.src.label;
@@ -3126,11 +3128,12 @@ function setModel(m) {
   resetCuts(); setXray(state.xray); placeAnatomy(); lookKey = '__';
   if (m === 'ct') placeScopeStart(); else goTo(TOUR[0]);
 }
-function segOn(id, v) { if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; if (id === 'model' && v === 'generic' && PH3) v = 'ph3'; if (id === 'model' && v === 'generic' && PH4) v = 'ph4'; if (id === 'model' && v === 'generic' && PH5) v = 'ph5'; if (id === 'model' && v === 'generic' && PH6) v = 'ph6'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function segOn(id, v) { if (id === 'model' && v === 'ct' && PH7) v = 'ph7'; if (id === 'model' && v === 'generic' && PH2) v = 'ph2'; if (id === 'model' && v === 'generic' && PH3) v = 'ph3'; if (id === 'model' && v === 'generic' && PH4) v = 'ph4'; if (id === 'model' && v === 'generic' && PH5) v = 'ph5'; if (id === 'model' && v === 'generic' && PH6) v = 'ph6'; document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
 document.querySelectorAll('#model button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'ph1') { location.href = 'basico.html'; return; }
   if (b.dataset.v === 'ct') { $('#ctBox').style.display = 'block'; if (CT.mesh) setModel('ct'); else segOn('model', 'ct'); }
-  else if (({ ph2: '2', ph3: '3', ph4: '4', ph5: '5', ph6: '6' }[b.dataset.v] || null) !== (new URLSearchParams(location.search).get('fantoma') || null)) { const u = new URL(location.href), f = { ph2: '2', ph3: '3', ph4: '4', ph5: '5', ph6: '6' }[b.dataset.v] || null; if (f) u.searchParams.set('fantoma', f); else u.searchParams.delete('fantoma'); location.href = u.toString(); }
+  else if (b.dataset.v === 'ph7' && PH7) { if (CT.mesh) setModel('ct'); }
+  else if (({ ph2: '2', ph3: '3', ph4: '4', ph5: '5', ph6: '6', ph7: '7' }[b.dataset.v] || null) !== (new URLSearchParams(location.search).get('fantoma') || null)) { const u = new URL(location.href), f = { ph2: '2', ph3: '3', ph4: '4', ph5: '5', ph6: '6', ph7: '7' }[b.dataset.v] || null; if (f) u.searchParams.set('fantoma', f); else u.searchParams.delete('fantoma'); location.href = u.toString(); }
   else setModel('generic');
 });
 $('#btnFolder').onclick = () => $('#inFolder').click();
@@ -5068,6 +5071,120 @@ async function loadHumanAtlas() {
 }
 if (HAB) { if (PH6) $('#chkHA').checked = false; $('#chkHA').onchange = haApply; loadHumanAtlas(); }
 
+/* ============================== FANTOMA 7: TC REAL CON REFERENCIAS (CT-SCOPE P13) ==============================
+   Se descarga la TC P13 del repositorio de CT-SCOPE (CC BY-NC-ND 4.0: se procesa en el navegador, no se guarda ni se redistribuye)
+   y se le suman tres cosas cuyos parámetros están en casos/fantoma7_P13.json (sólo medidas, sin imágenes):
+   1) cornetes inferior y medio afinados: fila por fila se comprime el tejido hacia la pared lateral y queda un corredor junto al tabique;
+   2) las marcas del Dr. Aragón (anotaciones/CT-SCOPE_P13_seba_v1.json) como referencias y estructuras de riesgo (fosa derecha;
+      la izquierda las recibe espejadas en el plano de simetría de la cabeza);
+   3) la capa Human Atlas (Z-Anatomy) llevada a esta TC con una spline de placa delgada ajustada a esas marcas. */
+var F7 = { cfg: null, refs: null, pending: false, active: false, group: null, mats: [] };
+function f7Smooth(x, a, b) { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+function f7Taper(v, lo, hi, w) { return f7Smooth(v, lo, lo + w) * (1 - f7Smooth(v, hi - w, hi)); }
+function f7Turbinates() {
+  const K = F7.cfg && F7.cfg.cornetes; if (!K || !CT.C) return;
+  const [nx, ny, nz] = CT.cd, [sx, sy, sz] = CT.cs, O = CT.cO, C = CT.C, src = new Float32Array(nx), L0 = K.L0, hs = K.hs;
+  for (const T of K.lista) {
+    const lm = T.latMax;
+    for (let k = 0; k < nz; k++) {
+      const wS = f7Taper(O.z + k * sz, T.S[0], T.S[1], T.borde); if (wS <= 0) continue;
+      for (let j = 0; j < ny; j++) {
+        const g = T.gap * wS * f7Taper(O.y + j * sy, T.P[0], T.P[1], T.borde); if (g < 0.05) continue;
+        const base = j * nx + k * nx * ny, kf = (lm - hs) / (lm - hs - g);
+        for (let i = 0; i < nx; i++) src[i] = C[base + i];
+        for (let i = 0; i < nx; i++) {
+          const L = O.x + i * sx, u = Math.abs(L - L0); if (u < hs || u > lm) continue;
+          const us = lm - (lm - u) * kf; let v = -1000;
+          if (us >= hs) { const x = (L0 + Math.sign(L - L0) * us - O.x) / sx, i0 = Math.max(0, Math.min(nx - 2, Math.floor(x))), f = x - i0; v = src[i0] * (1 - f) + src[i0 + 1] * f; }
+          C[base + i] = v;
+        }
+      }
+    }
+  }
+}
+function f7AddLm(type, pts, name, side) {
+  const T = LM_TYPES[type]; if (!T || !pts.length) return null;
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(Math.max(T[1], 1.2), 16, 12), new THREE.MeshBasicMaterial({ color: T[2], transparent: true, opacity: 0.55, depthTest: false, depthWrite: false }));
+  mesh.position.copy(pts[0]); mesh.renderOrder = 25; mesh.visible = state.xray; ctGroup.add(mesh);
+  const lm = { id: ++lmId, type, p: pts[0].clone(), pts: pts.map(q => q.clone()), mesh, name: name || T[0], danger: T[1] > 0, el: null, hu: huStats(pts[0].x, -pts[0].z, pts[0].y), side, f7: true };
+  CT.landmarks.push(lm); if (pts.length > 1) lmGeom(lm); return lm;
+}
+function f7Refs() {
+  const A = F7.refs; if (!A) return;
+  const sym = F7.cfg.simetria_L || 0, toV = (q, m) => V(m ? 2 * sym - q[0] : q[0], q[2], -q[1]);
+  for (const mir of [false, true]) {
+    for (const p of A.puntos) {
+      const tr = p.trayecto && p.trayecto.length ? p.trayecto : [[p.L, p.P, p.S]];
+      const pts = tr.map(q => toV(q, mir)), danger = LM_TYPES[p.tipo] && LM_TYPES[p.tipo][1] > 0;
+      if (mir && !danger && !['cribr', 'fovea'].includes(p.tipo)) continue;   // del lado izquierdo sólo lo que da alertas
+      if (!['cribr', 'fovea'].includes(p.tipo) || !mir) f7AddLm(p.tipo, pts, (LM_TYPES[p.tipo] || ['?'])[0] + (mir ? ' (espejo)' : ''), mir ? 'I' : 'D');
+      if (['cribr', 'fovea'].includes(p.tipo)) f7AddLm('skull', pts, 'Base de cráneo: ' + (p.tipo === 'cribr' ? 'lámina cribosa' : 'fóvea') + (mir ? ' (espejo)' : ''), mir ? 'I' : 'D');
+    }
+  }
+  renderLmList();
+}
+function f7Warp(x, y, z) {   // espacio del Fantoma 2 → LPS de P13 → escena (X = L, Y = S, Z = −P)
+  const a = F7.cfg.atlas, Xc = a.X, W = a.W, A = a.A, px = -Math.abs(x);
+  let L = A[0][0] + px * A[1][0] + y * A[2][0] + z * A[3][0], P = A[0][1] + px * A[1][1] + y * A[2][1] + z * A[3][1], S = A[0][2] + px * A[1][2] + y * A[2][2] + z * A[3][2];
+  for (let i = 0; i < Xc.length; i++) { const r = Math.hypot(px - Xc[i][0], y - Xc[i][1], z - Xc[i][2]); L += W[i][0] * r; P += W[i][1] * r; S += W[i][2] * r; }
+  if (x < 0) L = 2 * (F7.cfg.simetria_L || 0) - L;
+  return [L, S, -P];
+}
+async function f7Atlas() {
+  if (F7.group) { ctGroup.remove(F7.group); F7.group = null; }
+  const r = await fetch('humanatlas/za_capa.json'); if (!r.ok) throw new Error('capa Human Atlas: ' + r.status);
+  const d = await r.json(), b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0)).buffer, mats = {};
+  F7.group = new THREE.Group(); F7.mats = [];
+  for (const m of d.mallas) {
+    const q = new Int16Array(b64(m.v)), pos = new Float32Array(q.length);
+    for (let i = 0; i < q.length; i += 3) { const w = f7Warp(q[i] / 100, q[i + 1] / 100, q[i + 2] / 100); pos[i] = w[0]; pos[i + 1] = w[1]; pos[i + 2] = w[2]; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const ix = new Uint16Array(b64(m.i));
+    g.setIndex(new THREE.BufferAttribute(ix, 1)); g.computeVertexNormals();
+    if (!mats[m.c]) { mats[m.c] = new THREE.MeshStandardMaterial({ color: HA_COL[m.c] || '#ccc', roughness: 0.5, metalness: 0, side: THREE.DoubleSide }); F7.mats.push(mats[m.c]); }
+    const mesh = new THREE.Mesh(g, mats[m.c]); mesh.name = m.n; mesh.userData = { ha: true, label: m.n }; F7.group.add(mesh);
+  }
+  ctGroup.add(F7.group);
+  const cats = [['art', 'arterias'], ['ven', 'senos y venas'], ['opt', 'vía óptica'], ['ner', 'pares craneales'], ['mus', 'músculos'], ['eye', 'globo'], ['gla', 'hipófisis']];
+  $('#haLeg').innerHTML = cats.map(([c, n]) => `<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${HA_COL[c]};margin-right:3px"></span>${n}`).join(' · ') +
+    `<br>${d.mallas.length} estructuras de Z-Anatomy (Human Atlas, CC BY-SA 4.0) llevadas a la TC P13 con tus marcas (error medio ${F7.cfg.atlas.residuo_mm.medio} mm, máx. ${F7.cfg.atlas.residuo_mm.max} mm). Lado izquierdo espejado.`;
+  f7AtlasApply();
+}
+function f7AtlasApply() {
+  if (!F7.group) return;
+  F7.group.visible = $('#chkHA').checked && state.model === 'ct' && F7.active;
+  F7.mats.forEach(m => { m.transparent = state.xray; m.opacity = state.xray ? 0.5 : 1; m.depthTest = !state.xray; m.depthWrite = !state.xray; m.needsUpdate = true; });
+  F7.group.children.forEach(o => o.renderOrder = state.xray ? 21 : 0);
+}
+function f7Leave() {   // se abrió otra TC: la capa y las referencias del fantoma 7 ya no corresponden
+  F7.active = false; if (F7.group) { ctGroup.remove(F7.group); F7.group = null; }
+}
+async function f7Load() {
+  try {
+    state.busy = true; $('#ctBox').style.display = 'block'; $('#haBox').style.display = 'block';
+    ctStatus('Fantoma 7: cargando parámetros y referencias…');
+    const [rc, ra] = await Promise.all([fetch('casos/fantoma7_P13.json', { cache: 'no-cache' }), fetch('anotaciones/CT-SCOPE_P13_seba_v1.json', { cache: 'no-cache' })]);
+    if (!rc.ok || !ra.ok) throw new Error('faltan los archivos del fantoma 7');
+    F7.cfg = await rc.json(); F7.refs = await ra.json();
+    if (!CASES.ext) { const r = await fetch('casos/ctscope.json', { cache: 'no-cache' }); if (r.ok) CASES.ext = await r.json(); }
+    const E = CASES.ext, c = E && E.pacientes.find(p => p.id === F7.cfg.caso); if (!c) throw new Error('no encontré el caso ' + F7.cfg.caso + ' en CT-SCOPE');
+    const bufs = new Array(c.files.length); let done = 0, i0 = 0, fail = 0;
+    const worker = async () => { while (i0 < c.files.length) { const i = i0++; try { const r = await fetch(E.base + encodeURI(c.dir + c.files[i])); if (!r.ok) throw 0; bufs[i] = new Uint8Array(await r.arrayBuffer()); } catch (e) { fail++; } if (++done % 10 === 0) ctStatus(`Fantoma 7: descargando la TC ${c.id} desde el repositorio de CT-SCOPE… ${done}/${c.files.length}`); } };
+    await Promise.all(Array.from({ length: 8 }, worker));
+    if (fail > c.files.length * 0.1) throw new Error(fail === c.files.length ? 'no se pudo conectar con el repositorio de CT-SCOPE (abrí el simulador desde el link de GitHub)' : `faltaron ${fail} cortes; revisá la conexión`);
+    state.busy = false;
+    CT.src = { label: 'Fantoma 7 · CT-SCOPE ' + c.id + ' (cornetes afinados)', cita: E.cita, lic: E.licencia };
+    F7.pending = true;
+    await loadCT(null, bufs.filter(Boolean));
+    if (!F7.active) throw new Error('no se pudo armar la TC');
+    f7Refs();
+    try { await f7Atlas(); } catch (e) { console.warn(e); $('#haLeg').textContent = 'No se pudo cargar la capa Human Atlas (' + e.message + ').'; }
+    setModel('ct');
+    toast('Fantoma 7: TC real (CT-SCOPE P13) con los cornetes inferior y medio afinados, tus referencias marcadas (fosa derecha; en la izquierda, espejadas) y la capa Human Atlas llevada a esta TC. Con "Estructuras de riesgo" se ven las referencias y el atlas por transparencia.', 11000);
+  } catch (e) { console.error(e); state.busy = false; ctStatus('⚠ Fantoma 7: ' + e.message); toast('No se pudo armar el fantoma 7: ' + e.message, 7000, true); }
+}
+if (PH7) { $('#haBox').style.display = 'block'; $('#chkHA').onchange = f7AtlasApply; }
+
 /* ============================== LOOP ============================== */
 let last = performance.now(), frameN = 0;
 placeAnatomy();
@@ -5076,6 +5193,7 @@ if (PH3) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · 
 if (PH5) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Septum desviado'; setTimeout(() => toast('Septum desviado: desviación en C hacia la fosa derecha y espolón condrovomeriano que toca el cornete inferior. Septoplastia: incisión con bisturí, colgajos mucopericóndricos con Freer de ambos lados, separar, resecar espolón y cartílago desviado, reposicionar. Seguila en Cirugía guiada.', 10000), 800); }
 if (PH6) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Poliposis nasosinusal'; setTimeout(() => toast('Poliposis nasosinusal: pólipos en el meato medio, el receso frontal, el etmoides anterior y posterior, la hendidura olfatoria y el receso esfenoetmoidal. Usá el shaver (sólo tejido blando), la pinza cortante o la de agarre. Base: Fantoma Human Atlas.', 10000), 800); }
 if (PH4) { segOn('model', 'generic'); $('h1').textContent = 'EndoNasal 3DSim · Fantoma Human Atlas'; setTimeout(() => toast('Fantoma Human Atlas: la fosa del Fantoma 2 con la órbita (globo, rectos, oblicuo superior), el nervio óptico, la carótida interna y la basilar ubicados según Z-Anatomy. La capa de mallas reales (vasos, senos cavernosos, pares craneales, hipófisis, quiasma) se activa en el panel; con rayos X se ven por transparencia.', 10000), 800); }
+if (PH7) { $('h1').textContent = 'EndoNasal 3DSim · Fantoma 7 (TC real)'; segOn('model', 'ct'); setTimeout(f7Load, 300); }
 if (PH2) { segOn('model', 'generic'); setAtlas(true); $('h1').textContent = 'EndoNasal 3DSim · Fantoma 2'; setTimeout(() => toast('Fantoma 2: proporciones del promedio de TC normales. Etmoides más corto (bulla grande, receso retrobullar corto, lamela basal oblicua a ~11 mm del esfenoides) y arterias etmoidales según la regla 24-12-6. Colores de atlas activados (podés pasar a mucosa).', 9000), 800); }
 renderer.setAnimationLoop(() => {
   if (state.busy && !state.vr) return;   // durante la carga de la TC se pausa el render para acelerar

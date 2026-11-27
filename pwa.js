@@ -10,7 +10,7 @@
   const safari = /Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua);
   const btn = document.createElement('button');
   btn.textContent = '⬇ Instalar en el escritorio'; btn.title = 'Instalar EndoNasal 3DSim como app con su ícono';
-  btn.style.cssText = 'position:fixed;right:12px;bottom:50px;z-index:50;padding:7px 12px;border-radius:16px;border:1px solid #2f5b4f;background:#0f1a17;color:#9fd8c6;font-size:12.5px;cursor:pointer;display:none';
+  btn.style.cssText = 'position:fixed;right:12px;bottom:50px;z-index:50;padding:8px 14px;border-radius:16px;border:1px solid #4fd1a5;background:#12352b;color:#d8fff1;font-weight:600;font-size:12.5px;cursor:pointer;display:none';
   const help = msg => {
     const o = document.createElement('div');
     o.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(6,10,14,.85);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
@@ -24,10 +24,11 @@
     if (deferred) { deferred.prompt(); const r = await deferred.userChoice; deferred = null; if (r.outcome === 'accepted') btn.remove(); return; }
     if (iOS) help('Tocá el botón <b>Compartir</b> (el cuadrado con la flecha) y elegí <b>“Agregar a inicio”</b>. El ícono queda en la pantalla y la app abre a pantalla completa.');
     else if (safari) help('En la barra de menú de Safari elegí <b>Archivo → Agregar al Dock…</b> y confirmá. El ícono queda en el Dock y en Aplicaciones, y la app abre en su propia ventana.');
-    else help('Este navegador no permite instalar apps. Abrí esta página en <b>Google Chrome</b> o <b>Microsoft Edge</b> y tocá de nuevo este botón (o el ícono de instalar ⊕ en la barra de direcciones).');
+    else if (/Chrome|Chromium|Edg/.test(ua)) help('En <b>Chrome</b>: tocá el menú <b>⋮</b> (arriba a la derecha) → <b>Transmitir, guardar y compartir</b> → <b>Instalar página como app…</b> (o el ícono de instalar ⊕ a la derecha de la barra de direcciones).<br><br>En <b>Edge</b>: menú <b>…</b> → <b>Aplicaciones</b> → <b>Instalar este sitio como aplicación</b>.<br><br>Si ya la instalaste antes, buscala en el Launchpad como <b>EndoNasal 3DSim</b>.');
+    else help('Este navegador no permite instalar apps. Abrí esta página en <b>Google Chrome</b> o <b>Microsoft Edge</b> y tocá de nuevo este botón.');
   };
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = 'block'; });
   addEventListener('appinstalled', () => btn.remove());
-  const add = () => { document.body.appendChild(btn); if (iOS || safari || /Firefox/.test(ua)) btn.style.display = 'block'; };
+  const add = () => { document.body.appendChild(btn); btn.style.display = 'block'; };   // siempre visible (salvo dentro de la app ya instalada)
   document.body ? add() : addEventListener('DOMContentLoaded', add);
 })();
